@@ -1,0 +1,233 @@
+=====================================================================
+DUMRAON CAB WEBSITE AUDIT
+Site: https://www.dumraoncab.com
+Scanned: 31 August 2026 | Pages reviewed: 6 | Platform: Next.js
+=====================================================================
+
+
+1. THE VERDICT (AT A GLANCE)
+---------------------------------------------------------------------
+Dumraon Cab Service has a real, working website with a clear
+proposition, sensible navigation, genuine fleet photos, and good
+technical bones (Next.js, proper robots.txt and XML sitemap, tidy
+meta tags). But the site currently undermines its own trust claims:
+
+  - Stats counters render as "0+" (customers, vehicles, years, trips)
+  - Testimonials and FAQ sections are empty shells
+  - No price appears anywhere on the site
+  - Hero and share images are generic stock photos, not their cars
+  - Google verification tag is still the literal placeholder
+    "your-google-verification-code"
+
+The five fixes that matter most: repair the "0+" counters, publish
+real testimonials and FAQs, show indicative pricing, replace stock
+photos with their own fleet shots, and finish the local-SEO
+groundwork (Search Console verification, structured data, Google
+Business Profile).
+
+
+2. THE BUSINESS
+---------------------------------------------------------------------
+Name:            Dumraon Cab Service (styled "dumraon Cab Service")
+What it is:      Chauffeur-driven car rental / taxi service
+Base:            Dumraon, Buxar district, Bihar - 802136
+Operating since: 2014 (claims growth from 3 to 100+ vehicles)
+Claimed scale:   100+ vehicles | 1000+ customers | 4.9-star rating
+Availability:    24/7, including "emergency booking"
+Phones:          95258 02341 (primary + WhatsApp)
+                 70616 17560, 95075 38143 (alternates)
+Email:           info@dumraoncab.com
+
+
+3. EXACTLY WHAT THEY SELL
+---------------------------------------------------------------------
+Six services, all chauffeur-driven (taxi operation, not self-drive):
+
+  1. Hourly Rental
+     Car with driver booked by duration - the booking widget offers
+     4, 8, 12, and 24-hour slots for local use around Dumraon.
+
+  2. Outstation Trips
+     One-way or round-trip journeys from Dumraon across Bihar and
+     India - the classic long-distance taxi product.
+
+  3. Airport & Railway Transfers
+     Pickups and drop-offs, advertised with flight-tracked timing
+     (nearest major airport: Patna; rail hubs: Buxar, Ara).
+
+  4. One-Way Drops
+     Budget point-to-point transfers, pay for one direction only.
+
+  5. Wedding Packages
+     Decorated cars and multi-vehicle convoys for weddings and
+     special occasions - a big seasonal earner in this market.
+
+  6. Corporate Rental
+     Recurring business travel and staff transport arrangements.
+
+THE ACTUAL FLEET (from the gallery - 9 real photographed vehicles):
+  Scorpio VLX, Scorpio Classic, Scorpio, XL6, Nexon, Altroz,
+  Grand i10, Tiber, Magic Pickup (goods/utility).
+
+  The site markets five categories (hatchback, sedan, SUV, MUV,
+  luxury) and the meta keywords promise Innova Crysta and Fortuner
+  rentals, though neither appears in the gallery. The real strength
+  is clearly SUVs and compact cars.
+
+HOW CUSTOMERS CAN BOOK TODAY:
+  - Phone call to any of three numbers
+  - WhatsApp chat with a pre-filled booking message
+  - Quick-booking widget on the homepage (car type, dates, duration)
+  - A dedicated /booking page and a contact form
+  - Email
+
+PRICING: None published anywhere. The copy promises "affordable,
+transparent pricing" and "no hidden charges" but gives no rates,
+per-km figures, or package prices.
+
+
+4. PAGE-BY-PAGE STATE
+---------------------------------------------------------------------
+/          Hero, quick-booking widget, services grid, "why choose
+           us", 4-step process, stats, testimonials, FAQs, contact
+           form. -> Stats show "0+"; testimonials and FAQs empty.
+
+/about     Story since 2014, driver-verification claims, mission
+           and vision. -> Good copy; same broken "0+" counters.
+
+/services  Six service category cards. -> Names only; every card
+           links back to /services itself, no detail pages.
+
+/gallery   9 real fleet photos via Cloudinary. -> Works; model
+           names only, no captions.
+
+/contact   Form, all phone numbers, WhatsApp link, address.
+           -> No map embed; FAQ block empty.
+
+/booking   Booking flow. -> Renders only in the browser; empty
+           HTML for crawlers despite priority 0.9 in the sitemap.
+
+Also present: an /admin area and /api routes (excluded via
+robots.txt), so there is a custom backend behind the booking flow.
+
+
+5. WHAT'S ALREADY WORKING
+---------------------------------------------------------------------
+  + Clear positioning ("Bihar's most trusted cab service") with
+    service cards a visitor understands in seconds
+  + Multiple low-friction contact paths, especially the pre-filled
+    WhatsApp link - right for this audience
+  + Real photography of the actual fleet, already on Cloudinary
+  + Proper robots.txt and XML sitemap covering all six pages
+  + Sensible homepage meta title, description, and keywords
+  + Modern stack: Next.js with optimized, responsive images
+
+
+6. ISSUES FOUND
+---------------------------------------------------------------------
+[CRITICAL] Stat counters display "0+" everywhere
+  Home and About both show 0+ happy customers, 0+ vehicles, 0+
+  years, 0+ trips - the count-up animation never fires, so the site
+  visibly contradicts its own "1000+ customers, 100+ cars" claims.
+  Worse than showing nothing. Fix the trigger or hard-code numbers.
+
+[CRITICAL] No pricing anywhere
+  Cab customers in this market compare on price first. "Transparent
+  pricing" with zero published rates sends visitors to WhatsApp
+  just to ask what a trip costs - many won't bother. Even
+  "Dumraon -> Patna Airport from Rs. X" per category would convert.
+
+[CRITICAL] Testimonials section is an empty shell
+  A 4.9-star rating is claimed, but the testimonials block contains
+  no reviews at all. Social proof is the strongest trust lever for
+  a local service business.
+
+[CRITICAL] Google verification tag is a placeholder
+  The page ships: meta name="google-site-verification"
+  content="your-google-verification-code" - the site was never
+  verified in Search Console, so nobody is monitoring how (or
+  whether) it appears in Google.
+
+[HIGH] No structured data, no canonical tags
+  No LocalBusiness/TaxiService JSON-LD (name, phone, geo, hours,
+  rating) and no canonical URLs. For a business found via "cab
+  service near me" searches, this is the biggest SEO gap.
+
+[HIGH] Booking page is invisible to crawlers
+  /booking ships an empty server response and renders entirely in
+  client-side JavaScript - slow first paint on cheap phones and
+  nothing for Google to index.
+
+[HIGH] Stock photos where real ones exist
+  Homepage hero is a Pexels photo; the social-share (OG) image is
+  an Unsplash photo of a generic car - while nine genuine fleet
+  photos sit unused in the gallery. Real cars with Bihar plates
+  build far more trust than stock imagery.
+
+[HIGH] Empty FAQs and thin services page
+  FAQ blocks on Home and Contact render with no questions. The
+  services page lists six category names with no descriptions, and
+  every card links back to /services itself. Nothing to rank,
+  nothing to persuade.
+
+[MEDIUM] Loose ends that read as unfinished
+  - Social icons (Facebook, Instagram, YouTube) link nowhere
+  - No Google Map embed despite a written address
+  - Brand typed lowercase "dumraon" in titles and copy
+  - "Popular Destinations" section referenced but never populated
+  - Keywords promise Innova Crysta / Fortuner / "luxury" that the
+    gallery doesn't show
+
+
+7. IMPROVEMENT ROADMAP
+---------------------------------------------------------------------
+PHASE 1 - QUICK WINS: FINISH WHAT'S BUILT (~1 week)
+  [ ] Fix the "0+" counters or replace with static real numbers
+      -> removes the site's most damaging self-contradiction
+  [ ] Add 6-10 real testimonials (collect from WhatsApp chats and
+      past customers, with name and route)
+  [ ] Write the FAQs: fares and billing, night/driver charges,
+      cancellation, outstation rules, vehicle categories
+  [ ] Swap hero and OG images to their own Scorpio/fleet photos
+      already hosted on Cloudinary
+  [ ] Fix brand casing to "Dumraon Cab Service" everywhere
+  [ ] Embed a Google Map on Contact
+  [ ] Wire up or remove the dead social links
+
+PHASE 2 - LOCAL SEO: THE REAL GROWTH LEVER (2-4 weeks)
+  [ ] Verify Search Console (replace placeholder tag), submit
+      the sitemap
+  [ ] Set up / claim Google Business Profile and start a steady
+      review pipeline (cab customers pick from the map pack far
+      more than from websites)
+  [ ] Add LocalBusiness / TaxiService JSON-LD with phone, geo,
+      hours, rating; add canonical tags and per-page metadata
+  [ ] Build one real page per service (hourly, outstation, airport,
+      one-way, wedding, corporate) with copy, photos, FAQs, and
+      unique title/description each
+  [ ] Create route landing pages: Dumraon -> Patna Airport, Buxar,
+      Ara, Varanasi, Gaya - with distance, time, "fares from Rs. X"
+      (these queries are exactly how outstation customers search)
+  [ ] Server-render the booking page so it indexes and paints fast
+      on budget phones
+  [ ] Add Hindi - a toggle or Hindi-first copy for local audience
+
+PHASE 3 - CONVERSION & PRODUCT (1-2 months)
+  [ ] Publish a rate card (Rs./km per category + hourly package
+      prices) or an instant estimate inside the booking widget
+  [ ] Sticky mobile call / WhatsApp bar (most visitors are on
+      phones and want to talk, not fill forms)
+  [ ] WhatsApp booking confirmations with driver name, number,
+      and vehicle plate
+  [ ] Driver profiles and a safety page that make the
+      "police-verified drivers, GPS tracking" claims concrete
+  [ ] Performance pass: serve their own imagery everywhere, drop
+      remaining stock-CDN dependencies, trim preloads
+
+
+---------------------------------------------------------------------
+Sources: dumraoncab.com - home, /about, /services, /gallery,
+/contact, /booking, robots.txt, sitemap.xml, raw HTML head.
+Scanned 31 August 2026. Claims of scale (fleet, customers, rating)
+are the site's own and were not independently verified.
+=====================================================================
