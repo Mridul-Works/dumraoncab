@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Dumraon Cab identity — clean marketplace: white ground, near-black ink, green trust accent */
+  --color-night: #17181c;
+  --color-coal: #23252b;
+  --color-paper: #ffffff;
+  --color-cream: #f6f7f8;
+  --color-ink: #17181c;
+  --color-khaki: #5e6470;
+  --color-sand: #a3aab5;
+  --color-line: #e7e9ec;
+  --color-linedark: #34373f;
+  --color-amber: #10a55a;
+  --color-amberdeep: #0b7a42;
+  --color-leaf: #10a55a;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-amber);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+/* Section seam — quiet hairline (top of page and above the footer) */
+.taxi-stripe {
+  height: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+/* Fare tag — soft white pill for prices and phone numbers */
+.plate {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  background: #fff;
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgb(23 24 28 / 0.08);
+}
+
+/* Hairline divider for dark panels */
+.road-line {
+  height: 0;
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+}
+
+details.faq summary {
+  cursor: pointer;
+  list-style: none;
+}
+details.faq summary::-webkit-details-marker {
+  display: none;
+}
+details.faq summary .faq-icon {
+  transition: transform 0.2s ease;
+}
+details.faq[open] summary .faq-icon {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
