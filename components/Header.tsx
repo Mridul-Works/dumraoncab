@@ -19,16 +19,16 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-5 py-3 md:px-8">
-        <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-          <span className="grid size-10 place-items-center rounded-xl bg-night font-display text-lg font-extrabold text-white">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 md:gap-6 md:px-8">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5" onClick={() => setOpen(false)}>
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-night font-display text-base font-extrabold text-white md:size-10 md:text-lg">
             DC
           </span>
-          <span className="leading-tight">
-            <span className="block font-display text-base font-extrabold tracking-tight text-ink">
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate font-display text-sm font-extrabold tracking-tight text-ink sm:text-base">
               Dumraon Cab Service
             </span>
-            <span className="block font-mono text-[10px] uppercase tracking-[0.18em] text-khaki">
+            <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-khaki sm:block">
               Since 2014 · Buxar, Bihar
             </span>
           </span>
@@ -48,10 +48,10 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 lg:ml-6">
+        <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3 lg:ml-6">
           <a
             href={`tel:${site.phone}`}
-            className="hidden items-center gap-2 rounded-full border border-line px-4 py-2 font-mono text-sm font-semibold text-ink transition-colors hover:border-amber hover:text-amberdeep sm:flex"
+            className="hidden items-center gap-2 rounded-full border border-line px-4 py-2 font-mono text-sm font-semibold text-ink transition-colors hover:border-amber hover:text-amberdeep md:flex"
           >
             <PhoneIcon />
             {site.phoneDisplay}
@@ -60,16 +60,17 @@ export default function Header() {
             href={waLink(defaultWaText)}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full bg-night px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-coal"
+            className="rounded-full bg-night px-3.5 py-2 text-xs font-bold whitespace-nowrap text-white transition-colors hover:bg-coal sm:px-5 sm:py-2.5 sm:text-sm"
           >
-            Book on WhatsApp
+            <span className="sm:hidden">WhatsApp</span>
+            <span className="hidden sm:inline">Book on WhatsApp</span>
           </a>
           <button
             type="button"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            className="grid size-10 place-items-center rounded-full border border-line text-ink lg:hidden"
+            className="grid size-9 shrink-0 place-items-center rounded-full border border-line text-ink md:size-10 lg:hidden"
           >
             <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
             <MenuIcon open={open} />

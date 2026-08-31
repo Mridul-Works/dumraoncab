@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { FaqList, RouteCard, ServiceCard, TestimonialGrid } from "@/components/cards";
 import FleetBrowser from "@/components/FleetBrowser";
+import HeroBooking from "@/components/HeroBooking";
 import { CtaBand, SectionHead } from "@/components/ui";
-import { faqs, fleet, routes, services, site, steps, waLink, defaultWaText } from "@/lib/site";
+import { faqs, routes, services, site, steps, waLink } from "@/lib/site";
 
 const faqJsonLd = {
   "@context": "https://schema.org",
@@ -20,83 +20,20 @@ export default function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
-      {/* Hero */}
-      <section>
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-14 pt-12 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:gap-14 lg:pb-18 lg:pt-16">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-cream px-4 py-1.5 text-xs font-semibold text-khaki">
-              <span className="size-1.5 rounded-full bg-amber" aria-hidden="true" />
-              Cab &amp; car rental · Dumraon, Buxar · since {site.foundedYear}
-            </p>
-            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-balance text-ink sm:text-5xl lg:text-6xl">
-              Anywhere in Bihar.
-              <br />
-              <span className="text-amberdeep">Any hour.</span>
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-khaki md:text-lg">
-              Chauffeur-driven Scorpios, sedans and hatchbacks for airport runs, weddings,
-              outstation trips and hourly hire. Fixed fares quoted before the car leaves —
-              pay cash or UPI when the trip ends.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href={`tel:${site.phone}`}
-                className="rounded-full bg-night px-7 py-3.5 font-mono text-base font-semibold text-white transition-colors hover:bg-coal"
-              >
-                Call {site.phoneDisplay}
-              </a>
-              <a
-                href={waLink(defaultWaText)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full bg-amberdeep px-7 py-3.5 text-base font-bold text-white transition-colors hover:bg-night"
-              >
-                Book on WhatsApp
-              </a>
-            </div>
-            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-khaki">
-              {["Police-verified drivers", "No hidden charges", "24/7, including 3 AM"].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <span className="text-amberdeep" aria-hidden="true">✓</span>
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </div>
+      {/* Hero — booking-widget-first, MakeMyTrip style */}
+      <HeroBooking />
 
-          <div className="relative">
-            <div className="overflow-hidden rounded-2xl border border-line shadow-xl shadow-night/10">
-              <Image
-                src={fleet[0].image}
-                alt="Scorpio VLX from the Dumraon Cab Service fleet"
-                width={720}
-                height={540}
-                priority
-                sizes="(max-width: 1024px) 92vw, 45vw"
-                className="aspect-[4/3] w-full bg-cream object-cover"
-              />
+      {/* Real numbers, rendered statically — no counters to break */}
+      <div className="border-b border-line bg-cream">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-5 py-9 md:grid-cols-4 md:px-8">
+          {site.stats.map((s) => (
+            <div key={s.label}>
+              <p className="font-display text-3xl font-extrabold text-ink md:text-4xl">{s.value}</p>
+              <p className="mt-1 text-sm font-medium text-khaki">{s.label}</p>
             </div>
-            <span className="plate absolute -bottom-4 left-6 text-base">
-              EST. {site.foundedYear}
-            </span>
-            <p className="absolute right-4 top-4 rounded-full bg-white/90 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink shadow-sm">
-              Our own car — no stock photos
-            </p>
-          </div>
+          ))}
         </div>
-
-        {/* Real numbers, rendered statically — no counters to break */}
-        <div className="border-y border-line bg-cream">
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-5 py-9 md:grid-cols-4 md:px-8">
-            {site.stats.map((s) => (
-              <div key={s.label}>
-                <p className="font-display text-3xl font-extrabold text-ink md:text-4xl">{s.value}</p>
-                <p className="mt-1 text-sm font-medium text-khaki">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
 
       {/* Services */}
       <section className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20" id="services">
