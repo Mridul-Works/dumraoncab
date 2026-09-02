@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FaqList, RouteCard, ServiceCard, TestimonialGrid } from "@/components/cards";
 import FleetBrowser from "@/components/FleetBrowser";
 import HeroBooking from "@/components/HeroBooking";
+import Reveal from "@/components/Reveal";
 import { CtaBand, SectionHead } from "@/components/ui";
 import { faqs, routes, services, site, steps, waLink } from "@/lib/site";
 
@@ -42,11 +43,11 @@ export default function HomePage() {
           title="What you can book"
           lede="Six ways we put a car and a trusted driver at your door — each with its own fares and details."
         />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Reveal className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((s) => (
             <ServiceCard key={s.slug} service={s} />
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* Fleet */}
@@ -80,7 +81,7 @@ export default function HomePage() {
           title="Fixed fares on the roads you take most"
           lede="Indicative starting fares for our most-booked routes. Message us your exact pickup point for a firm quote."
         />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Reveal className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {routes.map((r) => (
             <RouteCard key={r.slug} route={r} />
           ))}
@@ -98,7 +99,7 @@ export default function HomePage() {
               Ask for any route on WhatsApp →
             </a>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* How it works — a real 4-step sequence */}
@@ -109,15 +110,27 @@ export default function HomePage() {
             eyebrow="How it works"
             title="Booked in one call, paid after the trip"
           />
-          <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step, i) => (
-              <li key={step.title} className="relative">
-                <span className="font-mono text-sm font-semibold text-amber">Step {i + 1}</span>
-                <h3 className="mt-2 font-display text-lg font-extrabold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-sand">{step.text}</p>
-              </li>
-            ))}
-          </ol>
+          <Reveal>
+            <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {steps.map((step, i) => (
+                <li
+                  key={step.title}
+                  className="relative rounded-2xl border border-linedark/70 bg-white/[0.04] p-5 transition-colors hover:border-amber/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-amber/15 font-display text-base font-extrabold text-amber">
+                      {i + 1}
+                    </span>
+                    {i < steps.length - 1 && (
+                      <span aria-hidden="true" className="hidden h-px flex-1 bg-linedark lg:block" />
+                    )}
+                  </div>
+                  <h3 className="mt-4 font-display text-lg font-extrabold">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-sand">{step.text}</p>
+                </li>
+              ))}
+            </ol>
+          </Reveal>
         </div>
       </section>
 
@@ -127,7 +140,7 @@ export default function HomePage() {
           eyebrow="Why riders stay"
           title="Ten years of showing up on time"
         />
-        <div className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        <Reveal className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Fixed fare before pickup", "The quote you get on WhatsApp is the fare you pay. Tolls at actuals, receipts shared."],
             ["Verified local drivers", "Police-verified, background-checked drivers who know every road in Buxar district."],
@@ -141,7 +154,7 @@ export default function HomePage() {
               <p className="mt-1.5 text-sm leading-relaxed text-khaki">{text}</p>
             </div>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* Testimonials */}
@@ -151,9 +164,9 @@ export default function HomePage() {
             eyebrow="Rider stories"
             title="What people say after the trip"
           />
-          <div className="mt-10">
+          <Reveal className="mt-10">
             <TestimonialGrid />
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -163,9 +176,9 @@ export default function HomePage() {
           eyebrow="Before you book"
           title="Questions we hear every day"
         />
-        <div className="mt-8">
+        <Reveal className="mt-8">
           <FaqList />
-        </div>
+        </Reveal>
       </section>
 
       <CtaBand />

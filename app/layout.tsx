@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import StickyCallBar from "@/components/StickyCallBar";
+import WhatsAppFab from "@/components/WhatsAppFab";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -45,9 +46,18 @@ export const metadata: Metadata = {
     title: "Dumraon Cab Service | Cabs & Car Rental in Dumraon, Buxar, Bihar",
     description: site.description,
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dumraon Cab Service | Cabs & Car Rental in Dumraon, Buxar, Bihar",
+    description: site.description,
+  },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
   // Add Search Console verification once obtained (see README):
   // verification: { google: "PASTE-REAL-CODE-HERE" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#17181c",
 };
 
 const taxiServiceJsonLd = {
@@ -63,6 +73,13 @@ const taxiServiceJsonLd = {
     name: site.name,
     telephone: site.phone,
     email: site.email,
+    priceRange: "₹₹",
+    contactPoint: [site.phone, ...site.altPhones.map((p) => p.raw)].map((telephone) => ({
+      "@type": "ContactPoint",
+      telephone,
+      contactType: "customer service",
+      availableLanguage: ["Hindi", "English"],
+    })),
     address: {
       "@type": "PostalAddress",
       addressLocality: site.address.locality,
@@ -89,10 +106,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(taxiServiceJsonLd) }}
         />
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-night focus:px-4 focus:py-2 focus:font-semibold focus:text-white"
+        >
+          Skip to content
+        </a>
         <div className="taxi-stripe" aria-hidden="true" />
         <Header />
-        <main className="pb-16 md:pb-0">{children}</main>
+        <main id="main" className="pb-16 md:pb-0">
+          {children}
+        </main>
         <Footer />
+        <WhatsAppFab />
         <StickyCallBar />
       </body>
     </html>

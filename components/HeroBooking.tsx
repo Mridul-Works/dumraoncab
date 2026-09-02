@@ -78,7 +78,10 @@ export default function HeroBooking() {
         </p>
 
         {/* Booking card */}
-        <form onSubmit={handleSubmit} className="relative mt-6 rounded-2xl bg-white pb-5 shadow-2xl md:mt-8 md:pb-10">
+        <form
+          onSubmit={handleSubmit}
+          className="relative mt-6 rounded-2xl bg-white pb-5 shadow-2xl [animation:rise_.45s_ease-out] md:mt-8 md:pb-10"
+        >
           {/* Service tabs */}
           <div
             className="flex justify-start overflow-x-auto border-b border-line px-2 [-ms-overflow-style:none] [scrollbar-width:none] md:justify-center [&::-webkit-scrollbar]:hidden"
@@ -225,7 +228,19 @@ export default function HeroBooking() {
           </button>
         </form>
 
-        <p className="mt-7 text-center text-sm text-white/85 md:mt-12">
+        <ul className="mt-9 flex flex-wrap items-center justify-center gap-2 md:mt-14">
+          {["Fixed fares, no surprises", "Police-verified drivers", "Clean, insured cars"].map((t) => (
+            <li
+              key={t}
+              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm"
+            >
+              <span className="text-amber" aria-hidden="true">✓</span>
+              {t}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-5 text-center text-sm text-white/85">
           Prefer to talk?{" "}
           <a href={`tel:${site.phone}`} className="font-mono font-bold text-amber hover:underline">
             Call {site.phoneDisplay}

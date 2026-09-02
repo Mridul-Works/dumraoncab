@@ -89,3 +89,30 @@ details.faq[open] summary .faq-icon {
     scroll-behavior: auto !important;
   }
 }
+
+/* --- motion polish --- */
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Scroll-reveal (class added by JS only, so no-JS visitors see everything) */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}

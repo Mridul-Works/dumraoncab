@@ -31,8 +31,16 @@ export function SectionHead({
 
 export function CtaBand({ heading = "Need a cab in the next hour?" }: { heading?: string }) {
   return (
-    <section className="bg-night">
-      <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-5 py-14 md:flex-row md:items-center md:justify-between md:px-8">
+    <section className="relative overflow-hidden bg-night">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-amber/15 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-32 -left-16 size-72 rounded-full bg-amber/10 blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-6 px-5 py-14 md:flex-row md:items-center md:justify-between md:px-8">
         <div>
           <h2 className="font-display text-2xl font-extrabold tracking-tight text-paper md:text-3xl">{heading}</h2>
           <p className="mt-1.5 text-sand">

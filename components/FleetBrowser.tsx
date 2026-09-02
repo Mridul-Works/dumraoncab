@@ -78,7 +78,7 @@ export default function FleetBrowser() {
                 alt={`${v.name} — ${v.category} in the Dumraon Cab Service fleet`}
                 fill
                 sizes="300px"
-                className="object-cover"
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
               />
               <span className="absolute bottom-3 right-3 rounded-lg bg-night/90 px-2.5 py-1.5 font-mono text-xs font-semibold text-paper">
                 {v.rate === "On request" ? "On request" : `${v.rate}`}

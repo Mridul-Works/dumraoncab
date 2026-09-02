@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // The previous live site served the fleet at /gallery — keep that URL working.
+      { source: "/gallery", destination: "/fleet", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;
