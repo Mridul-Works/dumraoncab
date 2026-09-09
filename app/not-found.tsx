@@ -10,7 +10,11 @@ export default function NotFound() {
       </h1>
       <p className="mt-4 max-w-xl leading-relaxed text-khaki">
         The page you were looking for has moved or was never here. The routes below will get you back
-        on the highway — or just call {site.phoneDisplay} and book the old-fashioned way.
+        on the highway — or just call{" "}
+        <a href={`tel:${site.phone}`} className="font-mono font-semibold text-amberdeep">
+          {site.phoneDisplay}
+        </a>{" "}
+        and book the old-fashioned way.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/" className="rounded-full bg-night px-6 py-3 font-bold text-white hover:bg-coal">

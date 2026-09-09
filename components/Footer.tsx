@@ -46,6 +46,11 @@ export default function Footer() {
               </li>
             ))}
             <li>
+              <Link href="/routes" className="text-paper/80 transition-colors hover:text-amber">
+                All routes &amp; fares
+              </Link>
+            </li>
+            <li>
               <Link href="/fleet" className="text-paper/80 transition-colors hover:text-amber">
                 Our fleet
               </Link>
@@ -80,7 +85,13 @@ export default function Footer() {
 
       <div className="border-t border-linedark">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-5 text-xs text-sand md:flex-row md:items-center md:justify-between md:px-8">
-          <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} {site.name}. All rights reserved.
+            <span className="mx-2" aria-hidden="true">·</span>
+            <Link href="/privacy" className="hover:text-amber">Privacy</Link>
+            <span className="mx-2" aria-hidden="true">·</span>
+            <Link href="/terms" className="hover:text-amber">Terms</Link>
+          </p>
           <p>Serving {site.serviceAreas.slice(0, -1).join(" · ")}</p>
         </div>
       </div>

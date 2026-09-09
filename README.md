@@ -7,10 +7,21 @@ server-rendered booking page.
 
 ## Stack
 
-- Next.js 16 (App Router, all pages statically generated)
-- Tailwind CSS v4, next/font (Archivo · IBM Plex Sans · IBM Plex Mono)
-- No backend needed — the booking form composes a WhatsApp message
+- Next.js 16 (App Router; public pages statically generated, admin/API dynamic)
+- Tailwind CSS v4, next/font (Plus Jakarta Sans · IBM Plex Mono)
+- Booking flow: forms compose a WhatsApp message AND record the request via `/api/bookings`
 - Fleet photos load from the operator's existing Cloudinary account
+- `FEATURES.txt` is the living feature inventory — update it with every feature change
+
+## Admin panel
+
+`/admin` shows everything: booking requests from the site (with status workflow),
+fleet, routes, fares and content overview.
+
+- Password: set `ADMIN_PASSWORD` in `.env.local` (dev fallback: `dumraon123` — change before launch).
+- Session: httpOnly cookie, 30 days; `/admin` is noindex and blocked in robots.txt.
+- Storage: `data/bookings.json` (gitignored). Fine on a VPS/Node host; on serverless
+  hosts the filesystem is ephemeral — swap `lib/store.ts` for a database first.
 
 ## Run it
 

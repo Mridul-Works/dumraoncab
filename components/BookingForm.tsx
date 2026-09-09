@@ -11,10 +11,29 @@ const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
 // this business actually confirms bookings on. Swap handleSubmit for an API call later.
 export default function BookingForm() {
   const [sent, setSent] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
+    // Record the request for the admin panel; WhatsApp remains the confirmation channel.
+    fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        source: "booking-form",
+        service: data.get("service"),
+        name: data.get("name"),
+        phone: data.get("phone"),
+        from: data.get("pickup"),
+        to: data.get("drop"),
+        date: data.get("date"),
+        time: data.get("time"),
+        car: data.get("car"),
+        notes: data.get("notes"),
+      }),
+    }).catch(() => {});
     const lines = [
       "*New booking request — dumraoncab.com*",
       `Name: ${data.get("name")}`,
@@ -80,7 +99,7 @@ export default function BookingForm() {
         </div>
         <div>
           <label htmlFor="bf-date" className={labelCls}>Travel date</label>
-          <input id="bf-date" name="date" required type="date" className={inputCls} />
+          <input id="bf-date" name="date" required type="date" min={today} className={inputCls} />
         </div>
         <div>
           <label htmlFor="bf-time" className={labelCls}>Pickup time <span className="font-normal text-khaki">(optional)</span></label>

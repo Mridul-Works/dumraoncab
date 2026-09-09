@@ -1,0 +1,124 @@
+=====================================================================
+DUMRAON CAB SERVICE — FEATURE INVENTORY
+Last updated: 2026-09-02
+---------------------------------------------------------------------
+MAINTENANCE RULE: this file is the living list of everything the
+site does. Whenever a feature is added, changed or removed, update
+the matching section here in the same commit. (Rule also recorded
+in CLAUDE.md so AI assistants keep it current automatically.)
+=====================================================================
+
+
+1. PUBLIC PAGES (all statically generated)
+---------------------------------------------------------------------
+/                     Home: booking hero, stats, services, fleet
+                      browser, routes & fares, how-it-works,
+                      why-us, testimonials, FAQ, CTA band
+/services             Services index (6 cards with icons)
+/services/[slug]      6 detail pages: hourly-rental, outstation-
+                      trips, airport-transfers, one-way-drops,
+                      wedding-cars, corporate-rental — copy,
+                      inclusions, car advice, quote sidebar
+/fleet                Fleet browser + per-km & hourly fare tables
+/routes               Routes index (all popular routes at a glance)
+/routes/[slug]        5 fare pages: dumraon-to-patna-airport,
+                      -buxar, -ara, -varanasi, -gaya — distance,
+                      time, from-fare, inclusions, booking sidebar
+/booking              Booking form + rate cards + odd-hour panel
+                      + FAQ
+/about                Story, standards grid, mission
+/contact              Call/WhatsApp/email cards + address +
+                      embedded Google Map
+/privacy, /terms      Legal pages (linked from footer)
+404 page              Custom "wrong turn" page with tel: link
+error page            Friendly runtime-error boundary (app/error.tsx)
+/gallery              301-redirects to /fleet (old site URL kept)
+
+2. BOOKING CHANNELS & FLOWS
+---------------------------------------------------------------------
+- Hero booking widget (MakeMyTrip-style): 6 service tabs with icons
+  (Outstation / Hourly / Airport / One-Way / Wedding / Corporate),
+  Round-Trip/One-Way toggle, From/To/Date/Time/Car fields, popular-
+  route quick chips with fares, submit feedback message
+- Full booking form on /booking (name, phone, service, car, pickup,
+  drop, date, time, notes)
+- Both forms: compose a pre-filled WhatsApp message AND save the
+  request to the admin panel via POST /api/bookings (fire-and-forget)
+- Past dates blocked (min=today) on all date fields
+- Per-car "Book" links in the fleet browser (WhatsApp, car name
+  pre-filled); per-service and per-route WhatsApp quote buttons
+- Direct: 3 tel: numbers, WhatsApp deep links, mailto
+- Mobile sticky Call/WhatsApp bar (iOS safe-area aware)
+- Desktop floating WhatsApp button (bottom-right)
+
+3. HOME PAGE SECTIONS (in order)
+---------------------------------------------------------------------
+Hero (photo backdrop of own Scorpio + booking card + trust chips)
+→ static stats strip (10+ yrs, 100+ vehicles, 1000+ customers, 24/7)
+→ services grid → fleet browser (filter chips, snap carousel,
+arrow controls, price badges, "Verified · Own fleet" bands)
+→ routes & fares grid → how-it-works (4 numbered step cards)
+→ why-us grid → testimonials (avatars, stars, quote mark)
+→ FAQ accordion (native <details>) → CTA band with glow
+
+4. ADMIN PANEL (/admin — noindex, password-protected)
+---------------------------------------------------------------------
+- Login with password (ADMIN_PASSWORD env; httpOnly SHA-256 cookie,
+  30-day session; logout button)
+- Stats tiles: total website bookings, awaiting confirmation,
+  received today, travelling today
+- Bookings table: newest first — received time, customer (name +
+  clickable phone), trip, travel date, car, source (widget/form),
+  status dropdown (new / confirmed / completed / cancelled) saved
+  via PATCH; empty-state explains what appears here
+- Fleet table with photo thumbnails, category, seats, specs, rate
+- Routes table and published fares (per-km + hourly packages)
+- Content overview: services / testimonials / FAQ counts + all
+  contact channels
+- Pointer to lib/site.ts as the single place content is edited
+
+5. API (Node runtime; data in data/bookings.json — gitignored)
+---------------------------------------------------------------------
+POST  /api/bookings        public — save a booking request
+GET   /api/bookings        admin — list all bookings
+PATCH /api/bookings/[id]   admin — update booking status
+POST  /api/admin/login     set admin cookie; DELETE — logout
+NOTE: JSON-file storage suits a VPS/Node host. On serverless
+(Vercel etc.) swap lib/store.ts for a database first.
+
+6. SEO & DISCOVERABILITY
+---------------------------------------------------------------------
+- Per-page titles, descriptions, canonicals; title template
+- JSON-LD: TaxiService + LocalBusiness (geo, hours, priceRange,
+  contactPoint per phone) sitewide; FAQPage on home; Service on
+  service pages; BreadcrumbList on service & route pages
+- sitemap.xml (all 20 public pages) + robots.txt (blocks /admin,
+  /api); admin page additionally noindex
+- OpenGraph + Twitter card; generated branded OG image; SVG favicon
+- PWA manifest; theme-color; /gallery redirect preserves old URL
+
+7. DESIGN SYSTEM & UX
+---------------------------------------------------------------------
+- Tokens in app/globals.css (night/ink/paper/cream/line/khaki/sand
+  + green accent pair); Plus Jakarta Sans + IBM Plex Mono
+- Marketplace look: white surfaces, pill buttons/chips, hairline
+  borders, fare-tag pills (.plate)
+- Motion: hero card rise-in, scroll-reveal sections (JS-applied so
+  no-JS/crawlers see everything), hover micro-interactions (card
+  lift, image zoom, arrow slide), CTA-band glow; all respect
+  prefers-reduced-motion
+- Accessibility: skip-to-content link, visible focus rings, aria
+  labels/roles on tabs/menu/carousel, labelled form fields,
+  keyboard-usable menus and accordions
+- Responsive: verified at 360/390/414 px (zero horizontal overflow),
+  compact mobile header, horizontal-scroll tabs/chips
+
+8. CONTENT (single source: lib/site.ts)
+---------------------------------------------------------------------
+Contact & identity · stats · 6 services · 9-vehicle fleet with real
+Cloudinary photos & specs · per-km rates · hourly packages · fare
+notes · 5 routes with fares · testimonials (SAMPLE — replace before
+launch) · 8 FAQs · 4 booking steps
+Launch checklist lives in README.md (confirm fares, real reviews,
+Search Console, Google Business Profile, ADMIN_PASSWORD).
+=====================================================================

@@ -38,10 +38,27 @@ const toPlaceholder: Record<TabKey, string> = {
 export default function HeroBooking() {
   const [tab, setTab] = useState<TabKey>("Outstation");
   const [tripType, setTripType] = useState<"One Way" | "Round Trip">("Round Trip");
+  const [sent, setSent] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const d = new FormData(e.currentTarget);
+    // Record the request for the admin panel; WhatsApp remains the confirmation channel.
+    fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        source: "hero-widget",
+        service: `${tab}${tab === "Outstation" ? ` (${tripType})` : ""}`,
+        from: d.get("from"),
+        to: d.get("to"),
+        date: d.get("date"),
+        time: d.get("time"),
+        car: d.get("car"),
+      }),
+    }).catch(() => {});
     const lines = [
       `*Booking request — dumraoncab.com*`,
       `Service: ${tab}${tab === "Outstation" ? ` (${tripType})` : ""}`,
@@ -51,6 +68,7 @@ export default function HeroBooking() {
       `Car: ${d.get("car")}`,
     ];
     window.open(waLink(lines.join("\n")), "_blank", "noopener,noreferrer");
+    setSent(true);
   }
 
   return (
@@ -168,6 +186,7 @@ export default function HeroBooking() {
                   name="date"
                   type="date"
                   required
+                  min={today}
                   className="w-full bg-transparent font-display text-lg font-extrabold text-ink focus:outline-none"
                 />
               </Cell>
@@ -216,6 +235,17 @@ export default function HeroBooking() {
                   </button>
                 ))}
               </div>
+            )}
+
+            {sent && (
+              <p className="mt-4 rounded-lg bg-cream px-4 py-3 text-sm text-ink" role="status">
+                Your request opened in WhatsApp — press send there for a fixed quote. Nothing
+                happened? Call{" "}
+                <a href={`tel:${site.phone}`} className="font-mono font-semibold text-amberdeep">
+                  {site.phoneDisplay}
+                </a>
+                .
+              </p>
             )}
           </div>
 

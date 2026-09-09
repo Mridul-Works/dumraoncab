@@ -9,8 +9,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${site.url}/booking`, lastModified, changeFrequency: "weekly", priority: 0.9 },
     { url: `${site.url}/services`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${site.url}/fleet`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${site.url}/routes`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${site.url}/about`, lastModified, changeFrequency: "monthly", priority: 0.6 },
     { url: `${site.url}/contact`, lastModified, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${site.url}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${site.url}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const servicePages: MetadataRoute.Sitemap = services.map((s) => ({

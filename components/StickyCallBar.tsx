@@ -3,7 +3,7 @@ import { site, waLink, defaultWaText } from "@/lib/site";
 // Mobile-only bottom bar: the two actions this audience actually uses.
 export default function StickyCallBar() {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-2 md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-2 pb-[env(safe-area-inset-bottom)] [background:linear-gradient(to_right,var(--color-night)_50%,var(--color-amber)_50%)] md:hidden">
       <a
         href={`tel:${site.phone}`}
         className="flex items-center justify-center gap-2 bg-night py-3.5 font-mono text-sm font-semibold text-paper"

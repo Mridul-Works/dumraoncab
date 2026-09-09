@@ -29,14 +29,25 @@ export default async function RoutePage({ params }: Props) {
   const route = routes.find((r) => r.slug === slug);
   if (!route) notFound();
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: site.url },
+      { "@type": "ListItem", position: 2, name: "Routes", item: `${site.url}/routes` },
+      { "@type": "ListItem", position: 3, name: `${route.from} to ${route.to}`, item: `${site.url}/routes/${route.slug}` },
+    ],
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <section className="bg-night text-paper">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
           <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-wider text-sand">
             <Link href="/" className="hover:text-amber">Home</Link>
             <span className="mx-2">/</span>
-            <span className="text-amber">Routes</span>
+            <Link href="/routes" className="hover:text-amber">Routes</Link>
           </nav>
           <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
             {route.from} <span aria-hidden="true" className="text-amber">⟶</span> {route.to}

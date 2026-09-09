@@ -39,9 +39,20 @@ export default async function ServicePage({ params }: Props) {
     areaServed: site.serviceAreas.map((name) => ({ "@type": "Place", name })),
   };
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: site.url },
+      { "@type": "ListItem", position: 2, name: "Services", item: `${site.url}/services` },
+      { "@type": "ListItem", position: 3, name: service.name, item: `${site.url}/services/${service.slug}` },
+    ],
+  };
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 
       <section className="bg-night text-paper">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
