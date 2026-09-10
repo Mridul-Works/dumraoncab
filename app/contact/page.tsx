@@ -44,7 +44,7 @@ export default function ContactPage() {
             className="group rounded-xl border border-line bg-white p-6 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-lg hover:shadow-amber/10"
           >
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">WhatsApp</p>
-            <p className="mt-3 font-display text-lg font-extrabold text-ink">Message us the trip</p>
+            <p className="mt-3 font-display text-lg font-semibold text-ink">Message us the trip</p>
             <p className="mt-3 text-sm text-khaki">
               Send pickup, destination and date — get a fixed quote back, usually within minutes.
             </p>
@@ -55,7 +55,7 @@ export default function ContactPage() {
             className="group rounded-xl border border-line bg-white p-6 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-lg hover:shadow-amber/10"
           >
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">Email</p>
-            <p className="mt-3 font-display text-lg font-extrabold text-ink">{site.email}</p>
+            <p className="mt-3 font-display text-lg font-semibold text-ink">{site.email}</p>
             <p className="mt-3 text-sm text-khaki">
               Best for corporate enquiries, monthly contracts and wedding convoy planning.
             </p>
@@ -65,7 +65,7 @@ export default function ContactPage() {
 
       <section className="mx-auto grid max-w-6xl gap-8 px-5 pb-16 md:px-8 lg:grid-cols-2">
         <div className="rounded-2xl border border-line bg-white p-6">
-          <h2 className="font-display text-lg font-extrabold text-ink">Find us</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Find us</h2>
           <address className="mt-3 text-sm not-italic leading-relaxed text-khaki">
             {site.name}
             <br />

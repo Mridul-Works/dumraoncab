@@ -1,23 +1,27 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Dumraon Cab identity — clean marketplace: white ground, near-black ink, green trust accent */
-  --color-night: #17181c;
-  --color-coal: #23252b;
-  --color-paper: #ffffff;
-  --color-cream: #f6f7f8;
-  --color-ink: #17181c;
-  --color-khaki: #5e6470;
-  --color-sand: #a3aab5;
-  --color-line: #e7e9ec;
-  --color-linedark: #34373f;
-  --color-amber: #10a55a;
-  --color-amberdeep: #0b7a42;
-  --color-leaf: #10a55a;
+  /* Dumraon Cab v2 — warm cream ground, deep green accent, amber highlight */
+  --color-night: #12241c;
+  --color-coal: #1c352a;
+  --color-paper: #faf9f4;
+  --color-cream: #f1eee5;
+  --color-tint: #e4efe7;
+  --color-ink: #182420;
+  --color-khaki: #5a665f;
+  --color-sand: #8a948d;
+  --color-line: #dcd9cd;
+  --color-linedark: #2b463a;
+  --color-amber: #0e6b4b;
+  --color-amberdeep: #0a4f37;
+  --color-gold: #e9a23b;
+  --color-leaf: #0e6b4b;
 
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --shadow-card: 0 1px 2px rgb(24 36 32 / 0.05), 0 12px 32px -12px rgb(24 36 32 / 0.14);
 }
 
 body {
@@ -34,21 +38,22 @@ body {
 
 :focus-visible {
   outline: 2px solid var(--color-amber);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
-/* Section seam — quiet hairline (top of page and above the footer) */
+/* Section seam — quiet hairline */
 .taxi-stripe {
   height: 0;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid rgb(24 36 32 / 0.07);
 }
 
-/* Fare tag — soft white pill for prices and phone numbers */
+/* Fare tag — quiet chip for prices and phone numbers */
 .plate {
   display: inline-flex;
   align-items: center;
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   background: #fff;
@@ -57,7 +62,7 @@ body {
   border-radius: 999px;
   padding: 0.25rem 0.85rem;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgb(23 24 28 / 0.08);
+  box-shadow: 0 1px 3px rgb(24 36 32 / 0.07);
 }
 
 /* Hairline divider for dark panels */
@@ -80,17 +85,7 @@ details.faq[open] summary .faq-icon {
   transform: rotate(45deg);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* --- motion polish --- */
+/* --- motion --- */
 html {
   scroll-behavior: smooth;
 }
@@ -106,6 +101,36 @@ html {
   }
 }
 
+/* Hero illustration life: floating cab, moving lane dashes, route-chip ticker */
+@keyframes cabfloat {
+  to {
+    transform: translateY(2.5px);
+  }
+}
+.hero-cab {
+  animation: cabfloat 4s ease-in-out infinite alternate;
+}
+@keyframes roaddash {
+  to {
+    stroke-dashoffset: -88;
+  }
+}
+.road-dash {
+  animation: roaddash 3.5s linear infinite;
+}
+@keyframes rcdash {
+  to {
+    background-position: -22px 0;
+  }
+}
+.rc-line {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--color-amber) 0 6px, transparent 6px 11px);
+  background-size: 200% 100%;
+  animation: rcdash 2.2s linear infinite;
+  border-radius: 2px;
+}
+
 /* Scroll-reveal (class added by JS only, so no-JS visitors see everything) */
 .reveal {
   opacity: 0;
@@ -115,4 +140,14 @@ html {
 .reveal-in {
   opacity: 1;
   transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

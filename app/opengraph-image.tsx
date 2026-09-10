@@ -15,8 +15,8 @@ export default function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          background: "#ffffff",
-          color: "#17181C",
+          background: "#faf9f4",
+          color: "#182420",
           padding: "0 80px",
         }}
       >
@@ -29,24 +29,24 @@ export default function OpengraphImage() {
               width: 72,
               height: 72,
               borderRadius: 18,
-              background: "#17181C",
-              color: "#ffffff",
+              background: "#182420",
+              color: "#faf9f4",
               fontSize: 34,
               fontWeight: 800,
             }}
           >
             DC
           </div>
-          <div style={{ display: "flex", fontSize: 26, letterSpacing: 4, color: "#5E6470" }}>
+          <div style={{ display: "flex", fontSize: 26, letterSpacing: 4, color: "#5a665f" }}>
             SINCE {site.foundedYear} · BUXAR, BIHAR
           </div>
         </div>
         <div style={{ display: "flex", fontSize: 82, fontWeight: 800, marginTop: 44, lineHeight: 1.05 }}>
           Dumraon Cab Service
         </div>
-        <div style={{ display: "flex", fontSize: 38, marginTop: 16, color: "#5E6470" }}>
+        <div style={{ display: "flex", fontSize: 38, marginTop: 16, color: "#5a665f" }}>
           Anywhere in Bihar.
-          <span style={{ color: "#0B7A42", marginLeft: 14, fontWeight: 700 }}>Any hour.</span>
+          <span style={{ color: "#0e6b4b", marginLeft: 14, fontWeight: 700 }}>Any hour.</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 48 }}>
           <div
@@ -54,8 +54,8 @@ export default function OpengraphImage() {
               display: "flex",
               padding: "14px 34px",
               borderRadius: 999,
-              background: "#17181C",
-              color: "#ffffff",
+              background: "#182420",
+              color: "#faf9f4",
               fontSize: 30,
               fontWeight: 700,
               letterSpacing: 2,
@@ -68,8 +68,8 @@ export default function OpengraphImage() {
               display: "flex",
               padding: "14px 34px",
               borderRadius: 999,
-              border: "2px solid #E7E9EC",
-              color: "#0B7A42",
+              border: "2px solid #dcd9cd",
+              color: "#0e6b4b",
               fontSize: 30,
               fontWeight: 700,
             }}

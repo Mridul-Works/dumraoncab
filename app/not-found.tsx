@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-start px-5 py-24 md:px-8">
       <span className="plate text-lg">404 · WRONG TURN</span>
-      <h1 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink md:text-5xl">
+      <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight text-ink md:text-5xl">
         This road doesn&rsquo;t exist.
       </h1>
       <p className="mt-4 max-w-xl leading-relaxed text-khaki">

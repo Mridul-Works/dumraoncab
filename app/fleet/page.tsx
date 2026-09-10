@@ -18,7 +18,7 @@ export default function FleetPage() {
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-amberdeep">
             The fleet
           </p>
-          <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-balance text-ink md:text-4xl">
+          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-balance text-ink md:text-4xl">
             Our cars, photographed as they are
           </h1>
           <p className="mt-3 text-base leading-relaxed text-khaki md:text-lg">
@@ -39,7 +39,7 @@ export default function FleetPage() {
 
           <div className="mt-10 grid gap-8 lg:grid-cols-2">
             <div className="overflow-hidden rounded-xl border border-line bg-white">
-              <h3 className="border-b border-line px-5 py-3.5 font-display text-base font-extrabold text-ink">
+              <h3 className="border-b border-line px-5 py-3.5 font-display text-base font-semibold text-ink">
                 Outstation — per kilometre
               </h3>
               <table className="w-full text-sm">
@@ -65,7 +65,7 @@ export default function FleetPage() {
             </div>
 
             <div className="overflow-hidden rounded-xl border border-line bg-white">
-              <h3 className="border-b border-line px-5 py-3.5 font-display text-base font-extrabold text-ink">
+              <h3 className="border-b border-line px-5 py-3.5 font-display text-base font-semibold text-ink">
                 Local — hourly packages
               </h3>
               <table className="w-full text-sm">

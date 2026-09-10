@@ -3,19 +3,22 @@ import { site, services, routes } from "@/lib/site";
 
 export default function Footer() {
   return (
-    <footer className="bg-night text-paper">
-      <div className="taxi-stripe" aria-hidden="true" />
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-2 md:px-8 lg:grid-cols-4">
+    <footer className="pb-24 pt-14 text-sm text-khaki md:pb-14">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-2 md:px-8 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
         <div>
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-white font-display text-lg font-extrabold text-night">
-              DC
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="grid size-9 place-items-center rounded-[10px] bg-amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 16 L5 12 Q5 10 7 10 L17 10 Q19 10 19 12 L19 16" />
+                <path d="M7 10 L8.5 6.5 Q9 5.5 10 5.5 L14 5.5 Q15 5.5 15.5 6.5 L17 10" />
+                <circle cx="8" cy="16.5" r="1.6" />
+                <circle cx="16" cy="16.5" r="1.6" />
+              </svg>
             </span>
-            <span className="font-display text-lg font-extrabold">Dumraon Cab Service</span>
-          </div>
-          <p className="mt-4 max-w-xs text-sm leading-relaxed text-sand">
-            Chauffeur-driven cabs from Dumraon since {site.foundedYear}. {" "}
-            {site.stats[1].value} vehicles, verified drivers, fixed fares — anywhere in Bihar, any hour.
+            <span className="font-display text-lg font-semibold text-ink">Dumraon Cab</span>
+          </Link>
+          <p className="mt-4 max-w-[30ch] leading-relaxed">
+            Reliable, affordable, safe rides — anytime, across Bihar and beyond, since {site.foundedYear}.
           </p>
           <p className="mt-4">
             <span className="plate">{site.phoneDisplay}</span>
@@ -23,11 +26,11 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amber">Services</h3>
-          <ul className="mt-4 space-y-2.5 text-sm">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-sand">Services</h3>
+          <ul className="space-y-2.5">
             {services.map((s) => (
               <li key={s.slug}>
-                <Link href={`/services/${s.slug}`} className="text-paper/80 transition-colors hover:text-amber">
+                <Link href={`/services/${s.slug}`} className="transition-colors hover:text-amber">
                   {s.name}
                 </Link>
               </li>
@@ -36,36 +39,27 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amber">Popular routes</h3>
-          <ul className="mt-4 space-y-2.5 text-sm">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-sand">Popular routes</h3>
+          <ul className="space-y-2.5">
             {routes.map((r) => (
               <li key={r.slug}>
-                <Link href={`/routes/${r.slug}`} className="text-paper/80 transition-colors hover:text-amber">
+                <Link href={`/routes/${r.slug}`} className="transition-colors hover:text-amber">
                   {r.from} → {r.to}
                 </Link>
               </li>
             ))}
             <li>
-              <Link href="/routes" className="text-paper/80 transition-colors hover:text-amber">
-                All routes &amp; fares
-              </Link>
+              <Link href="/routes" className="transition-colors hover:text-amber">All routes &amp; fares</Link>
             </li>
             <li>
-              <Link href="/fleet" className="text-paper/80 transition-colors hover:text-amber">
-                Our fleet
-              </Link>
+              <Link href="/fleet" className="transition-colors hover:text-amber">Our fleet</Link>
             </li>
           </ul>
         </div>
 
         <div>
-          <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amber">Reach us</h3>
-          <address className="mt-4 space-y-2.5 text-sm not-italic text-paper/80">
-            <p>
-              {site.address.locality}, {site.address.district} district,
-              <br />
-              {site.address.region} — {site.address.postalCode}
-            </p>
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-sand">Contact</h3>
+          <address className="space-y-2.5 not-italic">
             <p>
               <a href={`tel:${site.phone}`} className="hover:text-amber">{site.phoneDisplay}</a>
               {site.altPhones.map((p) => (
@@ -78,13 +72,18 @@ export default function Footer() {
             <p>
               <a href={`mailto:${site.email}`} className="hover:text-amber">{site.email}</a>
             </p>
-            <p className="font-mono text-xs uppercase tracking-widest text-leaf">Open 24 hours · 7 days</p>
+            <p>
+              {site.address.locality}, {site.address.district} district,
+              <br />
+              {site.address.region} — {site.address.postalCode}
+            </p>
+            <p className="font-mono text-xs uppercase tracking-widest text-amber">Open 24 hours · every day</p>
           </address>
         </div>
       </div>
 
-      <div className="border-t border-linedark">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-5 text-xs text-sand md:flex-row md:items-center md:justify-between md:px-8">
+      <div className="mx-auto mt-11 max-w-6xl px-5 md:px-8">
+        <div className="flex flex-col gap-2 border-t border-ink/10 pt-5 text-xs text-sand md:flex-row md:items-center md:justify-between">
           <p>
             © {new Date().getFullYear()} {site.name}. All rights reserved.
             <span className="mx-2" aria-hidden="true">·</span>
@@ -92,7 +91,7 @@ export default function Footer() {
             <span className="mx-2" aria-hidden="true">·</span>
             <Link href="/terms" className="hover:text-amber">Terms</Link>
           </p>
-          <p>Serving {site.serviceAreas.slice(0, -1).join(" · ")}</p>
+          <p>Serving {site.serviceAreas.slice(0, -1).join(" · ")} — since {site.foundedYear}</p>
         </div>
       </div>
     </footer>

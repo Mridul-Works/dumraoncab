@@ -34,7 +34,7 @@ export default function TermsPage() {
   return (
     <section className="mx-auto max-w-3xl px-5 py-14 md:px-8">
       <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-amberdeep">Legal</p>
-      <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
+      <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
         Terms of service
       </h1>
       <p className="mt-4 leading-relaxed text-khaki">
@@ -44,7 +44,7 @@ export default function TermsPage() {
       <div className="mt-8 space-y-6">
         {terms.map((t) => (
           <div key={t.h} className="border-l-2 border-amber pl-4">
-            <h2 className="font-display text-lg font-extrabold text-ink">{t.h}</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">{t.h}</h2>
             <p className="mt-1.5 leading-relaxed text-khaki">{t.p}</p>
           </div>
         ))}

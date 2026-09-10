@@ -15,10 +15,10 @@ export default function AboutPage() {
     <>
       <section className="bg-night text-paper">
         <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-amber">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-gold">
             About us
           </p>
-          <h1 className="mt-4 max-w-3xl font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
+          <h1 className="mt-4 max-w-3xl font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
             Three cars in 2014. A hundred-strong fleet today. The same phone number throughout.
           </h1>
         </div>
@@ -26,7 +26,7 @@ export default function AboutPage() {
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-5 py-10 md:grid-cols-4 md:px-8">
           {site.stats.map((s) => (
             <div key={s.label}>
-              <p className="font-display text-3xl font-extrabold text-amber md:text-4xl">{s.value}</p>
+              <p className="font-display text-3xl font-semibold text-gold md:text-4xl">{s.value}</p>
               <p className="mt-1 text-sm text-sand">{s.label}</p>
             </div>
           ))}
@@ -35,7 +35,7 @@ export default function AboutPage() {
 
       <section className="mx-auto grid max-w-6xl items-start gap-12 px-5 py-16 md:px-8 lg:grid-cols-2">
         <article>
-          <h2 className="font-display text-2xl font-extrabold text-ink">Our story</h2>
+          <h2 className="font-display text-2xl font-semibold text-ink">Our story</h2>
           <p className="mt-4 leading-relaxed text-khaki">
             Dumraon Cab Service began in {site.foundedYear} with three cars and a simple observation:
             people in and around Dumraon deserved a cab they could trust to actually turn up — at the
@@ -85,7 +85,7 @@ export default function AboutPage() {
               ["Accountability", "One owner-operated business, three phone numbers, no call centre. If anything is off, you talk to us directly and we fix it."],
             ].map(([title, text]) => (
               <div key={title} className="border-l-2 border-amber pl-4">
-                <h3 className="font-display text-base font-extrabold text-ink">{title}</h3>
+                <h3 className="font-display text-base font-semibold text-ink">{title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-khaki">{text}</p>
               </div>
             ))}
@@ -94,7 +94,7 @@ export default function AboutPage() {
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-16 text-center md:px-8">
-        <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink md:text-3xl">
           Our aim is simple
         </h2>
         <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-khaki">

@@ -46,7 +46,7 @@ export default function BookingsPanel({ bookings }: { bookings: Booking[] }) {
   if (bookings.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-line p-8 text-center">
-        <p className="font-display text-base font-extrabold text-ink">No website bookings yet</p>
+        <p className="font-display text-base font-semibold text-ink">No website bookings yet</p>
         <p className="mx-auto mt-1.5 max-w-md text-sm text-khaki">
           Requests sent through the site&rsquo;s booking widget and form will appear here the moment
           a visitor submits one. Phone and direct-WhatsApp bookings are not captured.

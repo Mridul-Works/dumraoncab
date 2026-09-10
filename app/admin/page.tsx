@@ -16,14 +16,14 @@ export const metadata: Metadata = {
 function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
     <div className="rounded-2xl border border-line bg-white p-5">
-      <p className="font-display text-3xl font-extrabold text-ink">{value}</p>
+      <p className="font-display text-3xl font-semibold text-ink">{value}</p>
       <p className="mt-1 text-sm font-medium text-khaki">{label}</p>
     </div>
   );
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-display text-xl font-extrabold text-ink">{children}</h2>;
+  return <h2 className="font-display text-xl font-semibold text-ink">{children}</h2>;
 }
 
 export default async function AdminPage() {
@@ -44,7 +44,7 @@ export default async function AdminPage() {
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-amberdeep">
             Admin panel
           </p>
-          <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-ink md:text-3xl">
             Everything in one place
           </h1>
         </div>

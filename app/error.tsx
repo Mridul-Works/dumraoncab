@@ -6,7 +6,7 @@ export default function Error({ reset }: { error: Error & { digest?: string }; r
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-start px-5 py-24 md:px-8">
       <span className="plate text-lg">ENGINE TROUBLE</span>
-      <h1 className="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink md:text-5xl">
+      <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight text-ink md:text-5xl">
         Something went wrong on this page.
       </h1>
       <p className="mt-4 max-w-xl leading-relaxed text-khaki">

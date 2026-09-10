@@ -1,19 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { fleet, routes, site, waLink } from "@/lib/site";
 
-const tabs = [
-  { key: "Outstation", label: "Outstation", icon: RoadIcon },
-  { key: "Hourly", label: "Hourly", icon: ClockIcon },
-  { key: "Airport", label: "Airport", icon: PlaneIcon },
-  { key: "One-Way", label: "One-Way", icon: ArrowIcon },
-  { key: "Wedding", label: "Wedding", icon: RingsIcon },
-  { key: "Corporate", label: "Corporate", icon: CaseIcon },
-] as const;
-
-type TabKey = (typeof tabs)[number]["key"];
+const tabs = ["Outstation", "Hourly", "Airport", "One-Way", "Wedding", "Corporate"] as const;
+type TabKey = (typeof tabs)[number];
 
 const packages = ["4 hr / 40 km", "8 hr / 80 km", "12 hr / 120 km", "24 hr / 250 km"];
 
@@ -27,13 +18,17 @@ const toLabel: Record<TabKey, string> = {
 };
 
 const toPlaceholder: Record<TabKey, string> = {
-  Outstation: "Destination city",
+  Outstation: "e.g. Patna",
   Hourly: "",
   Airport: "Patna Airport",
   "One-Way": "Drop city",
   Wedding: "Wedding venue",
   Corporate: "Office / site location",
 };
+
+const fieldCls =
+  "w-full rounded-[10px] border border-line bg-white px-3 py-2.5 text-[15px] text-ink placeholder:text-sand transition-colors focus:border-amber focus:outline-none focus:ring-[3px] focus:ring-amber/15";
+const labelCls = "mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-sand";
 
 export default function HeroBooking() {
   const [tab, setTab] = useState<TabKey>("Outstation");
@@ -72,268 +67,257 @@ export default function HeroBooking() {
   }
 
   return (
-    <section className="relative bg-night">
-      {/* Backdrop — their own Scorpio, not a stock photo */}
-      <div className="absolute inset-0 overflow-hidden">
-        <Image
-          src={fleet[0].image}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-night/85 via-night/70 to-night/90" />
-      </div>
+    <section className="overflow-hidden">
+      <div className="mx-auto max-w-6xl px-5 pb-10 pt-10 md:px-8 md:pt-14">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+          {/* Copy */}
+          <div>
+            <p className="flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-amber">
+              <span className="h-0.5 w-6 rounded-full bg-gold" aria-hidden="true" />
+              Bihar&rsquo;s trusted cab service · Since {site.foundedYear}
+            </p>
+            <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-[4rem]">
+              <span className="block text-ink">Go anywhere.</span>
+              <span className="block font-medium text-khaki">We&rsquo;ll handle the road.</span>
+            </h1>
+            <p className="mt-5 max-w-md text-base leading-relaxed text-khaki md:text-lg">
+              From local rides in Dumraon to long-distance journeys across Bihar and beyond — find
+              the right car for wherever life takes you.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+              {[
+                ["Verified drivers", "M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z M9 12l2 2 4-4"],
+                ["24/7 available", "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3.5 2"],
+                ["Fixed fares", "M4 4h7l9 9-7 7-9-9z M8.5 8.5h.01"],
+              ].map(([label, d]) => (
+                <span key={label} className="flex items-center gap-2 text-sm font-medium text-khaki">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber" aria-hidden="true">
+                    {d.split(" M").map((p, i) => (
+                      <path key={i} d={(i === 0 ? "" : "M") + p} />
+                    ))}
+                  </svg>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
 
-      <div className="relative mx-auto max-w-5xl px-4 pb-20 pt-12 md:px-8 md:pt-14">
-        <h1 className="text-center font-display text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
-          Anywhere in Bihar. <span className="whitespace-nowrap text-amber">Any hour.</span>
-        </h1>
-        <p className="mx-auto mt-2 max-w-xl text-center text-sm text-white/80 md:text-base">
-          Chauffeur-driven cabs from Dumraon since {site.foundedYear} — fixed fares, verified drivers, 24/7.
-        </p>
+          {/* Illustrated road scene */}
+          <div className="relative overflow-hidden rounded-[22px] shadow-[var(--shadow-card)]">
+            <svg viewBox="0 0 640 460" role="img" aria-label="Illustration of an open road through green fields toward Patna" className="h-auto w-full">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#fdf3dc" /><stop offset=".65" stopColor="#f7e7c3" /><stop offset="1" stopColor="#f0ddb4" />
+                </linearGradient>
+                <linearGradient id="field1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#9dbd8a" /><stop offset="1" stopColor="#84a973" />
+                </linearGradient>
+                <linearGradient id="field2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#77a066" /><stop offset="1" stopColor="#5f8a52" />
+                </linearGradient>
+              </defs>
+              <rect width="640" height="220" fill="url(#sky)" />
+              <circle cx="500" cy="120" r="46" fill="#f2b95c" opacity=".9" />
+              <circle cx="500" cy="120" r="70" fill="#f2b95c" opacity=".18" />
+              <path d="M0 205 Q80 190 160 200 T340 198 T520 202 T640 197 L640 225 L0 225 Z" fill="#6f9660" opacity=".5" />
+              <path d="M0 215 L640 215 L640 320 L0 320 Z" fill="url(#field1)" />
+              <path d="M0 300 L640 300 L640 460 L0 460 Z" fill="url(#field2)" />
+              <g fill="#4e7a43">
+                <ellipse cx="90" cy="196" rx="26" ry="20" /><rect x="87" y="205" width="6" height="16" rx="2" fill="#5c5040" />
+                <ellipse cx="585" cy="192" rx="30" ry="22" /><rect x="582" y="203" width="6" height="18" rx="2" fill="#5c5040" />
+                <ellipse cx="205" cy="205" rx="16" ry="12" />
+              </g>
+              <path d="M320 215 L300 215 L150 460 L400 460 Z" fill="#38433c" />
+              <path className="road-dash" d="M309 218 L274 460" stroke="#faf9f4" strokeWidth="5" fill="none" strokeDasharray="18 26" strokeLinecap="round" />
+              <g className="hero-cab">
+                <ellipse cx="290" cy="392" rx="52" ry="8" fill="#1f2a24" opacity=".25" />
+                <rect x="248" y="330" width="84" height="58" rx="14" fill="#fdfdfb" />
+                <rect x="256" y="316" width="68" height="34" rx="12" fill="#fdfdfb" />
+                <rect x="264" y="322" width="52" height="22" rx="8" fill="#2e3833" />
+                <rect x="270" y="308" width="40" height="12" rx="5" fill="#e9a23b" />
+                <rect x="252" y="360" width="16" height="9" rx="4" fill="#d9534a" />
+                <rect x="312" y="360" width="16" height="9" rx="4" fill="#d9534a" />
+                <rect x="266" y="374" width="48" height="11" rx="3" fill="#e8e4d8" />
+                <rect x="250" y="384" width="18" height="10" rx="4" fill="#232a26" />
+                <rect x="312" y="384" width="18" height="10" rx="4" fill="#232a26" />
+              </g>
+              <g>
+                <rect x="428" y="330" width="52" height="44" rx="8" fill="#f6f4ec" stroke="#c9c2ae" />
+                <rect x="428" y="358" width="52" height="16" rx="6" fill="#e9a23b" />
+                <rect x="448" y="374" width="12" height="26" fill="#c9c2ae" />
+                <text x="454" y="349" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="12" fontWeight="600" fill="#38433c">PATNA</text>
+                <text x="454" y="370" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="9" fill="#5c5040">120 km</text>
+              </g>
+              <g stroke="#5c5040" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".6">
+                <path d="M180 80 q6 -7 12 0 q6 -7 12 0" />
+                <path d="M230 60 q5 -6 10 0 q5 -6 10 0" />
+              </g>
+            </svg>
+            <div className="absolute bottom-4 left-4 rounded-xl border border-ink/5 bg-white/95 px-4 py-3 shadow-lg">
+              <div className="flex items-center gap-2 font-mono text-xs font-medium tracking-wide">
+                <b className="text-amber">DUM</b>
+                <svg width="30" height="8" viewBox="0 0 30 8" aria-hidden="true">
+                  <path d="M0 4 H26 M22 1 L27 4 L22 7" stroke="#8a948d" fill="none" strokeWidth="1.4" />
+                </svg>
+                <b className="text-amber">PAT</b>
+              </div>
+              <div className="mt-0.5 font-mono text-[10px] text-sand">NH-922 · ~120 km · ~3 hr</div>
+              <div className="rc-line mt-2" aria-hidden="true" />
+            </div>
+          </div>
+        </div>
 
         {/* Booking card */}
         <form
           onSubmit={handleSubmit}
-          className="relative mt-6 rounded-2xl bg-white pb-5 shadow-2xl [animation:rise_.45s_ease-out] md:mt-8 md:pb-10"
+          className="mt-10 rounded-[18px] border border-ink/5 bg-white p-5 shadow-[var(--shadow-card)] [animation:rise_.45s_ease-out] md:p-6"
         >
-          {/* Service tabs */}
+          {/* Service segments */}
           <div
-            className="flex justify-start overflow-x-auto border-b border-line px-2 [-ms-overflow-style:none] [scrollbar-width:none] md:justify-center [&::-webkit-scrollbar]:hidden"
+            className="inline-flex max-w-full flex-wrap gap-0.5 rounded-xl bg-cream p-1"
             role="tablist"
             aria-label="Service type"
           >
-            {tabs.map(({ key, label, icon: Icon }) => (
+            {tabs.map((key) => (
               <button
                 key={key}
                 type="button"
                 role="tab"
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
-                className={`relative flex min-w-20 flex-col items-center gap-1.5 px-4 pb-3 pt-4 text-xs font-bold whitespace-nowrap transition-colors ${
-                  tab === key ? "text-amberdeep" : "text-khaki hover:text-ink"
+                className={`rounded-[9px] px-3.5 py-2 text-sm transition-all sm:px-4 ${
+                  tab === key
+                    ? "bg-white font-semibold text-ink shadow-[0_1px_4px_rgb(24_36_32/0.12)]"
+                    : "font-medium text-khaki hover:text-ink"
                 }`}
               >
-                <Icon active={tab === key} />
-                {label}
-                {tab === key && (
-                  <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-amberdeep" aria-hidden="true" />
-                )}
+                {key}
               </button>
             ))}
           </div>
 
-          <div className="px-4 pt-4 md:px-6">
-            {/* Trip type (outstation only) */}
-            {tab === "Outstation" && (
-              <div className="mb-4 flex gap-2" role="radiogroup" aria-label="Trip type">
-                {(["Round Trip", "One Way"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    role="radio"
-                    aria-checked={tripType === t}
-                    onClick={() => setTripType(t)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-                      tripType === t ? "bg-night text-white" : "border border-line text-khaki hover:border-amber"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Field row */}
-            <div className="grid overflow-hidden rounded-xl border border-line sm:grid-cols-2 lg:grid-cols-5">
-              <Cell label="From">
-                <input
-                  name="from"
-                  required
-                  defaultValue="Dumraon"
-                  placeholder="Pickup point"
-                  className="w-full bg-transparent font-display text-xl font-extrabold text-ink placeholder:text-sand focus:outline-none"
-                />
-              </Cell>
-
-              <Cell label={toLabel[tab]}>
-                {tab === "Hourly" ? (
-                  <select
-                    name="to"
-                    className="w-full bg-transparent font-display text-xl font-extrabold text-ink focus:outline-none"
-                  >
-                    {packages.map((p) => (
-                      <option key={p}>{p}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    name="to"
-                    required
-                    key={tab}
-                    defaultValue={tab === "Airport" ? "Patna Airport" : ""}
-                    placeholder={toPlaceholder[tab]}
-                    className="w-full bg-transparent font-display text-xl font-extrabold text-ink placeholder:text-sand focus:outline-none"
-                  />
-                )}
-              </Cell>
-
-              <Cell label="Date">
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  min={today}
-                  className="w-full bg-transparent font-display text-lg font-extrabold text-ink focus:outline-none"
-                />
-              </Cell>
-
-              <Cell label="Pickup time">
-                <input
-                  name="time"
-                  type="time"
-                  className="w-full bg-transparent font-display text-lg font-extrabold text-ink focus:outline-none"
-                />
-              </Cell>
-
-              <Cell label="Car" last>
-                <select
-                  name="car"
-                  defaultValue="Any — suggest for me"
-                  className="w-full bg-transparent font-display text-lg font-extrabold text-ink focus:outline-none"
+          {tab === "Outstation" && (
+            <div className="mt-4 flex gap-2" role="radiogroup" aria-label="Trip type">
+              {(["Round Trip", "One Way"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  role="radio"
+                  aria-checked={tripType === t}
+                  onClick={() => setTripType(t)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                    tripType === t ? "bg-amber text-white" : "border border-line text-khaki hover:border-amber hover:text-amber"
+                  }`}
                 >
-                  <option>Any — suggest for me</option>
-                  {fleet
-                    .filter((v) => v.category !== "Utility")
-                    .map((v) => (
-                      <option key={v.name}>{v.name}</option>
-                    ))}
-                </select>
-              </Cell>
+                  {t}
+                </button>
+              ))}
             </div>
+          )}
 
-            {/* Popular drops */}
-            {tab !== "Hourly" && tab !== "Corporate" && (
-              <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
-                <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-khaki">Popular:</span>
-                {routes.map((r) => (
-                  <button
-                    key={r.slug}
-                    type="button"
-                    onClick={(e) => {
-                      const form = e.currentTarget.closest("form");
-                      const to = form?.querySelector<HTMLInputElement>('input[name="to"]');
-                      if (to) to.value = r.to;
-                    }}
-                    className="shrink-0 whitespace-nowrap rounded-full border border-line px-3.5 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-amber hover:text-amberdeep"
-                  >
-                    {r.to}
-                    <span className="ml-1.5 font-mono text-[10px] text-khaki">from {r.fareFrom}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {sent && (
-              <p className="mt-4 rounded-lg bg-cream px-4 py-3 text-sm text-ink" role="status">
-                Your request opened in WhatsApp — press send there for a fixed quote. Nothing
-                happened? Call{" "}
-                <a href={`tel:${site.phone}`} className="font-mono font-semibold text-amberdeep">
-                  {site.phoneDisplay}
-                </a>
-                .
-              </p>
-            )}
+          {/* Fields */}
+          <div className="mt-4 grid items-end gap-2.5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
+            <div>
+              <label htmlFor="hb-from" className={labelCls}>From</label>
+              <input id="hb-from" name="from" required defaultValue="Dumraon" placeholder="Pickup point" className={fieldCls} />
+            </div>
+            <div>
+              <label htmlFor="hb-to" className={labelCls}>{toLabel[tab]}</label>
+              {tab === "Hourly" ? (
+                <select id="hb-to" name="to" className={fieldCls}>
+                  {packages.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="hb-to"
+                  name="to"
+                  required
+                  key={tab}
+                  defaultValue={tab === "Airport" ? "Patna Airport" : ""}
+                  placeholder={toPlaceholder[tab]}
+                  className={fieldCls}
+                />
+              )}
+            </div>
+            <div>
+              <label htmlFor="hb-date" className={labelCls}>Date</label>
+              <input id="hb-date" name="date" type="date" required min={today} className={fieldCls} />
+            </div>
+            <div>
+              <label htmlFor="hb-time" className={labelCls}>Time</label>
+              <input id="hb-time" name="time" type="time" className={fieldCls} />
+            </div>
+            <div>
+              <label htmlFor="hb-car" className={labelCls}>Car</label>
+              <select id="hb-car" name="car" defaultValue="Any — suggest for me" className={fieldCls}>
+                <option>Any — suggest for me</option>
+                {fleet
+                  .filter((v) => v.category !== "Utility")
+                  .map((v) => (
+                    <option key={v.name}>{v.name}</option>
+                  ))}
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="group rounded-xl bg-amber px-6 py-[11px] text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-amberdeep sm:col-span-2 lg:col-span-1"
+            >
+              Get fare on WhatsApp{" "}
+              <span aria-hidden="true" className="inline-block transition-transform group-hover:translate-x-1">→</span>
+            </button>
           </div>
 
-          {/* CTA — full-width inside the card on mobile, overlapping pill from md up */}
-          <button
-            type="submit"
-            className="mx-4 mt-5 block w-[calc(100%-2rem)] rounded-full bg-gradient-to-r from-amberdeep to-amber px-6 py-3.5 text-base font-extrabold tracking-wide text-white shadow-xl shadow-amberdeep/30 transition-transform hover:-translate-y-0.5 md:absolute md:-bottom-6 md:left-1/2 md:mx-0 md:mt-0 md:w-auto md:-translate-x-1/2 md:px-16 md:text-lg"
-          >
-            GET FARE ON WHATSAPP
-          </button>
+          {/* Popular drops */}
+          {tab !== "Hourly" && tab !== "Corporate" && (
+            <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-sand">Popular:</span>
+              {routes.map((r) => (
+                <button
+                  key={r.slug}
+                  type="button"
+                  onClick={(e) => {
+                    const form = e.currentTarget.closest("form");
+                    const to = form?.querySelector<HTMLInputElement>('input[name="to"]');
+                    if (to) to.value = r.to;
+                  }}
+                  className="shrink-0 whitespace-nowrap rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-khaki transition-colors hover:border-amber hover:text-amber"
+                >
+                  {r.to}
+                  <span className="ml-1.5 font-mono text-[10px] text-sand">from {r.fareFrom}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-4 flex items-center gap-2 text-xs text-sand">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber" aria-hidden="true">
+              <path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z" />
+            </svg>
+            Transparent pricing · No hidden charges · Free cancellation up to 2 hours before pickup
+          </p>
+
+          {sent && (
+            <p className="mt-3 rounded-xl bg-tint px-4 py-3 text-sm text-ink" role="status">
+              Your request opened in WhatsApp — press send there for a fixed quote. Nothing happened?
+              Call{" "}
+              <a href={`tel:${site.phone}`} className="font-mono font-semibold text-amber">
+                {site.phoneDisplay}
+              </a>
+              .
+            </p>
+          )}
         </form>
 
-        <ul className="mt-9 flex flex-wrap items-center justify-center gap-2 md:mt-14">
-          {["Fixed fares, no surprises", "Police-verified drivers", "Clean, insured cars"].map((t) => (
-            <li
-              key={t}
-              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm"
-            >
-              <span className="text-amber" aria-hidden="true">✓</span>
-              {t}
-            </li>
-          ))}
-        </ul>
-
-        <p className="mt-5 text-center text-sm text-white/85">
+        <p className="mt-5 text-center text-sm text-khaki">
           Prefer to talk?{" "}
-          <a href={`tel:${site.phone}`} className="font-mono font-bold text-amber hover:underline">
+          <a href={`tel:${site.phone}`} className="font-mono font-semibold text-amber hover:underline">
             Call {site.phoneDisplay}
           </a>{" "}
           — a person answers 24/7.
         </p>
       </div>
     </section>
-  );
-}
-
-function Cell({ label, children, last = false }: { label: string; children: React.ReactNode; last?: boolean }) {
-  return (
-    <label className={`block border-b border-line p-4 lg:border-b-0 ${last ? "" : "sm:border-r lg:border-r"}`}>
-      <span className="block text-[11px] font-bold uppercase tracking-wider text-khaki">{label}</span>
-      <span className="mt-1 block">{children}</span>
-    </label>
-  );
-}
-
-/* --- tab icons --- */
-function iconCls(active: boolean) {
-  return active ? "text-amberdeep" : "text-khaki";
-}
-function RoadIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconCls(active)} aria-hidden="true">
-      <path d="M4 20 8 4h8l4 16" /><path d="M12 7v2m0 4v2m0 4v1" />
-    </svg>
-  );
-}
-function ClockIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconCls(active)} aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
-    </svg>
-  );
-}
-function PlaneIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconCls(active)} aria-hidden="true">
-      <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
-    </svg>
-  );
-}
-function ArrowIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconCls(active)} aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M8 12h8m-3-3 3 3-3 3" />
-    </svg>
-  );
-}
-function RingsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconCls(active)} aria-hidden="true">
-      <circle cx="9" cy="14" r="5" /><circle cx="15" cy="14" r="5" /><path d="m9 6 1.5-2h3L15 6" />
-    </svg>
-  );
-}
-function CaseIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconCls(active)} aria-hidden="true">
-      <rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-12 5h18" />
-    </svg>
   );
 }

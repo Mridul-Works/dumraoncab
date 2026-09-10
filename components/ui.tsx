@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { site, waLink, defaultWaText } from "@/lib/site";
 
 export function SectionHead({
@@ -14,14 +13,23 @@ export function SectionHead({
 }) {
   return (
     <div className="max-w-2xl">
-      <p className={`font-mono text-xs font-semibold uppercase tracking-[0.18em] ${dark ? "text-amber" : "text-amberdeep"}`}>
+      <p
+        className={`flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] ${
+          dark ? "text-gold" : "text-amber"
+        }`}
+      >
+        <span className="h-0.5 w-6 rounded-full bg-gold" aria-hidden="true" />
         {eyebrow}
       </p>
-      <h2 className={`mt-2 font-display text-3xl font-extrabold tracking-tight text-balance md:text-4xl ${dark ? "text-paper" : "text-ink"}`}>
+      <h2
+        className={`mt-4 font-display text-3xl font-semibold tracking-tight text-balance md:text-[2.6rem] md:leading-[1.08] ${
+          dark ? "text-paper" : "text-ink"
+        }`}
+      >
         {title}
       </h2>
       {lede && (
-        <p className={`mt-3 text-base leading-relaxed md:text-lg ${dark ? "text-sand" : "text-khaki"}`}>
+        <p className={`mt-3 max-w-[52ch] text-base leading-relaxed ${dark ? "text-sand" : "text-khaki"}`}>
           {lede}
         </p>
       )}
@@ -29,60 +37,41 @@ export function SectionHead({
   );
 }
 
-export function CtaBand({ heading = "Need a cab in the next hour?" }: { heading?: string }) {
+export function CtaBand({ heading = "Ready when you are." }: { heading?: string }) {
   return (
-    <section className="relative overflow-hidden bg-night">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-amber/15 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 -left-16 size-72 rounded-full bg-amber/10 blur-3xl"
-      />
-      <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-6 px-5 py-14 md:flex-row md:items-center md:justify-between md:px-8">
-        <div>
-          <h2 className="font-display text-2xl font-extrabold tracking-tight text-paper md:text-3xl">{heading}</h2>
-          <p className="mt-1.5 text-sand">
-            One call books it. We answer 24/7 — yes, at 3 AM too.
+    <section className="px-3 pb-4 md:px-6">
+      <div className="relative overflow-hidden rounded-3xl bg-amberdeep text-white">
+        {/* dashed road line across the band */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-[5%] -right-[5%] top-[74%] h-0.5 -rotate-3 [background:repeating-linear-gradient(90deg,rgb(255_255_255/0.18)_0_14px,transparent_14px_28px)]"
+        />
+        <div className="relative mx-auto max-w-3xl px-6 py-16 text-center md:py-24">
+          <h2 className="font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">{heading}</h2>
+          <p className="mt-4 text-base text-white/75 md:text-lg">
+            Tell us where you&rsquo;re going and we&rsquo;ll help you get there — 24/7, at 3 AM too.
           </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <a
-            href={`tel:${site.phone}`}
-            className="rounded-full bg-white px-7 py-3.5 font-mono text-base font-semibold text-ink transition-transform hover:-translate-y-0.5"
-          >
-            Call {site.phoneDisplay}
-          </a>
-          <a
-            href={waLink(defaultWaText)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full bg-amberdeep px-7 py-3.5 text-base font-bold text-white transition-colors hover:bg-amber"
-          >
-            WhatsApp us
-          </a>
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <a
+              href={`tel:${site.phone}`}
+              className="rounded-xl bg-white px-7 py-3.5 font-semibold text-amberdeep transition-colors hover:bg-tint"
+            >
+              Call {site.phoneDisplay}
+            </a>
+            <a
+              href={waLink(defaultWaText)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-white/35 px-7 py-3.5 font-semibold text-white transition-colors hover:border-white"
+            >
+              WhatsApp us
+            </a>
+          </div>
+          <p className="mt-10 font-mono text-[11px] uppercase tracking-[0.14em] text-white/50">
+            Dumraon · Buxar district · Bihar {site.address.postalCode} — available 24/7
+          </p>
         </div>
       </div>
     </section>
-  );
-}
-
-export function Crumb({ items }: { items: { href?: string; label: string }[] }) {
-  return (
-    <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-wider text-khaki">
-      {items.map((item, i) => (
-        <span key={item.label}>
-          {i > 0 && <span className="mx-2 text-sand">/</span>}
-          {item.href ? (
-            <Link href={item.href} className="hover:text-amberdeep">
-              {item.label}
-            </Link>
-          ) : (
-            <span className="text-ink">{item.label}</span>
-          )}
-        </span>
-      ))}
-    </nav>
   );
 }

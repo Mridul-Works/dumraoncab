@@ -29,10 +29,10 @@ export default function AdminLogin() {
   return (
     <section className="mx-auto flex min-h-[60vh] max-w-sm flex-col justify-center px-5 py-16">
       <div className="rounded-2xl border border-line bg-white p-7 shadow-sm">
-        <span className="grid size-11 place-items-center rounded-xl bg-night font-display text-lg font-extrabold text-white">
+        <span className="grid size-11 place-items-center rounded-xl bg-night font-display text-lg font-semibold text-white">
           DC
         </span>
-        <h1 className="mt-4 font-display text-xl font-extrabold text-ink">Admin login</h1>
+        <h1 className="mt-4 font-display text-xl font-semibold text-ink">Admin login</h1>
         <p className="mt-1 text-sm text-khaki">For Dumraon Cab Service staff only.</p>
         <form onSubmit={handleSubmit} className="mt-5">
           <label htmlFor="admin-pass" className="mb-1.5 block text-sm font-semibold text-ink">

@@ -24,13 +24,21 @@ export default function HomePage() {
       {/* Hero — booking-widget-first, MakeMyTrip style */}
       <HeroBooking />
 
-      {/* Real numbers, rendered statically — no counters to break */}
-      <div className="border-b border-line bg-cream">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-5 py-9 md:grid-cols-4 md:px-8">
-          {site.stats.map((s) => (
-            <div key={s.label}>
-              <p className="font-display text-3xl font-extrabold text-ink md:text-4xl">{s.value}</p>
-              <p className="mt-1 text-sm font-medium text-khaki">{s.label}</p>
+      {/* Trust bar — real numbers, rendered statically */}
+      <div className="border-y border-ink/5 bg-white py-6">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-4 gap-y-5 px-5 md:grid-cols-4 md:px-8">
+          {site.stats.map((s, i) => (
+            <div key={s.label} className="flex items-center gap-3.5 md:justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber" aria-hidden="true">
+                {i === 0 && <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></>}
+                {i === 1 && <><path d="M5 16v-4q0-2 2-2h10q2 0 2 2v4" /><path d="M7 10l1.5-3.5q.5-1 1.5-1h4q1 0 1.5 1L17 10" /><circle cx="8" cy="16.5" r="1.6" /><circle cx="16" cy="16.5" r="1.6" /></>}
+                {i === 2 && <><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>}
+                {i === 3 && <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>}
+              </svg>
+              <div>
+                <b className="block font-display text-base font-semibold tracking-tight text-ink">{s.value}</b>
+                <span className="block text-xs text-sand">{s.label}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -57,7 +65,7 @@ export default function HomePage() {
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-amberdeep">
               The fleet
             </p>
-            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-balance text-ink md:text-4xl">
+            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-balance text-ink md:text-4xl">
               Choose your car
             </h2>
             <p className="mt-3 text-base leading-relaxed text-khaki md:text-lg">
@@ -86,7 +94,7 @@ export default function HomePage() {
             <RouteCard key={r.slug} route={r} />
           ))}
           <div className="flex flex-col justify-center rounded-xl border-2 border-dashed border-line p-5">
-            <p className="font-display text-base font-extrabold text-ink">Going somewhere else?</p>
+            <p className="font-display text-base font-semibold text-ink">Going somewhere else?</p>
             <p className="mt-1.5 text-sm text-khaki">
               We run to every district in Bihar and into UP and Jharkhand.
             </p>
@@ -103,30 +111,22 @@ export default function HomePage() {
       </section>
 
       {/* How it works — a real 4-step sequence */}
-      <section className="bg-night text-paper">
+      <section>
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
-          <SectionHead
-            dark
-            eyebrow="How it works"
-            title="Booked in one call, paid after the trip"
-          />
+          <SectionHead eyebrow="How it works" title="Four steps. Zero hassle." />
           <Reveal>
-            <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <ol className="relative mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              <span
+                aria-hidden="true"
+                className="absolute left-0 right-0 top-[23px] hidden h-0.5 rounded-full bg-ink/10 lg:block"
+              />
               {steps.map((step, i) => (
-                <li
-                  key={step.title}
-                  className="relative rounded-2xl border border-linedark/70 bg-white/[0.04] p-5 transition-colors hover:border-amber/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-amber/15 font-display text-base font-extrabold text-amber">
-                      {i + 1}
-                    </span>
-                    {i < steps.length - 1 && (
-                      <span aria-hidden="true" className="hidden h-px flex-1 bg-linedark lg:block" />
-                    )}
-                  </div>
-                  <h3 className="mt-4 font-display text-lg font-extrabold">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-sand">{step.text}</p>
+                <li key={step.title} className="relative">
+                  <span className="relative z-[1] grid size-[46px] place-items-center rounded-full border-[1.5px] border-line bg-white font-mono text-sm text-ink">
+                    0{i + 1}
+                  </span>
+                  <h3 className="mt-4 font-display text-lg font-semibold text-ink">{step.title}</h3>
+                  <p className="mt-1.5 max-w-[28ch] text-sm leading-relaxed text-khaki">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -150,7 +150,7 @@ export default function HomePage() {
             ["Pay after the trip", "Cash or UPI when you arrive. No app wallets, no advance for regular bookings."],
           ].map(([title, text]) => (
             <div key={title} className="border-l-2 border-amber pl-4">
-              <h3 className="font-display text-base font-extrabold text-ink">{title}</h3>
+              <h3 className="font-display text-base font-semibold text-ink">{title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-khaki">{text}</p>
             </div>
           ))}

@@ -45,12 +45,12 @@ export default async function RoutePage({ params }: Props) {
       <section className="bg-night text-paper">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
           <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-wider text-sand">
-            <Link href="/" className="hover:text-amber">Home</Link>
+            <Link href="/" className="hover:text-gold">Home</Link>
             <span className="mx-2">/</span>
-            <Link href="/routes" className="hover:text-amber">Routes</Link>
+            <Link href="/routes" className="hover:text-gold">Routes</Link>
           </nav>
-          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
-            {route.from} <span aria-hidden="true" className="text-amber">⟶</span> {route.to}
+          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
+            {route.from} <span aria-hidden="true" className="text-gold">⟶</span> {route.to}
           </h1>
           <div className="mt-6 flex flex-wrap items-center gap-3 font-mono text-sm text-sand">
             <span className="rounded-md border border-linedark px-3 py-1.5">{route.distance}</span>
@@ -62,7 +62,7 @@ export default async function RoutePage({ params }: Props) {
 
       <section className="mx-auto grid max-w-6xl gap-12 px-5 py-14 md:px-8 lg:grid-cols-[1.4fr_1fr]">
         <article>
-          <h2 className="font-display text-2xl font-extrabold text-ink">About this route</h2>
+          <h2 className="font-display text-2xl font-semibold text-ink">About this route</h2>
           {route.detail.map((p) => (
             <p key={p.slice(0, 24)} className="mt-4 max-w-2xl leading-relaxed text-khaki">{p}</p>
           ))}
@@ -89,7 +89,7 @@ export default async function RoutePage({ params }: Props) {
         </article>
 
         <aside className="h-fit rounded-2xl border border-line bg-white p-6 lg:sticky lg:top-24">
-          <h2 className="font-display text-lg font-extrabold text-ink">Book this route</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Book this route</h2>
           <p className="mt-2 text-sm leading-relaxed text-khaki">
             Send the date and pickup point — we confirm the car, driver and exact fare in minutes.
           </p>
@@ -112,7 +112,7 @@ export default async function RoutePage({ params }: Props) {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16 md:px-8">
-        <h2 className="font-display text-xl font-extrabold text-ink">Other popular routes</h2>
+        <h2 className="font-display text-xl font-semibold text-ink">Other popular routes</h2>
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {routes
             .filter((r) => r.slug !== route.slug)

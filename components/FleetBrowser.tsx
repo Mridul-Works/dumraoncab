@@ -87,7 +87,7 @@ export default function FleetBrowser() {
 
             <div className="p-4">
               <div className="flex items-baseline justify-between gap-3">
-                <h3 className="font-display text-lg font-extrabold tracking-tight text-ink">{v.name}</h3>
+                <h3 className="font-display text-lg font-semibold tracking-tight text-ink">{v.name}</h3>
                 <span className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-khaki">{v.category}</span>
               </div>
               <p className="mt-2 text-sm text-khaki">

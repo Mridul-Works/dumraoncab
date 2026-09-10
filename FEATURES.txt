@@ -1,6 +1,6 @@
 =====================================================================
 DUMRAON CAB SERVICE — FEATURE INVENTORY
-Last updated: 2026-09-02
+Last updated: 2026-09-09
 ---------------------------------------------------------------------
 MAINTENANCE RULE: this file is the living list of everything the
 site does. Whenever a feature is added, changed or removed, update
@@ -36,10 +36,10 @@ error page            Friendly runtime-error boundary (app/error.tsx)
 
 2. BOOKING CHANNELS & FLOWS
 ---------------------------------------------------------------------
-- Hero booking widget (MakeMyTrip-style): 6 service tabs with icons
-  (Outstation / Hourly / Airport / One-Way / Wedding / Corporate),
-  Round-Trip/One-Way toggle, From/To/Date/Time/Car fields, popular-
-  route quick chips with fares, submit feedback message
+- Hero booking widget: 6 segmented service tabs (Outstation / Hourly
+  / Airport / One-Way / Wedding / Corporate), Round-Trip/One-Way
+  toggle, From/To/Date/Time/Car fields, popular-route quick chips
+  with fares, submit feedback message
 - Full booking form on /booking (name, phone, service, car, pickup,
   drop, date, time, notes)
 - Both forms: compose a pre-filled WhatsApp message AND save the
@@ -53,13 +53,15 @@ error page            Friendly runtime-error boundary (app/error.tsx)
 
 3. HOME PAGE SECTIONS (in order)
 ---------------------------------------------------------------------
-Hero (photo backdrop of own Scorpio + booking card + trust chips)
-→ static stats strip (10+ yrs, 100+ vehicles, 1000+ customers, 24/7)
-→ services grid → fleet browser (filter chips, snap carousel,
-arrow controls, price badges, "Verified · Own fleet" bands)
-→ routes & fares grid → how-it-works (4 numbered step cards)
-→ why-us grid → testimonials (avatars, stars, quote mark)
-→ FAQ accordion (native <details>) → CTA band with glow
+Hero (split: "Go anywhere" copy + animated illustrated road scene
+with floating cab, lane dashes and DUM→PAT route chip; segmented
+booking card below) → trust bar with icons (since 2014, 100+
+vehicles, 1000+ customers, 24/7) → services grid → fleet browser
+(filter chips, snap carousel, arrow controls, price badges,
+"Verified · Own fleet" bands) → routes & fares grid → how-it-works
+(numbered circles + connector line) → why-us grid → testimonials
+(deep-green feature quote + side cards) → FAQ accordion (native
+<details>) → rounded deep-green CTA band with dashed road line
 
 4. ADMIN PANEL (/admin — noindex, password-protected)
 ---------------------------------------------------------------------
@@ -97,16 +99,19 @@ NOTE: JSON-file storage suits a VPS/Node host. On serverless
 - OpenGraph + Twitter card; generated branded OG image; SVG favicon
 - PWA manifest; theme-color; /gallery redirect preserves old URL
 
-7. DESIGN SYSTEM & UX
+7. DESIGN SYSTEM & UX  (v2 — cream & green editorial)
 ---------------------------------------------------------------------
-- Tokens in app/globals.css (night/ink/paper/cream/line/khaki/sand
-  + green accent pair); Plus Jakarta Sans + IBM Plex Mono
-- Marketplace look: white surfaces, pill buttons/chips, hairline
-  borders, fare-tag pills (.plate)
-- Motion: hero card rise-in, scroll-reveal sections (JS-applied so
-  no-JS/crawlers see everything), hover micro-interactions (card
-  lift, image zoom, arrow slide), CTA-band glow; all respect
-  prefers-reduced-motion
+- Tokens in app/globals.css: warm cream ground (#faf9f4/#f1eee5),
+  deep green accent (#0e6b4b/#0a4f37), forest dark (#12241c), amber
+  gold highlight (#e9a23b), green tint (#e4efe7); Bricolage
+  Grotesque display + Instrument Sans body + IBM Plex Mono
+- Look: soft cards (rounded 16-22px, layered shadow), rounded-xl
+  buttons, gold-dash eyebrows, fare-tag pills (.plate), blur nav
+- Motion: booking-card rise-in, floating cab + animated lane dashes
+  + route-chip ticker in the hero illustration, scroll-reveal
+  sections (JS-applied so no-JS/crawlers see everything), hover
+  micro-interactions (card lift, image zoom, arrow slide); all
+  respect prefers-reduced-motion
 - Accessibility: skip-to-content link, visible focus rings, aria
   labels/roles on tabs/menu/carousel, labelled form fields,
   keyboard-usable menus and accordions

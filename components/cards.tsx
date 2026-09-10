@@ -41,10 +41,10 @@ export function ServiceCard({ service }: { service: Service }) {
       href={`/services/${service.slug}`}
       className="group flex flex-col rounded-2xl border border-line bg-white p-6 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-xl hover:shadow-night/8"
     >
-      <span className="grid size-11 place-items-center rounded-xl bg-cream text-amberdeep transition-colors group-hover:bg-amberdeep group-hover:text-white">
+      <span className="grid size-11 place-items-center rounded-xl bg-tint text-amber transition-colors group-hover:bg-amber group-hover:text-white">
         {serviceIcons[service.slug]}
       </span>
-      <h3 className="mt-4 font-display text-lg font-extrabold tracking-tight text-ink">{service.name}</h3>
+      <h3 className="mt-4 font-display text-lg font-semibold tracking-tight text-ink">{service.name}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-khaki">{service.short}</p>
       <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-amberdeep">
         See details & fares
@@ -60,7 +60,7 @@ export function RouteCard({ route }: { route: CabRoute }) {
       href={`/routes/${route.slug}`}
       className="group flex flex-col gap-3 rounded-2xl border border-line bg-white p-5 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-xl hover:shadow-night/8"
     >
-      <div className="flex items-center gap-2 font-display text-base font-extrabold text-ink">
+      <div className="flex items-center gap-2 font-display text-base font-semibold text-ink">
         {route.from}
         <span aria-hidden="true" className="text-amberdeep transition-transform group-hover:translate-x-1">⟶</span>
         {route.to}
@@ -83,31 +83,44 @@ export function RouteCard({ route }: { route: CabRoute }) {
 }
 
 export function TestimonialGrid() {
+  const [feature, ...rest] = testimonials;
   return (
-    <div className="grid gap-5 md:grid-cols-2">
-      {testimonials.map((t) => (
-        <figure key={t.quote} className="relative flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-6">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-3 right-4 font-display text-[90px] font-extrabold leading-none text-cream select-none"
-          >
-            &rdquo;
+    <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      {/* Feature quote on deep green */}
+      <figure className="flex flex-col rounded-[18px] bg-night p-7 text-[#f2f1ea] md:p-10">
+        <div className="text-gold" aria-label="5 star rating" style={{ letterSpacing: "2px" }}>★★★★★</div>
+        <blockquote className="mt-5 flex-1 font-display text-xl font-medium leading-snug tracking-tight text-balance md:text-2xl">
+          &ldquo;{feature.quote}&rdquo;
+        </blockquote>
+        <figcaption className="mt-8 flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 font-display text-base font-semibold text-white">
+            {feature.name.charAt(0)}
           </span>
-          <div className="relative text-amber" aria-label="5 star rating">★★★★★</div>
-          <blockquote className="relative mt-3 flex-1 text-[15px] leading-relaxed text-ink">
-            &ldquo;{t.quote}&rdquo;
-          </blockquote>
-          <figcaption className="relative mt-5 flex items-center gap-3 border-t border-line pt-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-cream font-display text-base font-extrabold text-amberdeep">
-              {t.name.charAt(0)}
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-ink">{t.name}</span>
-              <span className="font-mono text-[11px] uppercase tracking-wider text-khaki">{t.trip}</span>
-            </span>
-          </figcaption>
-        </figure>
-      ))}
+          <span>
+            <span className="block text-sm font-semibold">{feature.name}</span>
+            <span className="text-xs text-[#f2f1ea]/60">{feature.trip}</span>
+          </span>
+        </figcaption>
+      </figure>
+
+      <div className="flex flex-col gap-4">
+        {rest.map((t) => (
+          <figure key={t.quote} className="flex flex-1 flex-col rounded-2xl border border-ink/5 bg-white p-6">
+            <blockquote className="flex-1 text-sm leading-relaxed text-khaki">
+              &ldquo;{t.quote}&rdquo;
+            </blockquote>
+            <figcaption className="mt-5 flex items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-tint font-display text-sm font-semibold text-amber">
+                {t.name.charAt(0)}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-ink">{t.name}</span>
+                <span className="text-xs text-sand">{t.trip}</span>
+              </span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
     </div>
   );
 }
@@ -119,7 +132,7 @@ export function FaqList() {
         <details key={f.q} className="faq group px-6 py-1">
           <summary className="flex items-center justify-between gap-4 py-4 text-left font-semibold text-ink transition-colors hover:text-amberdeep">
             {f.q}
-            <span className="faq-icon grid size-7 shrink-0 place-items-center rounded-full bg-cream font-mono text-base text-amberdeep" aria-hidden="true">
+            <span className="faq-icon grid size-7 shrink-0 place-items-center rounded-full bg-tint font-mono text-base text-amber" aria-hidden="true">
               +
             </span>
           </summary>

@@ -57,13 +57,13 @@ export default async function ServicePage({ params }: Props) {
       <section className="bg-night text-paper">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
           <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-wider text-sand">
-            <Link href="/" className="hover:text-amber">Home</Link>
+            <Link href="/" className="hover:text-gold">Home</Link>
             <span className="mx-2">/</span>
-            <Link href="/services" className="hover:text-amber">Services</Link>
+            <Link href="/services" className="hover:text-gold">Services</Link>
             <span className="mx-2">/</span>
-            <span className="text-amber">{service.name}</span>
+            <span className="text-gold">{service.name}</span>
           </nav>
-          <h1 className="mt-4 max-w-3xl font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
+          <h1 className="mt-4 max-w-3xl font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
             {service.hero}
           </h1>
         </div>
@@ -71,7 +71,7 @@ export default async function ServicePage({ params }: Props) {
 
       <section className="mx-auto grid max-w-6xl gap-12 px-5 py-14 md:px-8 lg:grid-cols-[1.4fr_1fr]">
         <article>
-          <h2 className="font-display text-2xl font-extrabold text-ink">{service.name}</h2>
+          <h2 className="font-display text-2xl font-semibold text-ink">{service.name}</h2>
           {service.body.map((p) => (
             <p key={p.slice(0, 24)} className="mt-4 max-w-2xl leading-relaxed text-khaki">
               {p}
@@ -97,7 +97,7 @@ export default async function ServicePage({ params }: Props) {
         </article>
 
         <aside className="h-fit rounded-2xl border border-line bg-white p-6 lg:sticky lg:top-24">
-          <h2 className="font-display text-lg font-extrabold text-ink">Get a fixed quote</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Get a fixed quote</h2>
           <p className="mt-2 text-sm leading-relaxed text-khaki">
             Tell us the date and pickup point — we reply with the fare and car options, usually within minutes.
           </p>

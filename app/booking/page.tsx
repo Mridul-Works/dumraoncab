@@ -16,13 +16,13 @@ export default function BookingPage() {
     <>
       <section className="bg-night text-paper">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-amber">Booking</p>
-          <h1 className="mt-4 max-w-3xl font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-gold">Booking</p>
+          <h1 className="mt-4 max-w-3xl font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
             Tell us the trip. Get a fixed quote in minutes.
           </h1>
           <p className="mt-4 max-w-2xl text-sand">
-            Fastest: call <a href={`tel:${site.phone}`} className="font-mono font-semibold text-amber">{site.phoneDisplay}</a> or{" "}
-            <a href={waLink(defaultWaText)} target="_blank" rel="noopener noreferrer" className="font-semibold text-amber underline-offset-2 hover:underline">
+            Fastest: call <a href={`tel:${site.phone}`} className="font-mono font-semibold text-gold">{site.phoneDisplay}</a> or{" "}
+            <a href={waLink(defaultWaText)} target="_blank" rel="noopener noreferrer" className="font-semibold text-gold underline-offset-2 hover:underline">
               message us on WhatsApp
             </a>. Prefer a form? It builds the WhatsApp message for you.
           </p>
@@ -34,7 +34,7 @@ export default function BookingPage() {
 
         <aside className="flex flex-col gap-6">
           <div className="rounded-2xl border border-line bg-white p-6">
-            <h2 className="font-display text-lg font-extrabold text-ink">Outstation per-km rates</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">Outstation per-km rates</h2>
             <ul className="mt-4 space-y-3">
               {perKmRates.map((r) => (
                 <li key={r.category} className="flex items-center justify-between gap-3 text-sm">
@@ -48,7 +48,7 @@ export default function BookingPage() {
             </ul>
           </div>
           <div className="rounded-2xl border border-line bg-white p-6">
-            <h2 className="font-display text-lg font-extrabold text-ink">Hourly packages</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">Hourly packages</h2>
             <ul className="mt-4 space-y-3">
               {hourlyPackages.map((p) => (
                 <li key={p.name} className="flex items-center justify-between gap-3 text-sm">
@@ -63,12 +63,12 @@ export default function BookingPage() {
             </p>
           </div>
           <div className="rounded-2xl bg-night p-6 text-paper">
-            <h2 className="font-display text-lg font-extrabold">Odd-hour trip?</h2>
+            <h2 className="font-display text-lg font-semibold">Odd-hour trip?</h2>
             <p className="mt-2 text-sm leading-relaxed text-sand">
               3 AM railway pickup, pre-dawn airport run — call a few hours ahead and the car will be
               positioned and waiting.
             </p>
-            <a href={`tel:${site.phone}`} className="mt-4 inline-block font-mono text-base font-semibold text-amber">
+            <a href={`tel:${site.phone}`} className="mt-4 inline-block font-mono text-base font-semibold text-gold">
               {site.phoneDisplay} — answered 24/7
             </a>
           </div>

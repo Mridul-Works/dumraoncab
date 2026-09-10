@@ -3,44 +3,55 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { site, waLink, defaultWaText } from "@/lib/site";
+import { site } from "@/lib/site";
 
 const nav = [
   { href: "/services", label: "Services" },
-  { href: "/fleet", label: "Our Fleet" },
-  { href: "/booking", label: "Fares & Booking" },
+  { href: "/routes", label: "Outstation" },
+  { href: "/fleet", label: "Fleet" },
   { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Support" },
 ];
+
+function CarMark() {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-amber">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M5 16 L5 12 Q5 10 7 10 L17 10 Q19 10 19 12 L19 16" />
+        <path d="M7 10 L8.5 6.5 Q9 5.5 10 5.5 L14 5.5 Q15 5.5 15.5 6.5 L17 10" />
+        <circle cx="8" cy="16.5" r="1.6" />
+        <circle cx="16" cy="16.5" r="1.6" />
+      </svg>
+    </span>
+  );
+}
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-ink/5 bg-paper/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 md:gap-6 md:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-2.5" onClick={() => setOpen(false)}>
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-night font-display text-base font-extrabold text-white md:size-10 md:text-lg">
-            DC
-          </span>
+          <CarMark />
           <span className="min-w-0 leading-tight">
-            <span className="block truncate font-display text-sm font-extrabold tracking-tight text-ink sm:text-base">
-              Dumraon Cab Service
+            <span className="block truncate font-display text-sm font-semibold tracking-tight text-ink sm:text-base">
+              Dumraon Cab
             </span>
-            <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-khaki sm:block">
-              Since 2014 · Buxar, Bihar
+            <span className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-khaki sm:block">
+              Buxar · Bihar · Since 2014
             </span>
           </span>
         </Link>
 
-        <nav className="ml-auto hidden items-center gap-6 lg:flex" aria-label="Main">
+        <nav className="ml-auto hidden items-center gap-1 lg:flex" aria-label="Main">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm font-semibold transition-colors hover:text-amberdeep ${
-                pathname.startsWith(item.href) ? "text-amberdeep" : "text-khaki"
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-ink/5 hover:text-ink ${
+                pathname.startsWith(item.href) ? "text-amber" : "text-khaki"
               }`}
             >
               {item.label}
@@ -48,80 +59,67 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3 lg:ml-6">
+        <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3 lg:ml-4">
           <a
             href={`tel:${site.phone}`}
-            className="hidden items-center gap-2 rounded-full border border-line px-4 py-2 font-mono text-sm font-semibold text-ink transition-colors hover:border-amber hover:text-amberdeep md:flex"
+            className="hidden items-center gap-2 text-sm font-medium text-khaki transition-colors hover:text-amber md:flex"
           >
-            <PhoneIcon />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 5 Q4 4 5 4 L8 4 L9.5 8 L7.5 9.5 Q9 13 12.5 14.5 L14 12.5 L18 14 L18 17 Q18 18 17 18 Q4 17 4 5 Z" />
+            </svg>
             {site.phoneDisplay}
           </a>
-          <a
-            href={waLink(defaultWaText)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full bg-night px-3.5 py-2 text-xs font-bold whitespace-nowrap text-white transition-colors hover:bg-coal sm:px-5 sm:py-2.5 sm:text-sm"
+          <Link
+            href="/booking"
+            className="rounded-xl bg-amber px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-white transition-colors hover:bg-amberdeep sm:px-5 sm:py-2.5 sm:text-sm"
           >
-            <span className="sm:hidden">WhatsApp</span>
-            <span className="hidden sm:inline">Book on WhatsApp</span>
-          </a>
+            Book a Ride
+          </Link>
           <button
             type="button"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            className="grid size-9 shrink-0 place-items-center rounded-full border border-line text-ink md:size-10 lg:hidden"
+            className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-line text-ink md:size-10 lg:hidden"
           >
             <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
-            <MenuIcon open={open} />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              {open ? (
+                <>
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </>
+              ) : (
+                <>
+                  <line x1="4" y1="8" x2="20" y2="8" />
+                  <line x1="4" y1="16" x2="20" y2="16" />
+                </>
+              )}
+            </svg>
           </button>
         </div>
       </div>
 
       {open && (
-        <nav className="border-t border-line bg-white px-5 pb-5 pt-2 lg:hidden" aria-label="Mobile">
+        <nav
+          className="mx-3 mb-3 flex flex-col rounded-2xl border border-line bg-white p-2 shadow-lg lg:hidden"
+          aria-label="Mobile"
+        >
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className="block border-b border-line py-3 text-base font-semibold text-ink hover:text-amberdeep"
+              className="rounded-xl px-4 py-3 text-base font-medium text-ink hover:bg-cream"
             >
               {item.label}
             </Link>
           ))}
-          <a href={`tel:${site.phone}`} className="mt-4 block font-mono text-sm font-semibold text-amberdeep">
+          <a href={`tel:${site.phone}`} className="rounded-xl px-4 py-3 text-base font-semibold text-amber">
             Call {site.phoneDisplay} — 24/7
           </a>
         </nav>
       )}
     </header>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-    </svg>
-  );
-}
-
-function MenuIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      {open ? (
-        <>
-          <path d="M18 6 6 18" />
-          <path d="m6 6 12 12" />
-        </>
-      ) : (
-        <>
-          <path d="M3 6h18" />
-          <path d="M3 12h18" />
-          <path d="M3 18h18" />
-        </>
-      )}
-    </svg>
   );
 }

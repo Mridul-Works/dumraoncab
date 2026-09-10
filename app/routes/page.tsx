@@ -24,7 +24,7 @@ export default function RoutesPage() {
             <RouteCard key={r.slug} route={r} />
           ))}
           <div className="flex flex-col justify-center rounded-2xl border-2 border-dashed border-line p-5">
-            <p className="font-display text-base font-extrabold text-ink">Somewhere else?</p>
+            <p className="font-display text-base font-semibold text-ink">Somewhere else?</p>
             <p className="mt-1.5 text-sm text-khaki">
               We run to every district in Bihar and beyond — {site.phoneDisplay} answers 24/7.
             </p>
