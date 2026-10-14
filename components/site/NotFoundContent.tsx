@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { site } from "@/lib/site";
 
-export default function NotFound() {
+export default function NotFoundContent() {
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-start px-5 py-24 md:px-8">
       <span className="plate text-lg">404 · WRONG TURN</span>

@@ -37,6 +37,17 @@ export function waLink(text: string) {
 
 export const defaultWaText = `Hello Dumraon Cab Service, I want to book a cab.`;
 
+// Admin panel: WhatsApp message sent to a customer when staff confirm their trip.
+export function customerConfirmText(b: { name: string; service: string; from: string; to: string; date: string; time: string; car: string }) {
+  const trip = b.to ? `${b.from} → ${b.to}` : b.from;
+  const when = [b.date, b.time].filter(Boolean).join(" at ");
+  return [
+    `Namaste${b.name ? ` ${b.name}` : ""}, this is ${site.name}.`,
+    `Your ${b.service} booking is confirmed: ${trip}${when ? `, ${when}` : ""}${b.car ? ` (${b.car})` : ""}.`,
+    `Driver details will be shared before pickup. For any change call ${site.phoneDisplay}.`,
+  ].join("\n");
+}
+
 /* ---------------------------------- services ---------------------------------- */
 
 export type Service = {

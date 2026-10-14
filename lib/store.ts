@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-import type { Booking, BookingStatus } from "./bookingTypes";
+import type { Booking } from "./bookingTypes";
 
 // Simple JSON-file booking store. Works on any Node host (VPS, PM2, Docker).
 // NOTE: on serverless platforms (Vercel/Netlify) the filesystem is ephemeral —
@@ -21,7 +21,23 @@ async function readAll(): Promise<Booking[]> {
 
 async function writeAll(list: Booking[]): Promise<void> {
   await fs.mkdir(path.dirname(FILE), { recursive: true });
-  await fs.writeFile(FILE, JSON.stringify(list, null, 2), "utf8");
+  // Write-then-rename so a crash mid-write never leaves a truncated file.
+  const tmp = `${FILE}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(list, null, 2), "utf8");
+  await fs.rename(tmp, FILE);
+}
+
+// Serialise read-modify-write cycles so two requests can't overwrite each other.
+let queue: Promise<unknown> = Promise.resolve();
+function mutate<T>(fn: (list: Booking[]) => T | Promise<T>): Promise<T> {
+  const run = queue.then(async () => {
+    const list = await readAll();
+    const result = await fn(list);
+    await writeAll(list);
+    return result;
+  });
+  queue = run.catch(() => {});
+  return run;
 }
 
 export async function listBookings(): Promise<Booking[]> {
@@ -29,26 +45,33 @@ export async function listBookings(): Promise<Booking[]> {
   return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export async function addBooking(
-  input: Omit<Booking, "id" | "createdAt" | "status">,
-): Promise<Booking> {
-  const list = await readAll();
-  const booking: Booking = {
-    ...input,
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-    status: "new",
-  };
-  list.push(booking);
-  await writeAll(list);
-  return booking;
+export function addBooking(input: Omit<Booking, "id" | "createdAt" | "status"> & Partial<Pick<Booking, "status">>) {
+  return mutate((list) => {
+    const booking: Booking = {
+      ...input,
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      status: input.status ?? "new",
+    };
+    list.push(booking);
+    return booking;
+  });
 }
 
-export async function updateBookingStatus(id: string, status: BookingStatus): Promise<Booking | null> {
-  const list = await readAll();
-  const booking = list.find((b) => b.id === id);
-  if (!booking) return null;
-  booking.status = status;
-  await writeAll(list);
-  return booking;
+export function updateBooking(id: string, patch: Partial<Pick<Booking, "status" | "adminNote">>) {
+  return mutate((list) => {
+    const booking = list.find((b) => b.id === id);
+    if (!booking) return null;
+    Object.assign(booking, patch, { updatedAt: new Date().toISOString() });
+    return booking;
+  });
+}
+
+export function deleteBooking(id: string) {
+  return mutate((list) => {
+    const i = list.findIndex((b) => b.id === id);
+    if (i === -1) return false;
+    list.splice(i, 1);
+    return true;
+  });
 }

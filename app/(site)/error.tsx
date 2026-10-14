@@ -24,6 +24,8 @@ export default function Error({ reset }: { error: Error & { digest?: string }; r
         >
           Try again
         </button>
+        {/* Full reload on purpose: recovers from a broken client state. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/"
           className="rounded-full border border-line px-6 py-3 font-bold text-ink hover:border-amber hover:text-amberdeep"

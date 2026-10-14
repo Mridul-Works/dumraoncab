@@ -15,11 +15,20 @@ server-rendered booking page.
 
 ## Admin panel
 
-`/admin` shows everything: booking requests from the site (with status workflow),
-fleet, routes, fares and content overview.
+`/admin` (sign in at `/admin/login`): dashboard, bookings (search, filter, status,
+internal notes, delete, log phone bookings, CSV export), fleet, routes & fares, and
+site content.
 
-- Password: set `ADMIN_PASSWORD` in `.env.local` (dev fallback: `dumraon123` — change before launch).
-- Session: httpOnly cookie, 30 days; `/admin` is noindex and blocked in robots.txt.
+- Credentials come from the environment — set these in `.env.local` locally and in the
+  host's environment in production (there is no built-in default password):
+
+  ```
+  ADMIN_EMAIL=admin@dumraoncab.com
+  ADMIN_PASSWORD=...
+  ADMIN_SESSION_SECRET=...   # optional, long random string
+  ```
+- Session: HMAC-signed httpOnly cookie, 7 days; changing the password signs everyone out.
+  `/admin` is noindex and blocked in robots.txt.
 - Storage: `data/bookings.json` (gitignored). Fine on a VPS/Node host; on serverless
   hosts the filesystem is ephemeral — swap `lib/store.ts` for a database first.
 
@@ -27,7 +36,7 @@ fleet, routes, fares and content overview.
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npm run dev      # http://localhost:5600
 npm run build    # production build
 ```
 
