@@ -71,11 +71,14 @@ vehicles, 1000+ customers, 24/7) → services grid → fleet browser
 ---------------------------------------------------------------------
 Own shell: dark sidebar nav (horizontal scroll bar on mobile) with
 live "new bookings" badge, signed-in email, View site, Log out.
-- /admin/login: email + password (ADMIN_EMAIL / ADMIN_PASSWORD env;
-  login disabled if no password is set). Server Action; HMAC-signed
-  httpOnly session cookie (7 days, email + expiry, constant-time
-  checks); failed attempts are slowed and keep the typed email;
-  changing the password signs every session out. Every admin page,
+- /admin/login: email + password. Works with no env setup (built-in
+  password stored only as a scrypt hash; session key derived from
+  the password at login, so the public repo can't be used to forge
+  a session); ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_SESSION_SECRET env
+  vars override. Server Action; HMAC-signed httpOnly session cookie
+  (7 days, email + expiry, constant-time checks); failed attempts
+  are slowed and keep the typed email; changing the password signs
+  every session out. Every admin page,
   action and API re-checks the session.
 - /admin (Dashboard): tiles for awaiting confirmation, received
   today, travelling today, trips in next 7 days, completed, all-time

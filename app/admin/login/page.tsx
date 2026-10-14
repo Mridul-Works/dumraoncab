@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import LoginForm from "@/components/admin/LoginForm";
-import { adminConfigured, isAuthed } from "@/lib/adminAuth";
+import { isAuthed } from "@/lib/adminAuth";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -19,11 +19,6 @@ export default async function AdminLoginPage() {
           </span>
           <h1 className="mt-4 font-display text-xl font-semibold text-ink">Admin sign in</h1>
           <p className="mt-1 text-sm text-khaki">{site.name} staff only.</p>
-          {!adminConfigured() && (
-            <p className="mt-4 rounded-lg bg-gold/15 px-3 py-2 text-sm text-ink" role="status">
-              Login is disabled until <code className="font-mono text-xs">ADMIN_PASSWORD</code> is set on the server.
-            </p>
-          )}
           <LoginForm />
         </div>
         <p className="mt-4 text-center text-xs text-sand">

@@ -19,13 +19,16 @@ server-rendered booking page.
 internal notes, delete, log phone bookings, CSV export), fleet, routes & fares, and
 site content.
 
-- Credentials come from the environment — set these in `.env.local` locally and in the
-  host's environment in production (there is no built-in default password):
+- Login works with no setup: the built-in password is committed only as a scrypt hash
+  (`lib/adminAuth.ts`), and without a server secret the session key is derived from the
+  password at login — nothing in this public repo lets anyone sign in or forge a session.
+- Recommended on the host (Vercel → Settings → Environment Variables, then redeploy);
+  these override the built-ins:
 
   ```
   ADMIN_EMAIL=admin@dumraoncab.com
-  ADMIN_PASSWORD=...
-  ADMIN_SESSION_SECRET=...   # optional, long random string
+  ADMIN_PASSWORD=...          # a new password replaces the built-in one
+  ADMIN_SESSION_SECRET=...    # long random string
   ```
 - Session: HMAC-signed httpOnly cookie, 7 days; changing the password signs everyone out.
   `/admin` is noindex and blocked in robots.txt.

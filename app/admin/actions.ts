@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { adminConfigured, credentialsMatch, endSession, requireAdmin, startSession } from "@/lib/adminAuth";
+import { credentialsMatch, endSession, requireAdmin, startSession } from "@/lib/adminAuth";
 import { BOOKING_STATUSES, type BookingStatus } from "@/lib/bookingTypes";
 import { addBooking, deleteBooking, updateBooking } from "@/lib/store";
 
@@ -18,9 +18,6 @@ const refreshAdmin = () => revalidatePath("/admin", "layout");
 /* ---------------------------------- session ---------------------------------- */
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
-  if (!adminConfigured()) {
-    return { error: "Admin login isn't set up yet — ADMIN_PASSWORD is missing on the server." };
-  }
   const email = field(formData, "email", 120);
   const password = typeof formData.get("password") === "string" ? (formData.get("password") as string) : "";
   if (!email || !password) return { error: "Enter your email and password.", email };
@@ -31,7 +28,7 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
     return { error: "That email and password don't match.", email };
   }
 
-  await startSession(email);
+  await startSession(email, password);
   redirect("/admin");
 }
 
