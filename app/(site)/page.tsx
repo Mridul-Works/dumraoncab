@@ -4,7 +4,8 @@ import FleetBrowser from "@/components/FleetBrowser";
 import HeroBooking from "@/components/HeroBooking";
 import Reveal from "@/components/Reveal";
 import { CtaBand, SectionHead } from "@/components/ui";
-import { faqs, routes, services, site, steps, waLink } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
+import { faqs, services, site, steps, waLink } from "@/lib/site";
 
 const faqJsonLd = {
   "@context": "https://schema.org",
@@ -16,28 +17,29 @@ const faqJsonLd = {
   })),
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { vehicles, routes, hourlyPackages } = await getCatalog();
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       {/* Hero — booking-widget-first, MakeMyTrip style */}
-      <HeroBooking />
+      <HeroBooking vehicles={vehicles} routes={routes} packages={hourlyPackages.map((p) => p.name)} />
 
       {/* Trust bar — real numbers, rendered statically */}
-      <div className="border-y border-ink/5 bg-white py-6">
+      <div className="border-y border-black/5 bg-white py-6">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-4 gap-y-5 px-5 md:grid-cols-4 md:px-8">
           {site.stats.map((s, i) => (
             <div key={s.label} className="flex items-center gap-3.5 md:justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-amber" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-brand" aria-hidden="true">
                 {i === 0 && <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></>}
                 {i === 1 && <><path d="M5 16v-4q0-2 2-2h10q2 0 2 2v4" /><path d="M7 10l1.5-3.5q.5-1 1.5-1h4q1 0 1.5 1L17 10" /><circle cx="8" cy="16.5" r="1.6" /><circle cx="16" cy="16.5" r="1.6" /></>}
                 {i === 2 && <><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>}
                 {i === 3 && <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>}
               </svg>
               <div>
-                <b className="block font-display text-base font-semibold tracking-tight text-ink">{s.value}</b>
-                <span className="block text-xs text-sand">{s.label}</span>
+                <b className="block font-display text-base font-semibold tracking-tight text-primary">{s.value}</b>
+                <span className="block text-xs text-helper">{s.label}</span>
               </div>
             </div>
           ))}
@@ -59,23 +61,23 @@ export default function HomePage() {
       </section>
 
       {/* Fleet */}
-      <section className="border-y border-line bg-cream/60">
+      <section className="border-y border-subtle bg-brand-subtle/60">
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
           <div className="mx-auto mb-8 max-w-2xl text-center">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-amberdeep">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-brand-strong">
               The fleet
             </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-balance text-ink md:text-4xl">
+            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-balance text-primary md:text-4xl">
               Choose your car
             </h2>
-            <p className="mt-3 text-base leading-relaxed text-khaki md:text-lg">
+            <p className="mt-3 text-base leading-relaxed text-secondary md:text-lg">
               Real photos of the cars you&rsquo;ll actually ride in — filter by type and book the one
               that fits your trip.
             </p>
           </div>
-          <FleetBrowser />
+          <FleetBrowser vehicles={vehicles} />
           <p className="mt-2 text-center">
-            <Link href="/fleet" className="font-bold text-amberdeep hover:underline">
+            <Link href="/fleet" className="font-bold text-brand-strong hover:underline">
               See full fleet details &amp; fare tables →
             </Link>
           </p>
@@ -93,16 +95,16 @@ export default function HomePage() {
           {routes.map((r) => (
             <RouteCard key={r.slug} route={r} />
           ))}
-          <div className="flex flex-col justify-center rounded-xl border-2 border-dashed border-line p-5">
-            <p className="font-display text-base font-semibold text-ink">Going somewhere else?</p>
-            <p className="mt-1.5 text-sm text-khaki">
+          <div className="flex flex-col justify-center rounded-xl border-2 border-dashed border-subtle p-5">
+            <p className="font-display text-base font-semibold text-primary">Going somewhere else?</p>
+            <p className="mt-1.5 text-sm text-secondary">
               We run to every district in Bihar and into UP and Jharkhand.
             </p>
             <a
               href={waLink("Hello Dumraon Cab Service, please quote a fare for my route.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 font-bold text-amberdeep hover:underline"
+              className="mt-4 font-bold text-brand-strong hover:underline"
             >
               Ask for any route on WhatsApp →
             </a>
@@ -118,15 +120,15 @@ export default function HomePage() {
             <ol className="relative mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <span
                 aria-hidden="true"
-                className="absolute left-0 right-0 top-[23px] hidden h-0.5 rounded-full bg-ink/10 lg:block"
+                className="absolute left-0 right-0 top-[23px] hidden h-0.5 rounded-full bg-black/10 lg:block"
               />
               {steps.map((step, i) => (
                 <li key={step.title} className="relative">
-                  <span className="relative z-[1] grid size-[46px] place-items-center rounded-full border-[1.5px] border-line bg-white font-mono text-sm text-ink">
+                  <span className="relative z-[1] grid size-[46px] place-items-center rounded-full border-[1.5px] border-subtle bg-white font-mono text-sm text-primary">
                     0{i + 1}
                   </span>
-                  <h3 className="mt-4 font-display text-lg font-semibold text-ink">{step.title}</h3>
-                  <p className="mt-1.5 max-w-[28ch] text-sm leading-relaxed text-khaki">{step.text}</p>
+                  <h3 className="mt-4 font-display text-lg font-semibold text-primary">{step.title}</h3>
+                  <p className="mt-1.5 max-w-[28ch] text-sm leading-relaxed text-secondary">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -149,16 +151,16 @@ export default function HomePage() {
             ["Clean, insured cars", "Every vehicle is comprehensively insured and cleaned before your pickup."],
             ["Pay after the trip", "Cash or UPI when you arrive. No app wallets, no advance for regular bookings."],
           ].map(([title, text]) => (
-            <div key={title} className="border-l-2 border-amber pl-4">
-              <h3 className="font-display text-base font-semibold text-ink">{title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-khaki">{text}</p>
+            <div key={title} className="border-l-2 border-brand pl-4">
+              <h3 className="font-display text-base font-semibold text-primary">{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-secondary">{text}</p>
             </div>
           ))}
         </Reveal>
       </section>
 
       {/* Testimonials */}
-      <section className="border-y border-line bg-cream/60">
+      <section className="border-y border-subtle bg-brand-subtle/60">
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
           <SectionHead
             eyebrow="Rider stories"

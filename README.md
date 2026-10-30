@@ -8,16 +8,24 @@ server-rendered booking page.
 ## Stack
 
 - Next.js 16 (App Router; public pages statically generated, admin/API dynamic)
-- Tailwind CSS v4, next/font (Plus Jakarta Sans · IBM Plex Mono)
+- Tailwind CSS v4, next/font (Google Sans Flex · Google Sans Code), Chinkara design tokens (`npm run tokens`)
 - Booking flow: forms compose a WhatsApp message AND record the request via `/api/bookings`
 - Fleet photos load from the operator's existing Cloudinary account
 - `FEATURES.txt` is the living feature inventory — update it with every feature change
 
 ## Admin panel
 
-`/admin` (sign in at `/admin/login`): dashboard, bookings (search, filter, status,
-internal notes, delete, log phone bookings, CSV export), fleet, routes & fares, and
-site content.
+`/admin` (sign in at `/admin/login`) has five sections, plus ⌘K / Ctrl+K search:
+
+- **Dashboard** — act now (requests needing a call back, next confirmed trips) and
+  at a glance (numbers, today's pickups, fleet right now, this week's bookings).
+- **Bookings** — list with status tabs, search, source and date filters; a booking
+  panel to quote, assign a car, confirm/complete/cancel and WhatsApp the customer;
+  `/admin/bookings/new` for phone bookings (with past-customer lookup); CSV export.
+- **Fleet** — car grid, add/edit/delete cars, photo upload, "shown on site" switch.
+- **Daily journal** — one entry per trip (fare, fuel, driver cut → net), totals,
+  needs-attention list, per-car view with km per day and service reminders.
+- **Fares** — every price on the site; edit mode publishes straight to the live site.
 
 - Login works with no setup: the built-in password is committed only as a scrypt hash
   (`lib/adminAuth.ts`), and without a server secret the session key is derived from the
@@ -32,8 +40,14 @@ site content.
   ```
 - Session: HMAC-signed httpOnly cookie, 7 days; changing the password signs everyone out.
   `/admin` is noindex and blocked in robots.txt.
-- Storage: `data/bookings.json` (gitignored). Fine on a VPS/Node host; on serverless
-  hosts the filesystem is ephemeral — swap `lib/store.ts` for a database first.
+- Storage: JSON files in `data/` (gitignored) — `bookings.json`, `fleet.json`,
+  `fares.json`, `journal.json`, and uploaded car photos in `data/uploads/`. All go
+  through `lib/db.ts`. Fine on a VPS/Node host; on serverless hosts the filesystem is
+  ephemeral — swap `lib/db.ts` for a database first. Back up `data/` regularly.
+- Publishing: saving in Fleet or Fares expires every public page that shows cars or
+  prices (cache tag `catalog`), so the next visitor sees the change — no redeploy.
+  If you ever edit `data/fleet.json` or `data/fares.json` by hand, delete
+  `.next/cache/fetch-cache` and restart the server so the site picks it up.
 
 ## Run it
 
@@ -45,8 +59,11 @@ npm run build    # production build
 
 ## Where everything lives
 
-All content — phone numbers, services, fleet, fares, routes, testimonials, FAQs — is data in
+All content — phone numbers, services, routes, testimonials, FAQs — is data in
 **`lib/site.ts`**. Edit that one file to change what the site says; no component changes needed.
+
+**Fleet and fares** are edited in the admin panel. `lib/site.ts` holds only their starting
+values (`seedFleet`, `seedFares`), used until the first save in the admin.
 
 | Route | Purpose |
 |---|---|

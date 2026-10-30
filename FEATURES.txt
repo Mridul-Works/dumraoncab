@@ -1,6 +1,6 @@
 =====================================================================
 DUMRAON CAB SERVICE — FEATURE INVENTORY
-Last updated: 2026-10-14
+Last updated: 2026-10-30
 ---------------------------------------------------------------------
 MAINTENANCE RULE: this file is the living list of everything the
 site does. Whenever a feature is added, changed or removed, update
@@ -69,50 +69,110 @@ vehicles, 1000+ customers, 24/7) → services grid → fleet browser
 
 4. ADMIN PANEL (/admin — noindex, robots-blocked, login required)
 ---------------------------------------------------------------------
-Own shell: dark sidebar nav (horizontal scroll bar on mobile) with
-live "new bookings" badge, signed-in email, View site, Log out.
-- /admin/login: email + password. Works with no env setup (built-in
-  password stored only as a scrypt hash; session key derived from
-  the password at login, so the public repo can't be used to forge
-  a session); ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_SESSION_SECRET env
-  vars override. Server Action; HMAC-signed httpOnly session cookie
-  (7 days, email + expiry, constant-time checks); failed attempts
-  are slowed and keep the typed email; changing the password signs
-  every session out. Every admin page,
-  action and API re-checks the session.
-- /admin (Dashboard): tiles for awaiting confirmation, received
-  today, travelling today, trips in next 7 days, completed, all-time
-  total (Indian time); "Needs confirmation" list with Call/WhatsApp
-  buttons; "Upcoming trips" list; links to fleet/fares/content and
-  the contact channels
-- /admin/bookings: search (name, phone, place, car, notes), status
-  filter tabs with counts, sort by received or travel date; status
-  dropdown per booking; Details panel with customer notes, received/
-  last-changed times, Call + WhatsApp (pre-filled confirmation
-  message from lib/site.ts), internal note (saved), delete with
-  confirm; "Log a booking" form for phone/WhatsApp trips (source
-  "Phone"); Export CSV (Excel-safe, UTF-8)
-- /admin/fleet: vehicles with photo, category, seats, specs, note,
-  rate
-- /admin/fares: routes (linked to public pages), per-km rates,
-  hourly packages, fare notes
-- /admin/content: contact & business details, services, testimonials
-  (flagged as sample), FAQs
-- Fleet/fares/content are read-only views; content is still edited
-  in lib/site.ts
+Design: "Cab Service Admin" Figma file on the Chinkara design system.
+Icons are the Figma Phosphor SVGs in public/admin-icons/, drawn by
+components/admin/Icon.tsx (CSS mask, so they take the text colour).
+Shared pieces in components/admin/ui.tsx (buttons, inputs, cards,
+status badges, KPI strip) and Drawer.tsx (540px slide-over).
+Shell: light sidebar — Dashboard · Bookings (live "new" count) · Fleet
+· Daily journal · Fares; View live site; signed-in email; Sign out.
+Mobile: top bar with search + sign-out icons and horizontal nav.
+Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled.
+- /admin/login: email + password card; wrong details show a red alert
+  ("Incorrect email or password") and keep the typed email; "Signing
+  in…" state. Works with no env setup (built-in password stored only
+  as a scrypt hash; session key derived from the password at login, so
+  the public repo can't be used to forge a session); ADMIN_EMAIL /
+  ADMIN_PASSWORD / ADMIN_SESSION_SECRET env vars override. HMAC-signed
+  httpOnly session cookie (7 days, constant-time checks); failed
+  attempts are slowed; changing the password signs every session out.
+  Every admin page, action and API re-checks it.
+- Search (⌘K / Ctrl+K, or the search pill in page headers): command
+  palette — jump to any section, quick actions, and search bookings
+  (name, phone, place, car, date) and cars (name, number plate).
+- /admin (Dashboard), all in Indian time: greeting + live date; KPI
+  strip (new requests and how many waited over 15 min, pickups today
+  done/on trip, confirmed this week vs last week + ₹ quoted, cars free)
+  — each links to the filtered list; "Needs a call back" (new requests,
+  oldest first, waiting chip turns amber after 15 min, handled-today
+  progress; Call / WhatsApp quote also mark the request Contacted; row
+  opens the booking); "Up next" card (next contacted/confirmed trip,
+  countdown, pickup/drop, car, Call customer / Open booking); today's
+  pickups timeline (completed / on trip / up next; adds tomorrow when
+  today is done); fleet right now (cars out, or free cars by type);
+  requests received this week bar chart vs last week.
+- /admin/bookings: KPI cards (new not contacted, pickups today with the
+  next one, confirmed this week + ₹ quoted, completed this month vs
+  last); status tabs with counts (All/New/Contacted/Confirmed/
+  Completed/Cancelled); search; pickup-date presets (any, today,
+  tomorrow, this week, next 7 days, upcoming, past); table (stacked
+  cards on small screens); "No bookings match" state with Clear search;
+  toasts after actions and after a new phone booking. Filters and the
+  open drawer live in the URL (?status=&source=&from=&to=&q=&id=).
+  Export CSV (Excel-safe, UTF-8).
+- Booking drawer (?id=): name + status badge, phone and when/how it
+  came in, Call + WhatsApp (quote for new/contacted, confirmation once
+  confirmed — texts in lib/site.ts); trip facts; status control (New /
+  Contacted / Confirmed / Completed); quoted fare, car sent, internal
+  note; footer actions by status (Cancel · Mark contacted · Mark
+  confirmed · Mark completed · Add to journal · Delete · Reopen); every
+  status button also saves typed edits. Esc or scrim closes.
+- /admin/bookings/new (phone booking): channel (phone call / WhatsApp /
+  walk-in) and +91 mobile with returning-customer summary; one way /
+  round trip, trip type, pickup/drop with swap and popular-route chips;
+  date tiles, time list and quick chips, flight/train number; people
+  and bag counters, car class with free count, assign a car; notes for
+  driver and internal; summary with editable fare and discount, total,
+  payment, WhatsApp confirmation switch; Save / Save and add another;
+  missing-info checks; local draft with Discard.
+- /admin/fleet: type tabs with counts, car cards (photo, name, plate,
+  rate from fare class, "Out today" and service chips, shown-on-site
+  switch), Add car; saved/deleted toast.
+- /admin/fleet/new and /admin/fleet/[car]: form card + live "Preview on
+  /fleet" card; name, number (edit), type, seats/transmission/fuel,
+  fare class (rate shown read-only — set in Fares); photo dropzone
+  (JPG/PNG/WebP up to 4 MB, stored in data/uploads, served by
+  /uploads/[file]) or pasted link; shown on site; card note; Delete car
+  with a confirm dialog (journal history kept).
+- /admin/journal (Daily journal): range presets + custom range, car
+  filter, "need attention" link; totals strip and "where the fare went"
+  bar; needs attention, by car and service due panels; entries by day
+  ("Show earlier days"); Export CSV (/admin/journal/export).
+- New entry panel (?new=1, edit with ?entry=): date chips; customer and
+  mobile; one way / round trip; route and km; pick from a booking or
+  unlink; car accordion with search grouped by type (on-trip cars
+  dimmed); fare · fuel · driver cut with live net and ₹/km; inline
+  errors; Save (marks a picked booking completed) with an Undo toast.
+- One car (/admin/journal?car=…): car totals, km per day chart, next
+  service card with gauge (and the service/odometer form), trips list
+  with "Add missing trip" for idle days.
+- /admin/fares: cards for per-km rates by car class, hourly packages,
+  route "from" fares (with distance · duration) and extras/rules, with
+  where each price shows. Edit fares (also ?edit=1): ₹ fields with
+  Indian commas, changed fields green and invalid ones red, floating
+  unsaved-changes bar (last change old → new · Discard · Save and
+  publish), leave-page warning; published toast with "View on site".
+- Publishing: Fleet and Fares saves expire every public page built
+  from the catalog at once (cache tag "catalog") — the next visitor
+  sees the change; no redeploy.
 
-5. API (Node runtime; data in data/bookings.json — gitignored)
+5. API & STORAGE (Node runtime; JSON files in data/ — gitignored)
 ---------------------------------------------------------------------
 POST   /api/bookings          public — save a booking request
 GET    /api/bookings          admin — list all bookings
 PATCH  /api/bookings/[id]     admin — update status and/or note
 DELETE /api/bookings/[id]     admin — delete a booking
 GET    /api/bookings/export   admin — download all bookings as CSV
-Admin login/logout and panel edits use Server Actions
-(app/admin/actions.ts). Store writes are serialised and atomic
-(temp file + rename).
+GET    /admin/journal/export  admin — download journal entries as CSV
+GET    /uploads/[file]        uploaded car photos (immutable cache)
+Admin edits use Server Actions (app/admin/*actions.ts). Files:
+bookings.json, fleet.json, fares.json, journal.json, uploads/. All
+writes go through lib/db.ts: serialised per file and atomic (temp
+file + rename); a corrupt file raises an error instead of reading as
+empty. Fleet and fares fall back to the seeds in lib/site.ts until
+first saved.
 NOTE: JSON-file storage suits a VPS/Node host. On serverless
-(Vercel etc.) swap lib/store.ts for a database first.
+(Vercel etc.) swap lib/db.ts for a database first.
 
 6. SEO & DISCOVERABILITY
 ---------------------------------------------------------------------
@@ -125,12 +185,26 @@ NOTE: JSON-file storage suits a VPS/Node host. On serverless
 - OpenGraph + Twitter card; generated branded OG image; SVG favicon
 - PWA manifest; theme-color; /gallery redirect preserves old URL
 
-7. DESIGN SYSTEM & UX  (v2 — cream & green editorial)
+7. DESIGN SYSTEM & UX  (v3 — Chinkara design system)
 ---------------------------------------------------------------------
-- Tokens in app/globals.css: warm cream ground (#faf9f4/#f1eee5),
-  deep green accent (#0e6b4b/#0a4f37), forest dark (#12241c), amber
-  gold highlight (#e9a23b), green tint (#e4efe7); Bricolage
-  Grotesque display + Instrument Sans body + IBM Plex Mono
+- Master source: "chinkara Design System.json" (Figma variables
+  export). `npm run tokens` (scripts/build-design-tokens.mjs)
+  generates app/chinkara.css (every token as a CSS variable, named
+  per its WEB code syntax; light on :root, opt-in dark under
+  [data-theme="dark"], Mobile type sizes below 768px) and
+  lib/designTokens.ts (resolved colours for OG image, manifest,
+  theme-color). Never edit the generated files by hand.
+- app/globals.css maps Tailwind onto the tokens: Chinkara palettes
+  only (green/gold/gray/success/warning/error/info; default
+  Tailwind palette disabled); semantic classes such as bg-canvas,
+  bg-brand, bg-brand-subtle, bg-selected, bg-brand-deep (green-950
+  dark bands), text-primary/secondary/helper/brand/negative,
+  text-*-inverse on dark, border-subtle/brand/strong; radius scale
+  2/4/8/12/16/24px; text-xs…7xl snapped to the Chinkara type scale;
+  type-display-xl…type-label text-style utilities; shadows from
+  Chinkara shadow colours; Chinkara durations and easings
+- Fonts: Google Sans Flex (sans + display) and Google Sans Code
+  (mono) via next/font
 - Look: soft cards (rounded 16-22px, layered shadow), rounded-xl
   buttons, gold-dash eyebrows, fare-tag pills (.plate), blur nav
 - Motion: booking-card rise-in, floating cab + animated lane dashes
@@ -144,12 +218,15 @@ NOTE: JSON-file storage suits a VPS/Node host. On serverless
 - Responsive: verified at 360/390/414 px (zero horizontal overflow),
   compact mobile header, horizontal-scroll tabs/chips
 
-8. CONTENT (single source: lib/site.ts)
+8. CONTENT
 ---------------------------------------------------------------------
-Contact & identity · stats · 6 services · 9-vehicle fleet with real
-Cloudinary photos & specs · per-km rates · hourly packages · fare
-notes · 5 routes with fares · testimonials (SAMPLE — replace before
-launch) · 8 FAQs · 4 booking steps
+lib/site.ts: contact & identity · stats · 6 services · 5 routes ·
+testimonials (SAMPLE — replace before launch) · 8 FAQs · 4 booking
+steps · customer WhatsApp texts (confirmation, quote).
+Fleet (9 cars with real Cloudinary photos & specs) and fares (per-km
+rates, hourly packages, route fares, night allowance, fare rules) are
+edited in the admin; lib/site.ts keeps their seed values (seedFleet,
+seedFares). Public pages read them via getCatalog() (lib/catalog.ts).
 Launch checklist lives in README.md (confirm fares, real reviews,
 Search Console, Google Business Profile, admin env vars).
 =====================================================================

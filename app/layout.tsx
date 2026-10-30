@@ -1,26 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Google_Sans_Flex, Google_Sans_Code } from "next/font/google";
 import { site } from "@/lib/site";
+import { colors } from "@/lib/designTokens";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+// Chinkara type families (Primitive: Type › Family). Both are variable fonts.
+const sans = Google_Sans_Flex({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-bricolage",
+  variable: "--font-google-sans-flex",
+  adjustFontFallback: false, // no metric overrides published for this family yet
   display: "swap",
 });
 
-const instrument = Instrument_Sans({
+const mono = Google_Sans_Code({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-instrument",
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  variable: "--font-plex-mono",
+  variable: "--font-google-sans-code",
+  adjustFontFallback: false,
   display: "swap",
 });
 
@@ -60,12 +55,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a4f37",
+  themeColor: colors["chinkara-green-950"],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${instrument.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen">{children}</body>
     </html>
   );

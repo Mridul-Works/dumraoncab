@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import BookingForm from "@/components/BookingForm";
 import { FaqList } from "@/components/cards";
 import { SectionHead } from "@/components/ui";
-import { hourlyPackages, perKmRates, site, waLink, defaultWaText } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
+import { site, waLink, defaultWaText } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Book a Cab — Fixed Quote in Minutes",
@@ -11,16 +12,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/booking" },
 };
 
-export default function BookingPage() {
+export default async function BookingPage() {
+  const { vehicles, perKmRates, hourlyPackages, nightAllowance } = await getCatalog();
   return (
     <>
-      <section className="bg-night text-paper">
+      <section className="bg-brand-deep text-on-color">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-gold">Booking</p>
           <h1 className="mt-4 max-w-3xl font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
             Tell us the trip. Get a fixed quote in minutes.
           </h1>
-          <p className="mt-4 max-w-2xl text-sand">
+          <p className="mt-4 max-w-2xl text-secondary-inverse">
             Fastest: call <a href={`tel:${site.phone}`} className="font-mono font-semibold text-gold">{site.phoneDisplay}</a> or{" "}
             <a href={waLink(defaultWaText)} target="_blank" rel="noopener noreferrer" className="font-semibold text-gold underline-offset-2 hover:underline">
               message us on WhatsApp
@@ -30,41 +32,41 @@ export default function BookingPage() {
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-[1.5fr_1fr]">
-        <BookingForm />
+        <BookingForm vehicles={vehicles} />
 
         <aside className="flex flex-col gap-6">
-          <div className="rounded-2xl border border-line bg-white p-6">
-            <h2 className="font-display text-lg font-semibold text-ink">Outstation per-km rates</h2>
+          <div className="rounded-2xl border border-subtle bg-white p-6">
+            <h2 className="font-display text-lg font-semibold text-primary">Outstation per-km rates</h2>
             <ul className="mt-4 space-y-3">
               {perKmRates.map((r) => (
                 <li key={r.category} className="flex items-center justify-between gap-3 text-sm">
                   <div>
-                    <p className="font-semibold text-ink">{r.category}</p>
-                    <p className="text-xs text-khaki">{r.cars}</p>
+                    <p className="font-semibold text-primary">{r.category}</p>
+                    <p className="text-xs text-secondary">{r.cars}</p>
                   </div>
                   <span className="plate text-sm">{r.rate}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl border border-line bg-white p-6">
-            <h2 className="font-display text-lg font-semibold text-ink">Hourly packages</h2>
+          <div className="rounded-2xl border border-subtle bg-white p-6">
+            <h2 className="font-display text-lg font-semibold text-primary">Hourly packages</h2>
             <ul className="mt-4 space-y-3">
               {hourlyPackages.map((p) => (
                 <li key={p.name} className="flex items-center justify-between gap-3 text-sm">
-                  <p className="font-semibold text-ink">{p.name}</p>
+                  <p className="font-semibold text-primary">{p.name}</p>
                   <span className="plate text-sm">{p.price}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-xs leading-relaxed text-khaki">
+            <p className="mt-4 text-xs leading-relaxed text-secondary">
               Indicative fares — your exact quote is fixed before the car leaves. Tolls and taxes at
-              actuals, night allowance ₹300/night on outstation trips.
+              actuals, night allowance {nightAllowance}/night on outstation trips.
             </p>
           </div>
-          <div className="rounded-2xl bg-night p-6 text-paper">
+          <div className="rounded-2xl bg-brand-deep p-6 text-on-color">
             <h2 className="font-display text-lg font-semibold">Odd-hour trip?</h2>
-            <p className="mt-2 text-sm leading-relaxed text-sand">
+            <p className="mt-2 text-sm leading-relaxed text-secondary-inverse">
               3 AM railway pickup, pre-dawn airport run — call a few hours ahead and the car will be
               positioned and waiting.
             </p>

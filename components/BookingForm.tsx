@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { fleet, services, site, waLink } from "@/lib/site";
+import type { Vehicle } from "@/lib/catalog";
+import { services, site, waLink } from "@/lib/site";
 
 const inputCls =
-  "w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink placeholder:text-sand focus:border-amber";
-const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
+  "w-full rounded-lg border border-subtle bg-white px-3.5 py-2.5 text-[15px] text-primary placeholder:text-helper focus:border-brand";
+const labelCls = "mb-1.5 block text-sm font-semibold text-primary";
 
 // No backend needed: the form composes a structured WhatsApp message — the channel
 // this business actually confirms bookings on. Swap handleSubmit for an API call later.
-export default function BookingForm() {
+export default function BookingForm({ vehicles: fleet }: { vehicles: Vehicle[] }) {
   const [sent, setSent] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -50,7 +51,7 @@ export default function BookingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-line bg-white p-6 shadow-sm md:p-8">
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-subtle bg-white p-6 shadow-sm md:p-8">
       <div className="grid gap-5 md:grid-cols-2">
         <div>
           <label htmlFor="bf-name" className={labelCls}>Your name</label>
@@ -94,7 +95,7 @@ export default function BookingForm() {
           <input id="bf-pickup" name="pickup" required placeholder="e.g. Dumraon, near new bus stand" className={inputCls} />
         </div>
         <div>
-          <label htmlFor="bf-drop" className={labelCls}>Drop / destination <span className="font-normal text-khaki">(optional)</span></label>
+          <label htmlFor="bf-drop" className={labelCls}>Drop / destination <span className="font-normal text-secondary">(optional)</span></label>
           <input id="bf-drop" name="drop" placeholder="e.g. Patna Airport" className={inputCls} />
         </div>
         <div>
@@ -102,11 +103,11 @@ export default function BookingForm() {
           <input id="bf-date" name="date" required type="date" min={today} className={inputCls} />
         </div>
         <div>
-          <label htmlFor="bf-time" className={labelCls}>Pickup time <span className="font-normal text-khaki">(optional)</span></label>
+          <label htmlFor="bf-time" className={labelCls}>Pickup time <span className="font-normal text-secondary">(optional)</span></label>
           <input id="bf-time" name="time" type="time" className={inputCls} />
         </div>
         <div className="md:col-span-2">
-          <label htmlFor="bf-notes" className={labelCls}>Anything else? <span className="font-normal text-khaki">(optional)</span></label>
+          <label htmlFor="bf-notes" className={labelCls}>Anything else? <span className="font-normal text-secondary">(optional)</span></label>
           <textarea
             id="bf-notes"
             name="notes"
@@ -119,20 +120,20 @@ export default function BookingForm() {
 
       <button
         type="submit"
-        className="mt-6 w-full rounded-full bg-amberdeep px-7 py-3.5 text-base font-bold text-white transition-colors hover:bg-night md:w-auto"
+        className="mt-6 w-full rounded-full bg-brand-hover px-7 py-3.5 text-base font-bold text-white transition-colors hover:bg-brand-deep md:w-auto"
       >
         Send request on WhatsApp
       </button>
 
       {sent && (
-        <p className="mt-4 rounded-lg bg-cream px-4 py-3 text-sm text-ink" role="status">
+        <p className="mt-4 rounded-lg bg-brand-subtle px-4 py-3 text-sm text-primary" role="status">
           Your request opened in WhatsApp — press send there and we&rsquo;ll reply with a fixed quote.
           Nothing happened? Call us directly at{" "}
-          <a href={`tel:${site.phone}`} className="font-semibold text-amberdeep">{site.phoneDisplay}</a>.
+          <a href={`tel:${site.phone}`} className="font-semibold text-brand-strong">{site.phoneDisplay}</a>.
         </p>
       )}
 
-      <p className="mt-4 text-xs leading-relaxed text-khaki">
+      <p className="mt-4 text-xs leading-relaxed text-secondary">
         Sends a pre-filled WhatsApp message to {site.phoneDisplay} — no account or payment needed.
         We reply with a fixed quote, usually within minutes.
       </p>

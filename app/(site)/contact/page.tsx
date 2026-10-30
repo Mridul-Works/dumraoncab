@@ -22,14 +22,14 @@ export default function ContactPage() {
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           <a
             href={`tel:${site.phone}`}
-            className="group rounded-xl border border-line bg-white p-6 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-lg hover:shadow-amber/10"
+            className="group rounded-xl border border-subtle bg-white p-6 transition-all hover:-translate-y-1 hover:border-brand hover:shadow-lg hover:shadow-brand/10"
           >
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">Call — fastest</p>
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-brand-strong">Call — fastest</p>
             <p className="mt-3"><span className="plate text-base">{site.phoneDisplay}</span></p>
-            <p className="mt-3 text-sm text-khaki">
+            <p className="mt-3 text-sm text-secondary">
               Booking line, answered 24/7. Alternates:{" "}
               {site.altPhones.map((p, i) => (
-                <span key={p.raw} className="whitespace-nowrap font-mono text-ink">
+                <span key={p.raw} className="whitespace-nowrap font-mono text-primary">
                   {i > 0 && " · "}
                   {p.display}
                 </span>
@@ -41,22 +41,22 @@ export default function ContactPage() {
             href={waLink(defaultWaText)}
             target="_blank"
             rel="noopener noreferrer"
-            className="group rounded-xl border border-line bg-white p-6 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-lg hover:shadow-amber/10"
+            className="group rounded-xl border border-subtle bg-white p-6 transition-all hover:-translate-y-1 hover:border-brand hover:shadow-lg hover:shadow-brand/10"
           >
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">WhatsApp</p>
-            <p className="mt-3 font-display text-lg font-semibold text-ink">Message us the trip</p>
-            <p className="mt-3 text-sm text-khaki">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-brand-strong">WhatsApp</p>
+            <p className="mt-3 font-display text-lg font-semibold text-primary">Message us the trip</p>
+            <p className="mt-3 text-sm text-secondary">
               Send pickup, destination and date — get a fixed quote back, usually within minutes.
             </p>
           </a>
 
           <a
             href={`mailto:${site.email}`}
-            className="group rounded-xl border border-line bg-white p-6 transition-all hover:-translate-y-1 hover:border-amber hover:shadow-lg hover:shadow-amber/10"
+            className="group rounded-xl border border-subtle bg-white p-6 transition-all hover:-translate-y-1 hover:border-brand hover:shadow-lg hover:shadow-brand/10"
           >
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">Email</p>
-            <p className="mt-3 font-display text-lg font-semibold text-ink">{site.email}</p>
-            <p className="mt-3 text-sm text-khaki">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-brand-strong">Email</p>
+            <p className="mt-3 font-display text-lg font-semibold text-primary">{site.email}</p>
+            <p className="mt-3 text-sm text-secondary">
               Best for corporate enquiries, monthly contracts and wedding convoy planning.
             </p>
           </a>
@@ -64,18 +64,18 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-8 px-5 pb-16 md:px-8 lg:grid-cols-2">
-        <div className="rounded-2xl border border-line bg-white p-6">
-          <h2 className="font-display text-lg font-semibold text-ink">Find us</h2>
-          <address className="mt-3 text-sm not-italic leading-relaxed text-khaki">
+        <div className="rounded-2xl border border-subtle bg-white p-6">
+          <h2 className="font-display text-lg font-semibold text-primary">Find us</h2>
+          <address className="mt-3 text-sm not-italic leading-relaxed text-secondary">
             {site.name}
             <br />
             {site.address.locality}, {site.address.district} district
             <br />
             {site.address.region} — {site.address.postalCode}
           </address>
-          <p className="mt-3 font-mono text-xs uppercase tracking-wider text-leaf">Open 24 hours · 7 days</p>
+          <p className="mt-3 font-mono text-xs uppercase tracking-wider text-brand">Open 24 hours · 7 days</p>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-line">
+        <div className="overflow-hidden rounded-2xl border border-subtle">
           <iframe
             title="Dumraon Cab Service location — Dumraon, Buxar, Bihar"
             src="https://www.google.com/maps?q=Dumraon,+Buxar,+Bihar+802136&output=embed"

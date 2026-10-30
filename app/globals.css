@@ -1,74 +1,399 @@
 @import "tailwindcss";
+/* Chinkara design system tokens — generated, see scripts/build-design-tokens.mjs */
+@import "./chinkara.css";
 
+/*
+ * Tailwind ← Chinkara. Every utility colour, font, size, shadow and easing below
+ * points at a Chinkara token, so the JSON stays the single source of truth.
+ *
+ * Radius: Tailwind's rounded-xs…2xl read --radius-xs…2xl, which chinkara.css
+ * defines (2/4/8/12/16/24px), so they follow the system without a mapping here.
+ */
 @theme inline {
-  /* Dumraon Cab v2 — warm cream ground, deep green accent, amber highlight */
-  --color-night: #12241c;
-  --color-coal: #1c352a;
-  --color-paper: #faf9f4;
-  --color-cream: #f1eee5;
-  --color-tint: #e4efe7;
-  --color-ink: #182420;
-  --color-khaki: #5a665f;
-  --color-sand: #8a948d;
-  --color-line: #dcd9cd;
-  --color-linedark: #2b463a;
-  --color-amber: #0e6b4b;
-  --color-amberdeep: #0a4f37;
-  --color-gold: #e9a23b;
-  --color-leaf: #0e6b4b;
+  /* ---- Colour: Chinkara primitives only (Tailwind's default palette is off) */
+  --color-*: initial;
+  --color-white: var(--chinkara-white);
+  --color-black: var(--chinkara-black);
+  --color-ink: var(--chinkara-ink);
+  --color-muted: var(--chinkara-muted);
+  --color-line: var(--chinkara-line);
+  --color-paper: var(--chinkara-paper);
 
-  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --color-green-50: var(--chinkara-green-50);
+  --color-green-100: var(--chinkara-green-100);
+  --color-green-200: var(--chinkara-green-200);
+  --color-green-300: var(--chinkara-green-300);
+  --color-green-400: var(--chinkara-green-400);
+  --color-green-500: var(--chinkara-green-500);
+  --color-green-600: var(--chinkara-green-600);
+  --color-green-700: var(--chinkara-green-700);
+  --color-green-800: var(--chinkara-green-800);
+  --color-green-900: var(--chinkara-green-900);
+  --color-green-950: var(--chinkara-green-950);
 
-  --shadow-card: 0 1px 2px rgb(24 36 32 / 0.05), 0 12px 32px -12px rgb(24 36 32 / 0.14);
+  --color-gold: var(--chinkara-gold-500);
+  --color-gold-50: var(--chinkara-gold-50);
+  --color-gold-100: var(--chinkara-gold-100);
+  --color-gold-200: var(--chinkara-gold-200);
+  --color-gold-300: var(--chinkara-gold-300);
+  --color-gold-400: var(--chinkara-gold-400);
+  --color-gold-500: var(--chinkara-gold-500);
+  --color-gold-600: var(--chinkara-gold-600);
+  --color-gold-700: var(--chinkara-gold-700);
+  --color-gold-800: var(--chinkara-gold-800);
+  --color-gold-900: var(--chinkara-gold-900);
+  --color-gold-950: var(--chinkara-gold-950);
+
+  --color-gray-50: var(--chinkara-gray-50);
+  --color-gray-100: var(--chinkara-gray-100);
+  --color-gray-200: var(--chinkara-gray-200);
+  --color-gray-300: var(--chinkara-gray-300);
+  --color-gray-400: var(--chinkara-gray-400);
+  --color-gray-500: var(--chinkara-gray-500);
+  --color-gray-600: var(--chinkara-gray-600);
+  --color-gray-650: var(--chinkara-gray-650);
+  --color-gray-700: var(--chinkara-gray-700);
+  --color-gray-750: var(--chinkara-gray-750);
+  --color-gray-800: var(--chinkara-gray-800);
+  --color-gray-850: var(--chinkara-gray-850);
+  --color-gray-900: var(--chinkara-gray-900);
+  --color-gray-950: var(--chinkara-gray-950);
+
+  --color-success-50: var(--chinkara-success-50);
+  --color-success-100: var(--chinkara-success-100);
+  --color-success-500: var(--chinkara-success-500);
+  --color-success-700: var(--chinkara-success-700);
+  --color-warning-50: var(--chinkara-warning-50);
+  --color-warning-100: var(--chinkara-warning-100);
+  --color-warning-500: var(--chinkara-warning-500);
+  --color-warning-700: var(--chinkara-warning-700);
+  --color-error-50: var(--chinkara-error-50);
+  --color-error-100: var(--chinkara-error-100);
+  --color-error-500: var(--chinkara-error-500);
+  --color-error-700: var(--chinkara-error-700);
+  --color-info-50: var(--chinkara-info-50);
+  --color-info-100: var(--chinkara-info-100);
+  --color-info-500: var(--chinkara-info-500);
+  --color-info-700: var(--chinkara-info-700);
+
+  /* Shared by ring-, fill-, stroke-, shadow- and gradient utilities */
+  --color-brand: var(--background-brand);
+  --color-brand-deep: var(--chinkara-green-950);
+  --color-focus: var(--border-focus);
+
+  /* ---- Colour: semantic, per utility (bg-, text-, border- and divide-) */
+  --background-color-canvas: var(--background-primary);
+  --background-color-hover: var(--background-hover);
+  --background-color-pressed: var(--background-pressed);
+  --background-color-selected: var(--background-selected);
+  --background-color-selected-hover: var(--background-selected-hover);
+  --background-color-disabled: var(--background-disabled);
+  --background-color-inverse: var(--background-inverse);
+  --background-color-inverse-hover: var(--background-inverse-hover);
+  --background-color-brand: var(--background-brand);
+  --background-color-brand-hover: var(--background-brand-hover);
+  --background-color-brand-pressed: var(--background-brand-pressed);
+  --background-color-brand-subtle: var(--background-brand-subtle);
+  --background-color-brand-secondary: var(--background-brand-secondary);
+  /* Darkest Chinkara green: dark hero bands, admin sidebar, dark buttons */
+  --background-color-brand-deep: var(--chinkara-green-950);
+  --background-color-brand-deep-hover: var(--chinkara-green-900);
+  --background-color-accent: var(--background-accent);
+  --background-color-accent-subtle: var(--background-accent-subtle);
+  --background-color-highlight: var(--background-highlight);
+  --background-color-info: var(--background-info);
+  --background-color-info-subtle: var(--background-info-subtle);
+  --background-color-notice: var(--background-notice);
+  --background-color-notice-subtle: var(--background-notice-subtle);
+  --background-color-negative: var(--background-negative);
+  --background-color-negative-hover: var(--background-negative-hover);
+  --background-color-negative-subtle: var(--background-negative-subtle);
+  --background-color-positive: var(--background-positive);
+  --background-color-positive-subtle: var(--background-positive-subtle);
+  --background-color-layer: var(--layer-01);
+  --background-color-layer-2: var(--layer-02);
+  --background-color-layer-3: var(--layer-03);
+  --background-color-scrim: var(--overlay-scrim);
+  --background-color-layer-hover: var(--layer-hover-01);
+  --background-color-layer-selected: var(--layer-selected-01);
+  --background-color-layer-accent: var(--layer-accent-01);
+  --background-color-button-primary: var(--button-primary);
+  --background-color-button-primary-hover: var(--button-primary-hover);
+  --background-color-button-primary-active: var(--button-primary-active);
+  --background-color-button-accent: var(--button-accent);
+  --background-color-button-accent-hover: var(--button-accent-hover);
+  --background-color-button-accent-active: var(--button-accent-active);
+  --background-color-button-disabled: var(--button-disabled);
+  --background-color-tag-brand: var(--tag-background-lapis);
+  --background-color-tag-gold: var(--tag-background-peach);
+  --background-color-tag-red: var(--tag-background-red);
+  --background-color-tag-green: var(--tag-background-green);
+  --background-color-tag-amber: var(--tag-background-amber);
+  --background-color-tag-blue: var(--tag-background-blue);
+  --background-color-tag-gray: var(--tag-background-gray);
+  --background-color-tag-red-hover: var(--tag-hover-red);
+
+  --text-color-primary: var(--text-primary);
+  --text-color-secondary: var(--text-secondary);
+  --text-color-helper: var(--text-helper);
+  --text-color-placeholder: var(--text-placeholder);
+  --text-color-disabled: var(--text-disabled);
+  --text-color-inverse: var(--text-inverse);
+  --text-color-secondary-inverse: var(--text-secondary-inverse);
+  --text-color-helper-inverse: var(--text-helper-inverse);
+  --text-color-on-color: var(--text-on-color);
+  --text-color-on-accent: var(--text-on-accent);
+  --text-color-brand: var(--text-brand);
+  --text-color-brand-strong: var(--link-primary-hover);
+  --text-color-link: var(--link-primary);
+  --text-color-link-hover: var(--link-primary-hover);
+  --text-color-info: var(--text-info);
+  --text-color-info-bold: var(--text-info-bold);
+  --text-color-notice: var(--text-notice);
+  --text-color-notice-bold: var(--text-notice-bold);
+  --text-color-negative: var(--text-negative);
+  --text-color-negative-bold: var(--text-negative-bold);
+  --text-color-positive: var(--text-positive);
+  --text-color-positive-bold: var(--text-positive-bold);
+  --text-color-error: var(--text-error);
+  --text-color-tag-brand: var(--tag-color-lapis);
+  --text-color-tag-gold: var(--tag-color-peach);
+  --text-color-tag-red: var(--tag-color-red);
+  --text-color-tag-green: var(--tag-color-green);
+  --text-color-tag-amber: var(--tag-color-amber);
+  --text-color-tag-blue: var(--tag-color-blue);
+  --text-color-tag-gray: var(--tag-color-gray);
+
+  --border-color-subtle: var(--border-subtle-00);
+  --border-color-primary: var(--border-primary);
+  --border-color-secondary: var(--border-secondary);
+  --border-color-tertiary: var(--border-tertiary);
+  --border-color-strong: var(--border-strong-01);
+  --border-color-disabled: var(--border-disabled);
+  --border-color-brand: var(--border-brand);
+  --border-color-brand-deep: var(--chinkara-green-800);
+  --border-color-focus: var(--border-focus);
+  --border-color-interactive: var(--border-interactive);
+  --border-color-inverse: var(--border-inverse);
+  --border-color-mono: var(--border-mono);
+  --border-color-info: var(--border-info);
+  --border-color-info-subtle: var(--border-info-subtle);
+  --border-color-notice: var(--border-notice);
+  --border-color-notice-subtle: var(--border-notice-subtle);
+  --border-color-negative: var(--border-negative);
+  --border-color-negative-subtle: var(--border-negative-subtle);
+  --border-color-positive: var(--border-positive);
+  --border-color-positive-subtle: var(--border-positive-subtle);
+
+  /* ---- Type: Google Sans Flex + Google Sans Code */
+  --font-sans: var(--font-family-sans);
+  --font-display: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  /* Tailwind's text-* sizes snapped to the Chinkara type scale */
+  --text-xs: var(--font-size-12);
+  --text-xs--line-height: var(--font-line-height-16);
+  --text-sm: var(--font-size-14);
+  --text-sm--line-height: var(--font-line-height-20);
+  --text-base: var(--font-size-16);
+  --text-base--line-height: var(--font-line-height-24);
+  --text-lg: var(--font-size-18);
+  --text-lg--line-height: var(--font-line-height-28);
+  --text-xl: var(--font-size-20);
+  --text-xl--line-height: var(--font-line-height-24);
+  --text-xl--letter-spacing: -0.005em;
+  --text-2xl: var(--font-size-24);
+  --text-2xl--line-height: var(--font-line-height-28);
+  --text-2xl--letter-spacing: -0.01em;
+  --text-3xl: var(--font-size-32);
+  --text-3xl--line-height: var(--font-line-height-36);
+  --text-3xl--letter-spacing: -0.015em;
+  --text-4xl: var(--font-size-40);
+  --text-4xl--line-height: var(--font-line-height-44);
+  --text-4xl--letter-spacing: -0.02em;
+  --text-5xl: var(--font-size-56);
+  --text-5xl--line-height: var(--font-line-height-56);
+  --text-5xl--letter-spacing: -0.025em;
+  --text-6xl: var(--font-size-72);
+  --text-6xl--line-height: var(--font-line-height-68);
+  --text-6xl--letter-spacing: -0.03em;
+  --text-7xl: var(--font-size-96);
+  --text-7xl--line-height: var(--font-line-height-88);
+  --text-7xl--letter-spacing: -0.03em;
+
+  /* ---- Elevation: Chinkara shadow colours (Shadow/Sm·Md·Lg) */
+  --shadow-sm: 0 1px 2px 0 var(--chinkara-black-alpha-8);
+  --shadow-md: 0 4px 12px -2px var(--chinkara-black-alpha-12);
+  --shadow-lg: 0 12px 28px -8px var(--chinkara-black-alpha-16);
+  --shadow-xl: 0 24px 48px -12px var(--chinkara-black-alpha-16);
+  --shadow-card: 0 1px 2px var(--chinkara-black-alpha-4), 0 12px 32px -12px var(--chinkara-black-alpha-12);
+
+  /* ---- Motion */
+  --ease-standard: var(--easing-standard);
+  --ease-entrance: var(--easing-entrance);
+  --ease-exit: var(--easing-exit);
+  --ease-expressive: var(--easing-expressive);
+  --default-transition-duration: var(--duration-fast);
+  --default-transition-timing-function: var(--easing-standard);
 }
 
+/* Chinkara text styles: type-display-xl … type-label. Sizes switch to the
+   Mobile mode below 768px automatically (see chinkara.css). */
+@utility type-display-xl {
+  font-family: var(--type-display-xl-family);
+  font-weight: var(--type-display-xl-weight);
+  font-size: var(--type-display-xl-size);
+  line-height: var(--type-display-xl-line-height);
+  letter-spacing: var(--type-display-xl-letter-spacing);
+}
+@utility type-display-lg {
+  font-family: var(--type-display-lg-family);
+  font-weight: var(--type-display-lg-weight);
+  font-size: var(--type-display-lg-size);
+  line-height: var(--type-display-lg-line-height);
+  letter-spacing: var(--type-display-lg-letter-spacing);
+}
+@utility type-display-md {
+  font-family: var(--type-display-md-family);
+  font-weight: var(--type-display-md-weight);
+  font-size: var(--type-display-md-size);
+  line-height: var(--type-display-md-line-height);
+  letter-spacing: var(--type-display-md-letter-spacing);
+}
+@utility type-h1 {
+  font-family: var(--type-h1-family);
+  font-weight: var(--type-h1-weight);
+  font-size: var(--type-h1-size);
+  line-height: var(--type-h1-line-height);
+  letter-spacing: var(--type-h1-letter-spacing);
+}
+@utility type-h2 {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: var(--type-h2-size);
+  line-height: var(--type-h2-line-height);
+  letter-spacing: var(--type-h2-letter-spacing);
+}
+@utility type-h3 {
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-line-height);
+  letter-spacing: var(--type-h3-letter-spacing);
+}
+@utility type-h4 {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  line-height: var(--type-h4-line-height);
+  letter-spacing: var(--type-h4-letter-spacing);
+}
+@utility type-body-lg {
+  font-family: var(--type-body-lg-family);
+  font-weight: var(--type-body-lg-weight);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line-height);
+  letter-spacing: var(--type-body-lg-letter-spacing);
+}
+@utility type-body-md {
+  font-family: var(--type-body-md-family);
+  font-weight: var(--type-body-md-weight);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line-height);
+  letter-spacing: var(--type-body-md-letter-spacing);
+}
+@utility type-body-sm {
+  font-family: var(--type-body-sm-family);
+  font-weight: var(--type-body-sm-weight);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line-height);
+  letter-spacing: var(--type-body-sm-letter-spacing);
+}
+@utility type-ui {
+  font-family: var(--type-ui-family);
+  font-weight: var(--type-ui-weight);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line-height);
+  letter-spacing: var(--type-ui-letter-spacing);
+}
+@utility type-mono-md {
+  font-family: var(--type-mono-md-family);
+  font-weight: var(--type-mono-md-weight);
+  font-size: var(--type-mono-md-size);
+  line-height: var(--type-mono-md-line-height);
+  letter-spacing: var(--type-mono-md-letter-spacing);
+}
+@utility type-mono-sm {
+  font-family: var(--type-mono-sm-family);
+  font-weight: var(--type-mono-sm-weight);
+  font-size: var(--type-mono-sm-size);
+  line-height: var(--type-mono-sm-line-height);
+  letter-spacing: var(--type-mono-sm-letter-spacing);
+}
+@utility type-label {
+  font-family: var(--type-label-family);
+  font-weight: var(--type-label-weight);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line-height);
+  letter-spacing: var(--type-label-letter-spacing);
+  text-transform: uppercase;
+}
+
+/* ---- Base ------------------------------------------------------------- */
+
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-::selection {
-  background: var(--color-amber);
-  color: #fff;
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-family-sans);
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-amber);
+::selection {
+  background: var(--background-highlight);
+  color: var(--text-primary);
+}
+
+/* Zero specificity so a component's own focus style (e.g. inputs) wins. */
+:where(:focus-visible) {
+  outline: var(--border-width-s) solid var(--border-focus);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* Section seam — quiet hairline */
 .taxi-stripe {
   height: 0;
-  border-top: 1px solid rgb(24 36 32 / 0.07);
+  border-top: var(--border-width-xs) solid var(--border-subtle-00);
 }
 
 /* Fare tag — quiet chip for prices and phone numbers */
 .plate {
   display: inline-flex;
   align-items: center;
-  font-family: var(--font-mono);
-  font-weight: 500;
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  background: #fff;
-  color: var(--color-ink);
-  border: 1px solid var(--color-line);
-  border-radius: 999px;
-  padding: 0.25rem 0.85rem;
+  background: var(--layer-01);
+  color: var(--text-primary);
+  border: var(--border-width-xs) solid var(--border-subtle-00);
+  border-radius: var(--radius-pill);
+  padding: var(--space-xs) var(--space-md);
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgb(24 36 32 / 0.07);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
 /* Hairline divider for dark panels */
 .road-line {
   height: 0;
-  border-top: 1px solid rgb(255 255 255 / 0.12);
+  border-top: var(--border-width-xs) solid var(--chinkara-white-alpha-12);
 }
 
 details.faq summary {
@@ -79,13 +404,13 @@ details.faq summary::-webkit-details-marker {
   display: none;
 }
 details.faq summary .faq-icon {
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-moderate) var(--easing-standard);
 }
 details.faq[open] summary .faq-icon {
   transform: rotate(45deg);
 }
 
-/* --- motion --- */
+/* ---- Motion ----------------------------------------------------------- */
 html {
   scroll-behavior: smooth;
 }
@@ -98,6 +423,25 @@ html {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Admin: drawers, palette and toasts */
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
   }
 }
 
@@ -125,17 +469,19 @@ html {
 }
 .rc-line {
   height: 2px;
-  background: repeating-linear-gradient(90deg, var(--color-amber) 0 6px, transparent 6px 11px);
+  background: repeating-linear-gradient(90deg, var(--background-brand) 0 6px, transparent 6px 11px);
   background-size: 200% 100%;
   animation: rcdash 2.2s linear infinite;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 /* Scroll-reveal (class added by JS only, so no-JS visitors see everything) */
 .reveal {
   opacity: 0;
   transform: translateY(18px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition:
+    opacity var(--duration-expressive) var(--easing-entrance),
+    transform var(--duration-expressive) var(--easing-entrance);
 }
 .reveal-in {
   opacity: 1;

@@ -12,9 +12,9 @@ function cell(value: string): string {
 export async function GET() {
   if (!(await isAuthed())) return new Response("Unauthorized.", { status: 401 });
 
-  const header = ["Received", "Status", "Source", "Service", "Name", "Phone", "From", "To", "Travel date", "Time", "Car", "Customer notes", "Internal note"];
+  const header = ["Received", "Status", "Source", "Service", "Name", "Phone", "From", "To", "Travel date", "Time", "Car", "People", "Quote (INR)", "Customer notes", "Internal note"];
   const rows = (await listBookings()).map((b) =>
-    [b.createdAt, b.status, SOURCE_LABELS[b.source] ?? b.source, b.service, b.name, b.phone, b.from, b.to, b.date, b.time, b.car, b.notes, b.adminNote ?? ""].map(cell).join(","),
+    [b.createdAt, b.status, SOURCE_LABELS[b.source] ?? b.source, b.service, b.name, b.phone, b.from, b.to, b.date, b.time, b.car, b.people ? String(b.people) : "", b.quote ? String(b.quote) : "", b.notes, b.adminNote ?? ""].map(cell).join(","),
   );
   // BOM so Excel opens the file as UTF-8 (₹, Hindi names).
   const csv = "\uFEFF" + [header.map(cell).join(","), ...rows].join("\r\n");

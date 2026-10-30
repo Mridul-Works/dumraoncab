@@ -15,7 +15,7 @@ const nav = [
 
 function CarMark() {
   return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-amber">
+    <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-brand">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M5 16 L5 12 Q5 10 7 10 L17 10 Q19 10 19 12 L19 16" />
         <path d="M7 10 L8.5 6.5 Q9 5.5 10 5.5 L14 5.5 Q15 5.5 15.5 6.5 L17 10" />
@@ -31,15 +31,15 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ink/5 bg-paper/85 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-black/5 bg-canvas/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 md:gap-6 md:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-2.5" onClick={() => setOpen(false)}>
           <CarMark />
           <span className="min-w-0 leading-tight">
-            <span className="block truncate font-display text-sm font-semibold tracking-tight text-ink sm:text-base">
+            <span className="block truncate font-display text-sm font-semibold tracking-tight text-primary sm:text-base">
               Dumraon Cab
             </span>
-            <span className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-khaki sm:block">
+            <span className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-secondary sm:block">
               Buxar · Bihar · Since 2014
             </span>
           </span>
@@ -50,8 +50,8 @@ export default function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-ink/5 hover:text-ink ${
-                pathname.startsWith(item.href) ? "text-amber" : "text-khaki"
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-black/5 hover:text-primary ${
+                pathname.startsWith(item.href) ? "text-brand" : "text-secondary"
               }`}
             >
               {item.label}
@@ -62,7 +62,7 @@ export default function Header() {
         <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3 lg:ml-4">
           <a
             href={`tel:${site.phone}`}
-            className="hidden items-center gap-2 text-sm font-medium text-khaki transition-colors hover:text-amber md:flex"
+            className="hidden items-center gap-2 text-sm font-medium text-secondary transition-colors hover:text-brand md:flex"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 5 Q4 4 5 4 L8 4 L9.5 8 L7.5 9.5 Q9 13 12.5 14.5 L14 12.5 L18 14 L18 17 Q18 18 17 18 Q4 17 4 5 Z" />
@@ -71,7 +71,7 @@ export default function Header() {
           </a>
           <Link
             href="/booking"
-            className="rounded-xl bg-amber px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-white transition-colors hover:bg-amberdeep sm:px-5 sm:py-2.5 sm:text-sm"
+            className="rounded-xl bg-brand px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-hover sm:px-5 sm:py-2.5 sm:text-sm"
           >
             Book a Ride
           </Link>
@@ -80,7 +80,7 @@ export default function Header() {
             onClick={() => setOpen(!open)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-line text-ink md:size-10 lg:hidden"
+            className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-subtle text-primary md:size-10 lg:hidden"
           >
             <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -102,7 +102,7 @@ export default function Header() {
 
       {open && (
         <nav
-          className="mx-3 mb-3 flex flex-col rounded-2xl border border-line bg-white p-2 shadow-lg lg:hidden"
+          className="mx-3 mb-3 flex flex-col rounded-2xl border border-subtle bg-white p-2 shadow-lg lg:hidden"
           aria-label="Mobile"
         >
           {nav.map((item) => (
@@ -110,12 +110,12 @@ export default function Header() {
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className="rounded-xl px-4 py-3 text-base font-medium text-ink hover:bg-cream"
+              className="rounded-xl px-4 py-3 text-base font-medium text-primary hover:bg-brand-subtle"
             >
               {item.label}
             </Link>
           ))}
-          <a href={`tel:${site.phone}`} className="rounded-xl px-4 py-3 text-base font-semibold text-amber">
+          <a href={`tel:${site.phone}`} className="rounded-xl px-4 py-3 text-base font-semibold text-brand">
             Call {site.phoneDisplay} — 24/7
           </a>
         </nav>

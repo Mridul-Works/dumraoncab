@@ -1,7 +1,8 @@
 // Browser-safe booking types & constants (no Node imports) — shared by the
 // file store, API routes, and client components.
 
-export type BookingStatus = "new" | "confirmed" | "completed" | "cancelled";
+// new → contacted (called or messaged, quote sent) → confirmed → completed.
+export type BookingStatus = "new" | "contacted" | "confirmed" | "completed" | "cancelled";
 
 // hero-widget / booking-form come from the public site; "admin" is a trip
 // logged by staff from a phone call or direct WhatsApp.
@@ -20,18 +21,36 @@ export type Booking = {
   to: string;
   date: string;
   time: string;
-  car: string;
+  car: string; // car name as the customer asked for it, or the assigned car's name
   notes: string; // from the customer
   adminNote?: string; // internal — never shown on the public site
+  quote?: number; // ₹ quoted to the customer
+  people?: number;
+  carId?: string; // the specific fleet car assigned by staff
 };
 
-export const BOOKING_STATUSES: BookingStatus[] = ["new", "confirmed", "completed", "cancelled"];
+export type BookingPatch = Partial<Pick<Booking, "status" | "adminNote" | "quote" | "people" | "carId" | "car">>;
+
+export const BOOKING_STATUSES: BookingStatus[] = ["new", "contacted", "confirmed", "completed", "cancelled"];
+
+// The happy path a booking walks through; "cancelled" sits outside it.
+export const STATUS_STEPS: BookingStatus[] = ["new", "contacted", "confirmed", "completed"];
+
+export const STATUS_LABELS: Record<BookingStatus, string> = {
+  new: "New",
+  contacted: "Contacted",
+  confirmed: "Confirmed",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
 
 export const SOURCE_LABELS: Record<BookingSource, string> = {
   "hero-widget": "Widget",
   "booking-form": "Form",
   admin: "Phone",
 };
+
+export const isWebsiteBooking = (b: Booking) => b.source !== "admin";
 
 // Last 10 digits of an Indian mobile number, or "" if there aren't enough.
 export function phoneDigits(phone: string): string {
@@ -45,3 +64,11 @@ export function istDate(at: string | number = 0): string {
   const ms = typeof at === "string" ? Date.parse(at) : Date.now() + at * 24 * 60 * 60 * 1000;
   return new Date(ms + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
+
+// Current time in India as "HH:MM".
+export function istTime(): string {
+  return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(11, 16);
+}
+
+// Sort key for "when does this trip leave" — undated trips last.
+export const tripKey = (b: Pick<Booking, "date" | "time">) => `${b.date || "9999-99-99"} ${b.time || "99:99"}`;

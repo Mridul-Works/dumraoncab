@@ -15,7 +15,7 @@ export function SectionHead({
     <div className="max-w-2xl">
       <p
         className={`flex items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] ${
-          dark ? "text-gold" : "text-amber"
+          dark ? "text-gold" : "text-brand"
         }`}
       >
         <span className="h-0.5 w-6 rounded-full bg-gold" aria-hidden="true" />
@@ -23,13 +23,13 @@ export function SectionHead({
       </p>
       <h2
         className={`mt-4 font-display text-3xl font-semibold tracking-tight text-balance md:text-[2.6rem] md:leading-[1.08] ${
-          dark ? "text-paper" : "text-ink"
+          dark ? "text-on-color" : "text-primary"
         }`}
       >
         {title}
       </h2>
       {lede && (
-        <p className={`mt-3 max-w-[52ch] text-base leading-relaxed ${dark ? "text-sand" : "text-khaki"}`}>
+        <p className={`mt-3 max-w-[52ch] text-base leading-relaxed ${dark ? "text-secondary-inverse" : "text-secondary"}`}>
           {lede}
         </p>
       )}
@@ -40,7 +40,7 @@ export function SectionHead({
 export function CtaBand({ heading = "Ready when you are." }: { heading?: string }) {
   return (
     <section className="px-3 pb-4 md:px-6">
-      <div className="relative overflow-hidden rounded-3xl bg-amberdeep text-white">
+      <div className="relative overflow-hidden rounded-3xl bg-brand-hover text-white">
         {/* dashed road line across the band */}
         <div
           aria-hidden="true"
@@ -54,7 +54,7 @@ export function CtaBand({ heading = "Ready when you are." }: { heading?: string 
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <a
               href={`tel:${site.phone}`}
-              className="rounded-xl bg-white px-7 py-3.5 font-semibold text-amberdeep transition-colors hover:bg-tint"
+              className="rounded-xl bg-white px-7 py-3.5 font-semibold text-brand-strong transition-colors hover:bg-selected"
             >
               Call {site.phoneDisplay}
             </a>

@@ -1,3 +1,5 @@
+import type { CarSeed, Fares } from "./catalogTypes";
+
 export const site = {
   name: "Dumraon Cab Service",
   legalName: "Dumraon Cab Service",
@@ -37,14 +39,33 @@ export function waLink(text: string) {
 
 export const defaultWaText = `Hello Dumraon Cab Service, I want to book a cab.`;
 
-// Admin panel: WhatsApp message sent to a customer when staff confirm their trip.
-export function customerConfirmText(b: { name: string; service: string; from: string; to: string; date: string; time: string; car: string }) {
+type CustomerTrip = { name: string; service: string; from: string; to: string; date: string; time: string; car: string; quote?: number };
+
+const tripLine = (b: CustomerTrip) => {
   const trip = b.to ? `${b.from} → ${b.to}` : b.from;
   const when = [b.date, b.time].filter(Boolean).join(" at ");
+  return `${trip}${when ? `, ${when}` : ""}${b.car ? ` (${b.car})` : ""}`;
+};
+const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+
+// Admin panel: WhatsApp message sent to a customer when staff confirm their trip.
+export function customerConfirmText(b: CustomerTrip) {
   return [
     `Namaste${b.name ? ` ${b.name}` : ""}, this is ${site.name}.`,
-    `Your ${b.service} booking is confirmed: ${trip}${when ? `, ${when}` : ""}${b.car ? ` (${b.car})` : ""}.`,
+    `Your ${b.service} booking is confirmed: ${tripLine(b)}.`,
+    ...(b.quote ? [`Fixed fare: ${rupees(b.quote)} (tolls and parking at actuals).`] : []),
     `Driver details will be shared before pickup. For any change call ${site.phoneDisplay}.`,
+  ].join("\n");
+}
+
+// Admin panel: WhatsApp message sending a fare quote for a new request.
+export function customerQuoteText(b: CustomerTrip) {
+  return [
+    `Namaste${b.name ? ` ${b.name}` : ""}, this is ${site.name}.`,
+    `Thank you for your ${b.service} request: ${tripLine(b)}.`,
+    b.quote
+      ? `Our fixed fare is ${rupees(b.quote)} (tolls and parking at actuals). Reply YES to confirm.`
+      : `Please share a good time to call so we can confirm the fare.`,
   ].join("\n");
 }
 
@@ -166,108 +187,109 @@ export const services: Service[] = [
 ];
 
 /* ----------------------------------- fleet ------------------------------------ */
-
-export type Vehicle = {
-  name: string;
-  category: "SUV" | "MUV" | "Compact SUV" | "Hatchback" | "Utility";
-  seats: string;
-  transmission: string;
-  fuel: string;
-  rate: string; // indicative per-km rate — confirm with operator (see README)
-  image: string;
-  note: string;
-};
+// SEED DATA: the fleet and fares below are the starting point only. Once staff
+// save changes in the admin panel (Fleet, Fares), the saved copy in data/ is
+// what the public site shows. Edit here for a fresh install or a reset.
 
 // Photos are the operator's own fleet images (Cloudinary), reused from the live site.
 // Transmission/fuel specs are typical for these models — confirm per vehicle before launch.
-export const fleet: Vehicle[] = [
+export const seedFleet: CarSeed[] = [
   {
+    id: "scorpio-vlx",
     name: "Scorpio VLX",
-    category: "SUV",
+    type: "SUV",
+    fareClass: "suv-muv",
     seats: "7 seats",
     transmission: "Manual",
     fuel: "Diesel",
-    rate: "₹17/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785647370/dumraon-cab/ttkhocljeschqcjczj44.png",
     note: "The wedding lead car — commanding, comfortable, highway-ready.",
   },
   {
+    id: "scorpio-classic",
     name: "Scorpio Classic",
-    category: "SUV",
+    type: "SUV",
+    fareClass: "suv-muv",
     seats: "7 seats",
     transmission: "Manual",
     fuel: "Diesel",
-    rate: "₹17/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785154016/dumraon-cab/bmbqy2oaiti61a1bgmx8.jpg",
     note: "Dependable workhorse for outstation and rough roads.",
   },
   {
+    id: "scorpio",
     name: "Scorpio",
-    category: "SUV",
+    type: "SUV",
+    fareClass: "suv-muv",
     seats: "7 seats",
     transmission: "Manual",
     fuel: "Diesel",
-    rate: "₹17/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785149055/dumraon-cab/nshtormeysghbeifbdfg.png",
     note: "Family favourite for long trips and baraat convoys.",
   },
   {
+    id: "xl6",
     name: "XL6",
-    category: "MUV",
+    type: "MUV",
+    fareClass: "suv-muv",
     seats: "6 seats",
     transmission: "Manual",
     fuel: "Petrol",
-    rate: "₹17/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785205332/dumraon-cab/wrf1qjrviliwgszyz4bt.jpg",
     note: "Captain seats in the middle row — the comfortable six-seater.",
   },
   {
+    id: "nexon",
     name: "Nexon",
-    category: "Compact SUV",
+    type: "Compact SUV",
+    fareClass: "compact-suv",
     seats: "5 seats",
     transmission: "Manual",
     fuel: "Petrol",
-    rate: "₹13/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785155050/dumraon-cab/hufsq4boet35fyd1rtw3.png",
     note: "5-star safety rating, ideal for airport runs.",
   },
   {
+    id: "altroz",
     name: "Altroz",
-    category: "Hatchback",
+    type: "Hatchback",
+    fareClass: "hatchback",
     seats: "5 seats",
     transmission: "Manual",
     fuel: "Petrol",
-    rate: "₹11/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785205273/dumraon-cab/f8nzklvsrmi83oqs25o7.jpg",
     note: "Smooth city car for hourly hire and short drops.",
   },
   {
+    id: "grand-i10",
     name: "Grand i10",
-    category: "Hatchback",
+    type: "Hatchback",
+    fareClass: "hatchback",
     seats: "5 seats",
     transmission: "Manual",
     fuel: "Petrol",
-    rate: "₹11/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785154030/dumraon-cab/orv0s99u8niu6cog06ud.jpg",
     note: "Our most economical ride — lowest per-km rate.",
   },
   {
+    id: "tiber",
     name: "Tiber",
-    category: "Hatchback",
+    type: "Hatchback",
+    fareClass: "hatchback",
     seats: "5 seats",
     transmission: "Manual",
     fuel: "Petrol",
-    rate: "₹11/km",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785642606/dumraon-cab/wbdi3kz2guagghqywguv.png",
     note: "Compact and nimble for narrow-lane pickups.",
   },
   {
+    id: "magic-pickup",
     name: "Magic Pickup",
-    category: "Utility",
+    type: "Utility",
+    fareClass: "",
     seats: "Cargo",
     transmission: "Manual",
     fuel: "Diesel",
-    rate: "On request",
     image: "https://res.cloudinary.com/dwfe5swye/image/upload/v1785203654/dumraon-cab/mfdkitorba3xcfxpzdx8.png",
     note: "Goods, luggage and event supplies moved alongside your convoy.",
   },
@@ -276,35 +298,43 @@ export const fleet: Vehicle[] = [
 /* ----------------------------------- fares ------------------------------------ */
 // NOTE: Indicative fares. Confirm every figure with the operator before launch (see README).
 
-export const perKmRates = [
-  { category: "Hatchback", cars: "Grand i10 · Altroz · Tiber", rate: "₹11/km" },
-  { category: "Compact SUV", cars: "Nexon", rate: "₹13/km" },
-  { category: "SUV / MUV", cars: "Scorpio · XL6", rate: "₹17/km" },
-];
-
-export const hourlyPackages = [
-  { name: "4 hr / 40 km", price: "₹1,199", for: "Errands & local visits" },
-  { name: "8 hr / 80 km", price: "₹2,199", for: "Full-day city use" },
-  { name: "12 hr / 120 km", price: "₹3,199", for: "Functions & long days" },
-  { name: "24 hr / 250 km", price: "₹4,999", for: "Round-the-clock standby" },
-];
-
-export const fareNotes = [
-  "Night driver allowance ₹300 per night on outstation trips.",
-  "Tolls, parking and state taxes at actuals — receipts shared.",
-  "Round trips billed on total kilometres travelled.",
-  "Pay by cash or UPI at the end of the trip. No advance needed for regular bookings.",
-];
+export const seedFares: Fares = {
+  perKm: [
+    { id: "hatchback", name: "Hatchback", rate: 11 },
+    { id: "compact-suv", name: "Compact SUV", rate: 13 },
+    { id: "suv-muv", name: "SUV / MUV", rate: 17 },
+  ],
+  hourly: [
+    { id: "4h", name: "4 hr / 40 km", for: "Errands & local visits", price: 1199 },
+    { id: "8h", name: "8 hr / 80 km", for: "Full-day city use", price: 2199 },
+    { id: "12h", name: "12 hr / 120 km", for: "Functions & long days", price: 3199 },
+    { id: "24h", name: "24 hr / 250 km", for: "Round-the-clock standby", price: 4999 },
+  ],
+  // "From" fare per route slug (indicative sedan/compact fare)
+  routes: {
+    "dumraon-to-patna-airport": 2799,
+    "dumraon-to-buxar": 799,
+    "dumraon-to-ara": 1299,
+    "dumraon-to-varanasi": 2999,
+    "dumraon-to-gaya": 4199,
+  },
+  nightAllowance: 300,
+  rules: [
+    "Tolls, parking and state taxes at actuals — receipts shared.",
+    "Round trips billed on total kilometres travelled.",
+    "Pay by cash or UPI at the end of the trip. No advance needed for regular bookings.",
+  ],
+};
 
 /* ----------------------------------- routes ----------------------------------- */
 
+// Route content. The "from" fare for each route lives in seedFares.routes / the admin Fares page.
 export type CabRoute = {
   slug: string;
   from: string;
   to: string;
   distance: string;
   duration: string;
-  fareFrom: string; // indicative sedan/compact fare — confirm before launch
   blurb: string;
   detail: string[];
 };
@@ -316,7 +346,6 @@ export const routes: CabRoute[] = [
     to: "Patna Airport",
     distance: "120 km",
     duration: "≈ 3 hr",
-    fareFrom: "₹2,799",
     blurb: "Flight-tracked drops and pickups at Jay Prakash Narayan Airport.",
     detail: [
       "The Dumraon–Patna airport run is our most-booked route. We plan departure around real NH-922 and NH-30 timings and track your flight, so an early landing or a two-hour delay changes nothing for you.",
@@ -329,7 +358,6 @@ export const routes: CabRoute[] = [
     to: "Buxar",
     distance: "32 km",
     duration: "≈ 50 min",
-    fareFrom: "₹799",
     blurb: "Quick hops to the district headquarters — court, hospital and station runs.",
     detail: [
       "Buxar is the short hop we run many times a day: court dates, hospital visits, the railway station and government offices. Book one-way and pay for one direction only.",
@@ -342,7 +370,6 @@ export const routes: CabRoute[] = [
     to: "Ara",
     distance: "52 km",
     duration: "≈ 1.5 hr",
-    fareFrom: "₹1,299",
     blurb: "Comfortable one-way and return trips to Ara on NH-922.",
     detail: [
       "A straightforward run along NH-922 for business, family visits and connecting trains at Ara Junction.",
@@ -355,7 +382,6 @@ export const routes: CabRoute[] = [
     to: "Varanasi",
     distance: "125 km",
     duration: "≈ 3 hr",
-    fareFrom: "₹2,999",
     blurb: "Temple visits, Ganga aarti and Lal Bahadur Shastri Airport connections.",
     detail: [
       "Varanasi trips are usually day returns — leave Dumraon early, attend darshan at Kashi Vishwanath, catch the evening Ganga aarti and be home by night. Your driver knows where to park near the ghats, which saves an hour of circling.",
@@ -368,7 +394,6 @@ export const routes: CabRoute[] = [
     to: "Gaya",
     distance: "185 km",
     duration: "≈ 4.5 hr",
-    fareFrom: "₹4,199",
     blurb: "Pind daan at Gaya ji and Bodh Gaya visits, with waiting included on request.",
     detail: [
       "Gaya trips are often for pind daan and family rituals, so we plan them differently: the car and driver stay with you through the day, and timing follows your pandit's schedule, not ours.",
@@ -413,7 +438,7 @@ export const testimonials = [
 export const faqs = [
   {
     q: "How are fares calculated?",
-    a: "Local hire uses fixed hourly packages (4, 8, 12 or 24 hours with bundled kilometres). Outstation trips are billed per kilometre by car class, plus a ₹300 night allowance for the driver on overnight journeys. Tolls and taxes are at actuals with receipts. You get the full quote on WhatsApp before the car leaves.",
+    a: "Local hire uses fixed hourly packages (4, 8, 12 or 24 hours with bundled kilometres). Outstation trips are billed per kilometre by car class, plus a fixed night allowance for the driver on overnight journeys (see the fare table). Tolls and taxes are at actuals with receipts. You get the full quote on WhatsApp before the car leaves.",
   },
   {
     q: "Do I need to pay in advance?",

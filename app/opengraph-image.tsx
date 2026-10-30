@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { site } from "@/lib/site";
+import { colors } from "@/lib/designTokens";
 
 export const alt = "Dumraon Cab Service — cabs and car rental in Dumraon, Buxar, Bihar";
 export const size = { width: 1200, height: 630 };
@@ -15,8 +16,8 @@ export default function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          background: "#faf9f4",
-          color: "#182420",
+          background: colors["background-primary"],
+          color: colors["text-primary"],
           padding: "0 80px",
         }}
       >
@@ -29,24 +30,24 @@ export default function OpengraphImage() {
               width: 72,
               height: 72,
               borderRadius: 18,
-              background: "#182420",
-              color: "#faf9f4",
+              background: colors["chinkara-green-950"],
+              color: colors["text-on-color"],
               fontSize: 34,
               fontWeight: 800,
             }}
           >
             DC
           </div>
-          <div style={{ display: "flex", fontSize: 26, letterSpacing: 4, color: "#5a665f" }}>
+          <div style={{ display: "flex", fontSize: 26, letterSpacing: 4, color: colors["text-secondary"] }}>
             SINCE {site.foundedYear} · BUXAR, BIHAR
           </div>
         </div>
         <div style={{ display: "flex", fontSize: 82, fontWeight: 800, marginTop: 44, lineHeight: 1.05 }}>
           Dumraon Cab Service
         </div>
-        <div style={{ display: "flex", fontSize: 38, marginTop: 16, color: "#5a665f" }}>
+        <div style={{ display: "flex", fontSize: 38, marginTop: 16, color: colors["text-secondary"] }}>
           Anywhere in Bihar.
-          <span style={{ color: "#0e6b4b", marginLeft: 14, fontWeight: 700 }}>Any hour.</span>
+          <span style={{ color: colors["text-brand"], marginLeft: 14, fontWeight: 700 }}>Any hour.</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 48 }}>
           <div
@@ -54,8 +55,8 @@ export default function OpengraphImage() {
               display: "flex",
               padding: "14px 34px",
               borderRadius: 999,
-              background: "#182420",
-              color: "#faf9f4",
+              background: colors["chinkara-green-950"],
+              color: colors["text-on-color"],
               fontSize: 30,
               fontWeight: 700,
               letterSpacing: 2,
@@ -68,8 +69,8 @@ export default function OpengraphImage() {
               display: "flex",
               padding: "14px 34px",
               borderRadius: 999,
-              border: "2px solid #dcd9cd",
-              color: "#0e6b4b",
+              border: `2px solid ${colors["border-subtle-00"]}`,
+              color: colors["text-brand"],
               fontSize: 30,
               fontWeight: 700,
             }}

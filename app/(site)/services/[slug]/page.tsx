@@ -54,9 +54,9 @@ export default async function ServicePage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 
-      <section className="bg-night text-paper">
+      <section className="bg-brand-deep text-on-color">
         <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-          <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-wider text-sand">
+          <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-wider text-helper-inverse">
             <Link href="/" className="hover:text-gold">Home</Link>
             <span className="mx-2">/</span>
             <Link href="/services" className="hover:text-gold">Services</Link>
@@ -71,34 +71,34 @@ export default async function ServicePage({ params }: Props) {
 
       <section className="mx-auto grid max-w-6xl gap-12 px-5 py-14 md:px-8 lg:grid-cols-[1.4fr_1fr]">
         <article>
-          <h2 className="font-display text-2xl font-semibold text-ink">{service.name}</h2>
+          <h2 className="font-display text-2xl font-semibold text-primary">{service.name}</h2>
           {service.body.map((p) => (
-            <p key={p.slice(0, 24)} className="mt-4 max-w-2xl leading-relaxed text-khaki">
+            <p key={p.slice(0, 24)} className="mt-4 max-w-2xl leading-relaxed text-secondary">
               {p}
             </p>
           ))}
-          <h3 className="mt-8 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">
+          <h3 className="mt-8 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-brand-strong">
             What&rsquo;s included
           </h3>
           <ul className="mt-3 space-y-2.5">
             {service.includes.map((item) => (
-              <li key={item} className="flex gap-3 text-[15px] text-ink">
-                <span className="mt-0.5 text-leaf" aria-hidden="true">✓</span>
+              <li key={item} className="flex gap-3 text-[15px] text-primary">
+                <span className="mt-0.5 text-brand" aria-hidden="true">✓</span>
                 {item}
               </li>
             ))}
           </ul>
-          <p className="mt-8 rounded-xl border border-line bg-cream/70 px-5 py-4 text-sm leading-relaxed text-ink">
+          <p className="mt-8 rounded-xl border border-subtle bg-brand-subtle/70 px-5 py-4 text-sm leading-relaxed text-primary">
             <span className="font-bold">Which car?</span> {service.bestCars}{" "}
-            <Link href="/fleet" className="font-semibold text-amberdeep hover:underline">
+            <Link href="/fleet" className="font-semibold text-brand-strong hover:underline">
               Browse the fleet →
             </Link>
           </p>
         </article>
 
-        <aside className="h-fit rounded-2xl border border-line bg-white p-6 lg:sticky lg:top-24">
-          <h2 className="font-display text-lg font-semibold text-ink">Get a fixed quote</h2>
-          <p className="mt-2 text-sm leading-relaxed text-khaki">
+        <aside className="h-fit rounded-2xl border border-subtle bg-white p-6 lg:sticky lg:top-24">
+          <h2 className="font-display text-lg font-semibold text-primary">Get a fixed quote</h2>
+          <p className="mt-2 text-sm leading-relaxed text-secondary">
             Tell us the date and pickup point — we reply with the fare and car options, usually within minutes.
           </p>
           <div className="mt-5 flex flex-col gap-3">
@@ -108,22 +108,22 @@ export default async function ServicePage({ params }: Props) {
             />
             <a
               href={`tel:${site.phone}`}
-              className="rounded-full border border-line px-5 py-2.5 text-center font-mono text-sm font-semibold text-ink transition-colors hover:border-amber hover:text-amberdeep"
+              className="rounded-full border border-subtle px-5 py-2.5 text-center font-mono text-sm font-semibold text-primary transition-colors hover:border-brand hover:text-brand-strong"
             >
               Call {site.phoneDisplay}
             </a>
-            <Link href="/booking" className="text-center text-sm font-bold text-amberdeep hover:underline">
+            <Link href="/booking" className="text-center text-sm font-bold text-brand-strong hover:underline">
               Or use the booking form →
             </Link>
           </div>
-          <p className="mt-5 border-t border-line pt-4 font-mono text-xs uppercase tracking-wider text-leaf">
+          <p className="mt-5 border-t border-subtle pt-4 font-mono text-xs uppercase tracking-wider text-brand">
             Open now · 24/7 every day
           </p>
         </aside>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16 md:px-8">
-        <h2 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-amberdeep">
+        <h2 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-brand-strong">
           Other services
         </h2>
         <div className="mt-4 flex flex-wrap gap-2.5">
@@ -133,7 +133,7 @@ export default async function ServicePage({ params }: Props) {
               <Link
                 key={s.slug}
                 href={`/services/${s.slug}`}
-                className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-amber hover:text-amberdeep"
+                className="rounded-full border border-subtle bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:border-brand hover:text-brand-strong"
               >
                 {s.name}
               </Link>

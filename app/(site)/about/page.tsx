@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { CtaBand, SectionHead } from "@/components/ui";
-import { fleet, site } from "@/lib/site";
+import { getCatalog } from "@/lib/catalog";
+import { optimisableImage } from "@/lib/catalogTypes";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About Us — Ten Years of Cabs from Dumraon",
@@ -10,10 +12,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" },
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const { vehicles } = await getCatalog();
+  const photo = vehicles.find((v) => v.category === "SUV") ?? vehicles[0];
   return (
     <>
-      <section className="bg-night text-paper">
+      <section className="bg-brand-deep text-on-color">
         <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-gold">
             About us
@@ -27,7 +31,7 @@ export default function AboutPage() {
           {site.stats.map((s) => (
             <div key={s.label}>
               <p className="font-display text-3xl font-semibold text-gold md:text-4xl">{s.value}</p>
-              <p className="mt-1 text-sm text-sand">{s.label}</p>
+              <p className="mt-1 text-sm text-helper-inverse">{s.label}</p>
             </div>
           ))}
         </div>
@@ -35,41 +39,46 @@ export default function AboutPage() {
 
       <section className="mx-auto grid max-w-6xl items-start gap-12 px-5 py-16 md:px-8 lg:grid-cols-2">
         <article>
-          <h2 className="font-display text-2xl font-semibold text-ink">Our story</h2>
-          <p className="mt-4 leading-relaxed text-khaki">
+          <h2 className="font-display text-2xl font-semibold text-primary">Our story</h2>
+          <p className="mt-4 leading-relaxed text-secondary">
             Dumraon Cab Service began in {site.foundedYear} with three cars and a simple observation:
             people in and around Dumraon deserved a cab they could trust to actually turn up — at the
             station at 3 AM, at the airport gate when the flight is late, at the wedding venue with
             every convoy car together.
           </p>
-          <p className="mt-4 leading-relaxed text-khaki">
+          <p className="mt-4 leading-relaxed text-secondary">
             Ten years later the fleet has grown past a hundred vehicles, but the way we work has not
             changed. Fares are agreed before the car leaves. Drivers are police-verified locals who
             know every road in Buxar district. And the phone is answered by a person, at every hour,
             every day of the year.
           </p>
-          <p className="mt-4 leading-relaxed text-khaki">
+          <p className="mt-4 leading-relaxed text-secondary">
             Most of our business comes from riders who have travelled with us before, and from their
             families. That only happens when every single trip is treated as the one that earns the
             next one.
           </p>
         </article>
         <div className="relative">
-          <div className="overflow-hidden rounded-2xl border border-line">
-            <Image
-              src={fleet[2].image}
-              alt="Scorpio from the Dumraon Cab Service fleet"
-              width={720}
-              height={540}
-              sizes="(max-width: 1024px) 92vw, 45vw"
-              className="aspect-[4/3] w-full bg-cream object-cover"
-            />
+          <div className="overflow-hidden rounded-2xl border border-subtle">
+            {photo ? (
+              <Image
+                src={photo.image}
+                alt={`${photo.name} from the Dumraon Cab Service fleet`}
+                width={720}
+                height={540}
+                sizes="(max-width: 1024px) 92vw, 45vw"
+                unoptimized={!optimisableImage(photo.image)}
+                className="aspect-[4/3] w-full bg-brand-subtle object-cover"
+              />
+            ) : (
+              <div className="aspect-[4/3] w-full bg-brand-subtle" />
+            )}
           </div>
           <span className="plate absolute -bottom-4 left-6 text-base shadow-lg">EST. {site.foundedYear}</span>
         </div>
       </section>
 
-      <section className="border-y border-line bg-cream/60">
+      <section className="border-y border-subtle bg-brand-subtle/60">
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8">
           <SectionHead
             eyebrow="How we run"
@@ -84,9 +93,9 @@ export default function AboutPage() {
               ["Local knowledge", "We are from Dumraon. Ghat-side parking in Varanasi, arrival gates at Patna airport, shortcuts around Ara market — the driver already knows."],
               ["Accountability", "One owner-operated business, three phone numbers, no call centre. If anything is off, you talk to us directly and we fix it."],
             ].map(([title, text]) => (
-              <div key={title} className="border-l-2 border-amber pl-4">
-                <h3 className="font-display text-base font-semibold text-ink">{title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-khaki">{text}</p>
+              <div key={title} className="border-l-2 border-brand pl-4">
+                <h3 className="font-display text-base font-semibold text-primary">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-secondary">{text}</p>
               </div>
             ))}
           </div>
@@ -94,10 +103,10 @@ export default function AboutPage() {
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-16 text-center md:px-8">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink md:text-3xl">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-primary md:text-3xl">
           Our aim is simple
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-khaki">
+        <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-secondary">
           To be the cab service Bihar recommends to family — safe, fairly priced and there when you
           need it. If we ever fall short of that on your trip, call {site.phoneDisplay} and tell us.
         </p>
