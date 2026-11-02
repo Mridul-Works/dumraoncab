@@ -4,8 +4,10 @@
 //   npm run seed -- --force  replaces bookings, vendors and the trip log with the
 //                            demo set (all three or none — they point at each other)
 //
-// Writes data/bookings.json, data/vendors.json, data/journal.json and sample
-// document files in data/vendor-docs/. Dates are relative to today (India time),
+// Writes bookings, vendors, the trip log and sample vendor documents — to data/
+// locally, or to the Redis database when its env vars are set (the script reads
+// .env.local, so put Vercel's KV_REST_API_URL / KV_REST_API_TOKEN there to seed
+// the live site). Dates are relative to today (India time),
 // so the dashboard always has "today" and "this week" activity.
 //
 // Demo driver for the driver app (/driver): mobile 95256 66262 (Kishor Kumar).
@@ -354,29 +356,54 @@ for (const [b, status] of [[waiting, "submitted"], [approved, "approved"]]) {
 }
 
 // ---- write -----------------------------------------------------------------------
-async function exists(f) {
-  try {
-    await fs.access(f);
-    return true;
-  } catch {
-    return false;
-  }
+// Same storage choice as lib/db.ts: Redis when its env vars are set (Vercel),
+// otherwise JSON files in data/.
+const REDIS_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "").replace(/\/$/, "");
+const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const useRedis = !!(REDIS_URL && REDIS_TOKEN);
+
+async function redis(...command) {
+  const res = await fetch(REDIS_URL, { method: "POST", headers: { Authorization: `Bearer ${REDIS_TOKEN}` }, body: JSON.stringify(command) });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || data.error) throw new Error(`Redis ${command[0]} failed: ${data?.error ?? res.status}`);
+  return data.result;
 }
+
+const store = useRedis
+  ? {
+      where: "the Redis database (live site)",
+      exists: async (name) => (await redis("EXISTS", `dc:json:${name}`)) === 1,
+      writeJson: (name, value) => redis("SET", `dc:json:${name}`, JSON.stringify(value)),
+      writeDoc: (name, bytes) => redis("SET", `dc:file:vendor-docs:${name}`, bytes.toString("base64")),
+    }
+  : {
+      where: "data/",
+      exists: (name) => fs.access(path.join(DATA, name)).then(
+        () => true,
+        () => false,
+      ),
+      writeJson: (name, value) => fs.writeFile(path.join(DATA, name), JSON.stringify(value, null, 2), "utf8"),
+      writeDoc: async (name, bytes) => {
+        await fs.mkdir(DOCS, { recursive: true });
+        await fs.writeFile(path.join(DOCS, name), bytes);
+      },
+    };
 
 const files = { "vendors.json": vendors, "bookings.json": bookings, "journal.json": journal };
 // All or nothing: bookings, vendors and trip entries point at each other by id.
 const existing = [];
-for (const name of Object.keys(files)) if (await exists(path.join(DATA, name))) existing.push(name);
+for (const name of Object.keys(files)) if (await store.exists(name)) existing.push(name);
 if (existing.length && !force) {
-  console.log(`Nothing written: data/${existing.join(", data/")} already has data.`);
+  console.log(`Nothing written: ${existing.join(", ")} already has data in ${store.where}.`);
   console.log("Run `npm run seed -- --force` to replace bookings, vendors and the trip log with the demo set.");
   process.exit(0);
 }
-await fs.mkdir(DOCS, { recursive: true });
+console.log(`Writing demo data to ${store.where}`);
+await fs.mkdir(DATA, { recursive: true });
 for (const [name, value] of Object.entries(files)) {
-  await fs.writeFile(path.join(DATA, name), JSON.stringify(value, null, 2), "utf8");
-  console.log(`wrote data/${name} (${value.length})`);
+  await store.writeJson(name, value);
+  console.log(`wrote ${name} (${value.length})`);
 }
-for (const { file, title } of pendingFiles) await fs.writeFile(path.join(DOCS, file), samplePdf(title));
-console.log(`wrote ${pendingFiles.length} sample documents in data/vendor-docs/`);
+for (const { file, title } of pendingFiles) await store.writeDoc(file, samplePdf(title));
+console.log(`wrote ${pendingFiles.length} sample documents`);
 console.log("\nDemo driver for /driver: mobile 95256 66262 (Kishor Kumar).");

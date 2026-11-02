@@ -344,8 +344,19 @@ writes go through lib/db.ts: serialised per file and atomic (temp
 file + rename); a corrupt file raises an error instead of reading as
 empty. Fleet and fares fall back to the seeds in lib/site.ts until
 first saved.
-NOTE: JSON-file storage suits a VPS/Node host. On serverless
-(Vercel etc.) swap lib/db.ts for a database first.
+Storage backend is chosen by lib/db.ts: Redis (Upstash REST, plain
+fetch — no package) when KV_REST_API_URL + KV_REST_API_TOKEN (Vercel
+"Upstash for Redis" integration) or UPSTASH_REDIS_REST_URL/TOKEN are
+set — required on Vercel, whose filesystem is read-only; otherwise
+JSON files in data/. On Redis each store is one key (dc:json:<file>),
+uploads are dc:file:<folder>:<name> (base64), and writes take a short
+Redis lock so serverless instances don't overwrite each other.
+Uploads (car photos, logo, meter/receipt photos, vendor documents) go
+through putUpload/getUpload/removeUpload in lib/db.ts.
+Demo data: `npm run seed` (scripts/seed-demo.mjs, reads .env.local)
+fills empty storage — files or Redis — with sample bookings, vendors
++ documents and trip-log entries dated around today; `-- --force`
+replaces them.
 
 6. SEO & DISCOVERABILITY
 ---------------------------------------------------------------------

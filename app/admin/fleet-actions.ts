@@ -1,12 +1,10 @@
 "use server";
 
-import { promises as fs } from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { CAR_TYPES, type CarType } from "@/lib/catalogTypes";
-import { DATA_DIR } from "@/lib/db";
+import { putUpload, removeUpload } from "@/lib/db";
 import { getFares } from "@/lib/fares";
 import { createCar, deleteCar, getCar, updateCar } from "@/lib/fleet";
 import { field, isDate, money, publishSite, refreshAdmin, type FormState } from "./form";
@@ -66,7 +64,7 @@ export async function removeCar(id: string) {
   await requireAdmin();
   const car = await deleteCar(id);
   if (car?.image.startsWith("/uploads/")) {
-    await fs.rm(path.join(DATA_DIR, car.image), { force: true }).catch(() => {});
+    await removeUpload("uploads", car.image.slice("/uploads/".length));
   }
   publishSite();
   redirect(car ? `/admin/fleet?deleted=${encodeURIComponent(car.name)}` : "/admin/fleet");
@@ -91,8 +89,7 @@ export async function uploadCarPhoto(formData: FormData): Promise<{ url?: string
   if (!real) return { error: "That file doesn't look like a valid image." };
 
   const name = `${randomUUID()}.${ext}`;
-  await fs.mkdir(path.join(DATA_DIR, "uploads"), { recursive: true });
-  await fs.writeFile(path.join(DATA_DIR, "uploads", name), bytes);
+  await putUpload("uploads", name, bytes);
   return { url: `/uploads/${name}` };
 }
 

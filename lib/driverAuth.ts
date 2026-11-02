@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { promises as fs } from "fs";
-import path from "path";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
-import { DATA_DIR, jsonFile } from "./db";
+import { jsonFile } from "./db";
 
 // Driver app sign-in (Figma 10.2–10.4): mobile number + 6-digit one-time code.
 //
@@ -46,6 +44,7 @@ export const showMobile = (ten: string) => `+91 ${ten.slice(0, 5)} ${ten.slice(5
 /* ------------------------------- secrets ------------------------------- */
 
 let cachedKey: Buffer | null = null;
+const secretDb = jsonFile<{ key?: string }>("driver-secret.json", () => ({}));
 
 async function sessionKey(): Promise<Buffer> {
   if (cachedKey) return cachedKey;
@@ -54,24 +53,10 @@ async function sessionKey(): Promise<Buffer> {
     cachedKey = createHash("sha256").update(`dc-driver:${env}`).digest();
     return cachedKey;
   }
-  const file = path.join(DATA_DIR, "driver-secret.key");
-  try {
-    const saved = (await fs.readFile(file, "utf8")).trim();
-    if (saved.length >= 64) cachedKey = Buffer.from(saved, "hex");
-  } catch {
-    // first run
-  }
-  if (!cachedKey) {
-    const fresh = randomBytes(32);
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    try {
-      // "wx": never overwrite a key another request just wrote.
-      await fs.writeFile(file, fresh.toString("hex"), { encoding: "utf8", flag: "wx", mode: 0o600 });
-      cachedKey = fresh;
-    } catch {
-      cachedKey = Buffer.from((await fs.readFile(file, "utf8")).trim(), "hex");
-    }
-  }
+  // Created once and kept in the store (data/driver-secret.json or Redis);
+  // mutate() is serialised, so two first requests can't make two keys.
+  const hex = await secretDb.mutate((s) => (s.key ||= randomBytes(32).toString("hex")));
+  cachedKey = Buffer.from(hex, "hex");
   return cachedKey;
 }
 

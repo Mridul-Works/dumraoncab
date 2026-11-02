@@ -1,8 +1,6 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
-import { DATA_DIR, jsonFile } from "./db";
+import { jsonFile, putUpload } from "./db";
 import { getDriverSession, requireDriverSession } from "./driverAuth";
 import { findVendorByMobile } from "./vendors";
 import { listBookings, getBooking, updateBooking } from "./store";
@@ -125,8 +123,7 @@ export async function saveTripPhoto(file: unknown): Promise<{ file: string } | {
   const ext = sniffImage(bytes);
   if (!ext) return { error: "That file doesn't look like a photo." };
   const name = `${randomUUID()}.${ext}`;
-  await fs.mkdir(path.join(DATA_DIR, "uploads"), { recursive: true });
-  await fs.writeFile(path.join(DATA_DIR, "uploads", name), bytes);
+  await putUpload("uploads", name, bytes);
   return { file: name };
 }
 

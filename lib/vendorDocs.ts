@@ -1,14 +1,11 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
-import { DATA_DIR } from "./db";
+import { putUpload, removeUpload } from "./db";
 
 // Server-only (uses Node fs). Vendor documents (Aadhaar, licence, RC …) are
 // private: they're saved under data/vendor-docs/ and served ONLY to signed-in
 // staff by app/admin/vendor-docs/[file]/route.ts — never from /uploads.
 // Shared by the admin Vendors section and the driver app's sign-up.
 
-export const VENDOR_DOC_DIR = path.join(DATA_DIR, "vendor-docs");
 export const MAX_VENDOR_DOC = 5 * 1024 * 1024; // 5 MB
 
 export const VENDOR_DOC_TYPES: Record<string, string> = {
@@ -54,8 +51,7 @@ export async function saveVendorDoc(file: File): Promise<SavedVendorDoc | { erro
   if (!ext) return { error: "That file doesn't look like a photo or PDF." };
 
   const name = `${randomUUID()}.${ext}`;
-  await fs.mkdir(VENDOR_DOC_DIR, { recursive: true });
-  await fs.writeFile(path.join(VENDOR_DOC_DIR, name), bytes);
+  await putUpload("vendor-docs", name, bytes);
   return {
     file: name,
     fileName: (file.name || `document.${ext}`).slice(0, 120),
@@ -66,5 +62,5 @@ export async function saveVendorDoc(file: File): Promise<SavedVendorDoc | { erro
 
 export async function removeVendorDoc(file: string | undefined) {
   if (!file || !VENDOR_DOC_NAME.test(file)) return;
-  await fs.rm(path.join(VENDOR_DOC_DIR, file), { force: true }).catch(() => {});
+  await removeUpload("vendor-docs", file);
 }

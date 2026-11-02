@@ -1,12 +1,10 @@
 "use server";
 
-import { promises as fs } from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getCompany, saveCompany } from "@/lib/company";
-import { DATA_DIR } from "@/lib/db";
+import { putUpload } from "@/lib/db";
 import { fieldErrors, fromDraft, type CompanyDraft, type DraftKey } from "@/components/admin/company/profileFields";
 
 const LOGO_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
@@ -65,7 +63,6 @@ export async function uploadCompanyLogo(formData: FormData): Promise<{ url?: str
   if (!real) return { error: "That file doesn't look like a valid image." };
 
   const name = `${randomUUID()}.${ext}`;
-  await fs.mkdir(path.join(DATA_DIR, "uploads"), { recursive: true });
-  await fs.writeFile(path.join(DATA_DIR, "uploads", name), bytes);
+  await putUpload("uploads", name, bytes);
   return { url: `/uploads/${name}`, name: file.name.slice(0, 80), kb: Math.max(1, Math.round(file.size / 1024)) };
 }
