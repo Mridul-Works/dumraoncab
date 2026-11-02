@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Body, Screen } from "@/components/driver/ui";
 import { CodeForm } from "@/components/driver/SignIn";
-import { getDriverSession, mobileDigits, resendWait, showMobile } from "@/lib/driverAuth";
+import { SHOW_CODE_ON_SCREEN, getDriverSession, mobileDigits, resendWait, showMobile } from "@/lib/driverAuth";
 
 export const metadata: Metadata = { title: "Enter the code" };
 
@@ -14,7 +14,7 @@ export default async function CodePage() {
   const mobile = mobileDigits(jar.get("dc_driver_m")?.value ?? "");
   if (!mobile) redirect("/driver/sign-in");
   // Development only: there is no SMS provider, so the code is shown here.
-  const devCode = process.env.NODE_ENV !== "production" ? jar.get("dc_driver_dev")?.value : undefined;
+  const devCode = SHOW_CODE_ON_SCREEN ? jar.get("dc_driver_dev")?.value : undefined;
   return (
     <Screen tone="white">
       <Body className="gap-[20px] pt-[16px] pb-[20px]">

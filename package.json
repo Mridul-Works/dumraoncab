@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 5600",
     "lint": "eslint",
-    "tokens": "node scripts/build-design-tokens.mjs"
+    "tokens": "node scripts/build-design-tokens.mjs",
+    "seed": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "next": "16.3.3",

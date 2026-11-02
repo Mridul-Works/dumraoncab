@@ -12,6 +12,10 @@ import { DATA_DIR, jsonFile } from "./db";
 //    in a small "Dev only" note;
 //  - production: POSTed as JSON { mobile, code } to DRIVER_OTP_WEBHOOK (your SMS
 //    gateway or a small relay). Without it, sign-in shows "SMS is not set up".
+//  - demo (no SMS yet): set DRIVER_DEMO_CODE=123456 (any 6 digits). Every
+//    number then gets that fixed code, shown on the code screen. Anyone who
+//    knows it can sign in as any driver, so use it only for demos/previews and
+//    remove it once SMS is set up.
 // Only a hash of the code is stored (data/driver-otp.json), with an expiry.
 // Sessions are an HMAC-signed httpOnly cookie. The key is DRIVER_SESSION_SECRET,
 // or a random key created once and kept in data/driver-secret.key.
@@ -25,6 +29,9 @@ const MAX_SENDS_PER_HOUR = 5;
 
 const isDev = process.env.NODE_ENV !== "production";
 const WEBHOOK = process.env.DRIVER_OTP_WEBHOOK || "";
+const DEMO_CODE = /^\d{6}$/.test(process.env.DRIVER_DEMO_CODE ?? "") ? process.env.DRIVER_DEMO_CODE! : "";
+// Show the code on screen when it isn't sent by SMS (development or demo mode).
+export const SHOW_CODE_ON_SCREEN = !WEBHOOK && (isDev || !!DEMO_CODE);
 
 // Last 10 digits of an Indian mobile number, or "" when it isn't one.
 export function mobileDigits(input: string): string {
@@ -105,6 +112,7 @@ async function deliver(mobile: string, code: string): Promise<string | null> {
       return "We could not send the SMS. Try again in a minute.";
     }
   }
+  if (DEMO_CODE) return null;
   if (isDev) {
     console.log(`[driver-app] Sign-in code for +91 ${mobile}: ${code} (dev only — set DRIVER_OTP_WEBHOOK to send real SMS)`);
     return null;
@@ -124,7 +132,7 @@ export async function sendCode(input: string): Promise<SendResult> {
   const recent = (prev?.sends ?? []).filter((t) => now - t < 60 * 60 * 1000);
   if (recent.length >= MAX_SENDS_PER_HOUR) return { ok: false, error: "Too many codes asked for this number. Try again in an hour." };
 
-  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const code = !WEBHOOK && DEMO_CODE ? DEMO_CODE : String(randomInt(0, 1_000_000)).padStart(6, "0");
   const failed = await deliver(mobile, code);
   if (failed) return { ok: false, error: failed };
 
@@ -134,7 +142,7 @@ export async function sendCode(input: string): Promise<SendResult> {
     for (const [m, r] of Object.entries(all)) if (r.expires < now - 24 * 60 * 60 * 1000) delete all[m];
     all[mobile] = { hash: hmac(key, `${mobile}:${code}`), expires: now + CODE_MINUTES * 60 * 1000, tries: 0, sentAt: now, sends: [...recent, now] };
   });
-  return { ok: true, resendIn: RESEND_SECONDS, ...(isDev && !WEBHOOK ? { devCode: code } : {}) };
+  return { ok: true, resendIn: RESEND_SECONDS, ...(SHOW_CODE_ON_SCREEN ? { devCode: code } : {}) };
 }
 
 export type VerifyResult = { ok: true } | { ok: false; error: string; triesLeft: number };

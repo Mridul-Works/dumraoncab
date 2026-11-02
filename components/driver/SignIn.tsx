@@ -190,7 +190,7 @@ export function CodeForm({ mobile, resendIn, devCode }: { mobile: string; resend
       {resendMsg && <p className="type-body-sm text-secondary">{resendMsg}</p>}
       {dev && (
         <p className="rounded-md border border-dashed border-gray-200 px-[12px] py-[8px] type-body-sm text-secondary">
-          Dev only — no SMS provider is set up. Your code is <span className="type-mono-md text-primary">{dev}</span> (also printed in the server console).
+          Demo — SMS isn’t set up yet. Your code is <span className="type-mono-md text-primary">{dev}</span>.
         </p>
       )}
       <Spacer />

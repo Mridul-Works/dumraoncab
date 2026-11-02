@@ -417,8 +417,11 @@ Line art in public/driver-art/, icons from public/admin-icons/.
   after 30 s, max 5 codes/hour per number; boxes turn red and clear
   on the next tap; Android WebOTP auto-fill. NO SMS provider: in
   development the code is printed to the server console and shown in
-  a "Dev only" note; in production set DRIVER_OTP_WEBHOOK (POST
-  {mobile, code}) or sign-in says "SMS is not set up". Session =
+  a "Demo" note; for a demo/preview without SMS set DRIVER_DEMO_CODE
+  (6 digits — every number then uses that code, shown on screen; anyone
+  can sign in, so remove it once SMS works); in production set
+  DRIVER_OTP_WEBHOOK (POST {mobile, code}) or sign-in says "SMS is
+  not set up". Session =
   HMAC-signed httpOnly cookie (30 days) keyed by
   DRIVER_SESSION_SECRET or data/driver-secret.key (auto-created).
 - Join (10.5–10.11): photo, name, own car vs Dumraon Cab car, where

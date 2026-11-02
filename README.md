@@ -42,7 +42,12 @@ server-rendered booking page.
   `/admin` is noindex and blocked in robots.txt.
 - Storage: JSON files in `data/` (gitignored) — `bookings.json`, `fleet.json`,
   `fares.json`, `journal.json`, and uploaded car photos in `data/uploads/`. All go
-  through `lib/db.ts`. Fine on a VPS/Node host; on serverless hosts the filesystem is
+  through `lib/db.ts`. Demo data: `npm run seed` fills empty `data/` with sample
+  bookings, vendors (with sample documents) and trip-log entries dated around today;
+  `npm run seed -- --force` replaces those three files. Demo driver for `/driver`:
+  mobile 95256 66262. Without SMS, sign in with the code shown on screen (dev) or set
+  `DRIVER_DEMO_CODE=123456` (demo/preview only — anyone can then sign in).
+  Fine on a VPS/Node host; on serverless hosts the filesystem is
   ephemeral — swap `lib/db.ts` for a database first. Back up `data/` regularly.
 - Publishing: saving in Fleet or Fares expires every public page that shows cars or
   prices (cache tag `catalog`), so the next visitor sees the change — no redeploy.
