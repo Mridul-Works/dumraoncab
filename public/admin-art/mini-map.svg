@@ -1,0 +1,20 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="88" height="64" viewBox="0 0 88 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Mini map">
+<g clip-path="url(#clip0_0_32)">
+<path d="M0 4C0 1.79086 1.79086 0 4 0H84C86.2091 0 88 1.79086 88 4V60C88 62.2091 86.2091 64 84 64H4C1.79086 64 0 62.2091 0 60V4Z" fill="white"/>
+<rect id="Rectangle" y="22" width="88" height="2" fill="#EBEBEB"/>
+<rect id="Rectangle_2" y="46" width="88" height="1" fill="#EBEBEB"/>
+<rect id="Rectangle_3" x="30" width="2" height="64" fill="#EBEBEB"/>
+<rect id="Rectangle_4" x="62" width="1" height="64" fill="#EBEBEB"/>
+<rect id="Rectangle_5" x="10" width="1" height="64" fill="#EBEBEB"/>
+<rect id="Rectangle_6" x="-16" y="36" width="120" height="4" transform="rotate(-18 -16 36)" fill="#D9D9D9"/>
+<path id="Ellipse" d="M52.5 29C52.5 33.6944 48.6944 37.5 44 37.5C39.3056 37.5 35.5 33.6944 35.5 29C35.5 24.3056 39.3056 20.5 44 20.5C48.6944 20.5 52.5 24.3056 52.5 29Z" fill="#0F7A3F" stroke-width="3" stroke="white"/>
+</g>
+<path d="M4 0.5H84C85.933 0.500001 87.5 2.067 87.5 4V60C87.5 61.933 85.933 63.5 84 63.5H4C2.067 63.5 0.5 61.933 0.5 60V4C0.5 2.067 2.067 0.5 4 0.5Z" stroke="#EBEBEB"/>
+</g>
+<defs>
+<clipPath id="clip0_0_32">
+<path d="M0 4C0 1.79086 1.79086 0 4 0H84C86.2091 0 88 1.79086 88 4V60C88 62.2091 86.2091 64 84 64H4C1.79086 64 0 62.2091 0 60V4Z" fill="white"/>
+</clipPath>
+</defs>
+</svg>

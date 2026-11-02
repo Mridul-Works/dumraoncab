@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/app/admin/actions";
@@ -20,9 +20,13 @@ import {
   type CarClassOption,
   type CarOption,
   type CustomerInfo,
+  type PlaceOption,
   type RouteOption,
   type ServiceOption,
+  type VendorCarOption,
 } from "@/components/admin/NewBookingParts";
+import { addDays, clock, day, fromMin, hoursWords, norm, phoneShow, toMin } from "@/components/admin/newbooking/format";
+import { CarPicker, Highlight, OtherDate, SuggestField, TimeField, nextHalfHour, type CarChoice } from "@/components/admin/newbooking/Pickers";
 import { FormError, StatusBadge, btnGhost, btnPrimary, btnText } from "@/components/admin/ui";
 import { inr } from "@/lib/catalogTypes";
 import { customerConfirmText, customerQuoteText } from "@/lib/site";
@@ -30,6 +34,8 @@ import { customerConfirmText, customerQuoteText } from "@/lib/site";
 // New booking (Figma "Flow 3B"): a trip that came in by phone, WhatsApp or at
 // the desk. Left: the form in cards. Right: a live summary with the fare, the
 // problems to fix, and Save. Work in progress is kept as a draft in this browser.
+// Dropdowns (3B.8–3B.13): past-customer lookup on the mobile number, pickup and
+// drop suggestions, the pickup-time list, the Other-date calendar and the car picker.
 
 type Channel = "phone" | "whatsapp" | "walk-in";
 type Payment = "Cash" | "UPI" | "Monthly bill";
@@ -51,6 +57,7 @@ const blank = (today: string) => ({
   bags: 0,
   carClass: "", // fare class id, "any", or ""
   carId: "",
+  vendorCar: "", // "<vendorId>:<carId>" when a vendor's car is assigned
   notes: "",
   adminNote: "",
   fare: "", // route fare override; "" = use the suggestion
@@ -61,36 +68,15 @@ const blank = (today: string) => ({
 });
 type Draft = ReturnType<typeof blank>;
 
-/* --------------------------------- time helpers -------------------------------- */
-
-const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
-const fromMin = (m: number) => {
-  const x = ((m % 1440) + 1440) % 1440;
-  return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`;
-};
-// "04:30" → "4:30 AM" (pad → "04:30 AM")
-const clock = (t: string, pad = false) => {
-  const m = toMin(t);
-  const h = Math.floor(m / 60) % 12 || 12;
-  return `${pad ? String(h).padStart(2, "0") : h}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "AM" : "PM"}`;
-};
-const SLOTS = Array.from({ length: 96 }, (_, i) => fromMin(i * 15));
-const day = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { ...opts, timeZone: "UTC" });
-const addDays = (iso: string, n: number) => {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
-const hoursWords = (min: number) => (min < 60 ? `${min} min` : min % 60 === 0 ? `${min / 60} hour${min === 60 ? "" : "s"}` : `${Math.floor(min / 60)} h ${min % 60} min`);
-const phoneShow = (d: string) => (d.length > 5 ? `${d.slice(0, 5)} ${d.slice(5)}` : d);
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-
 export default function NewBookingForm({
   customers,
   services,
   routes,
+  pickups,
+  drops,
   classes,
   cars,
+  vendorCars,
   busy,
   nightAllowance,
   today,
@@ -99,9 +85,12 @@ export default function NewBookingForm({
   customers: CustomerInfo[];
   services: ServiceOption[];
   routes: RouteOption[];
+  pickups: PlaceOption[];
+  drops: PlaceOption[];
   classes: CarClassOption[];
   cars: CarOption[];
-  busy: Record<string, string[]>;
+  vendorCars: VendorCarOption[];
+  busy: Record<string, string[]>; // date → car ids (and "<vendorId>:<carId>") already promised
   nightAllowance: number;
   today: string;
   startedAt: string; // "HH:MM" IST, when the form was opened
@@ -159,6 +148,47 @@ export default function NewBookingForm({
   const route = f.to ? routes.find((r) => norm(f.to).startsWith(norm(r.to))) : undefined;
   const cls = classes.find((c) => c.id === f.carClass);
   const car = cars.find((c) => c.id === f.carId);
+  const vendorCar = vendorCars.find((v) => v.key === f.vendorCar);
+
+  /* ---- car picker (Figma 3B.13) ---- */
+  const carWhen = f.date === today ? "today" : day(f.date, { weekday: "long" });
+  const freeOurs = cars.filter((c) => (!cls || cls.carIds.includes(c.id)) && !busy[f.date]?.includes(c.id));
+  const classWord = cls ? norm(cls.name.split(" /")[0]) : "";
+  const freeVendor = freeOurs.length
+    ? []
+    : vendorCars.filter((v) => (!cls || norm(cls.name).includes(norm(v.type)) || norm(v.type).includes(classWord)) && v.seats >= f.people && !busy[f.date]?.includes(v.key));
+  const carChoices: CarChoice[] = [
+    ...freeOurs.map((c) => ({
+      key: c.id,
+      title: c.number ? `${c.name} · ${c.number}` : c.name,
+      sub: `${classes.find((x) => x.id === c.fareClass)?.name ?? "Car"} · free all ${carWhen}`,
+    })),
+    ...freeVendor.map((v) => ({ key: `v:${v.key}`, title: v.number ? `${v.model} · ${v.number}` : v.model, sub: `${v.vendor} · vendor car` })),
+  ];
+
+  /* ---- suggestions (Figma 3B.8–3B.10) ---- */
+  // Past customers whose number holds what's typed so far (from 3 digits).
+  const lookup =
+    f.phone.length >= 3
+      ? customers
+          .filter((c) => c.digits.includes(f.phone))
+          .sort((a, b) => Number(b.digits.startsWith(f.phone)) - Number(a.digits.startsWith(f.phone)) || b.trips - a.trips)
+          .slice(0, 4)
+      : [];
+  // Three most used pickups — a past customer's own first; typing filters them.
+  const fromQ = f.from.trim().toLowerCase();
+  const pickupPool = [...new Set([...(customer?.places ?? []), ...pickups.map((p) => p.name)])];
+  const pickupSuggestions = fromQ
+    ? pickupPool.filter((p) => p.toLowerCase().includes(fromQ) && p.toLowerCase() !== fromQ).slice(0, 5)
+    : pickupPool.slice(0, 3);
+  // Drop: fixed-fare routes, then past drops, matching the start of any word.
+  const toQ = f.to.trim().toLowerCase();
+  const wordStart = (name: string) => toQ && (name.toLowerCase().startsWith(toQ) || name.toLowerCase().includes(` ${toQ}`) || name.toLowerCase().includes(`(${toQ}`));
+  const dropSuggestions = toQ
+    ? [...routes.map((r) => ({ name: r.to, route: r as RouteOption | undefined })), ...drops.map((d) => ({ name: d.name, route: undefined }))]
+        .filter((d) => wordStart(d.name) && d.name.toLowerCase() !== toQ)
+        .slice(0, 5)
+    : [];
   const trips = f.direction === "round" ? 2 : 1;
   const km = route ? route.km * trips : 0;
   const suggested = route ? Math.max(route.fare * trips, cls ? km * cls.rate : 0) : 0;
@@ -177,12 +207,8 @@ export default function NewBookingForm({
   const dayWord = (d: string) => (d === today ? "today" : day(d, { weekday: "short" }));
   const strip = Array.from({ length: 6 }, (_, i) => addDays(today, i));
 
-  // Quick-time chips stay put while you click between them.
-  const [anchor, setAnchor] = useState(() => {
-    const nowHalf = Math.ceil(toMin(startedAt) / 30) * 30;
-    return fromMin(nowHalf);
-  });
-  const quick = [0, 30, 60, 90].map((m) => fromMin(toMin(anchor) + m));
+  // Days on which every one of our cars is already promised (faded in the calendar).
+  const fullDays = new Set(cars.length ? Object.keys(busy).filter((d) => cars.every((c) => busy[d].includes(c.id))) : []);
 
   /* ---- validation (Figma 3B.3) ---- */
   const errors: { key: string; label: string; msg: string }[] = [];
@@ -203,7 +229,7 @@ export default function NewBookingForm({
       to: f.to,
       date: f.date ? day(f.date, { weekday: "short", day: "numeric", month: "short" }) : "",
       time: f.time ? clock(f.time) : "",
-      car: car?.name ?? classLabel,
+      car: car?.name ?? vendorCar?.model ?? classLabel,
       quote: total || undefined,
     };
     return f.status === "confirmed" ? customerConfirmText(trip) : customerQuoteText(trip);
@@ -257,6 +283,9 @@ export default function NewBookingForm({
       <input type="hidden" name="people" value={f.people} />
       <input type="hidden" name="bags" value={f.bags} />
       <input type="hidden" name="carClass" value={classLabel} />
+      <input type="hidden" name="carId" value={f.carId} />
+      <input type="hidden" name="vendorId" value={f.vendorCar.split(":")[0] ?? ""} />
+      <input type="hidden" name="vendorCarId" value={f.vendorCar.split(":")[1] ?? ""} />
       <input type="hidden" name="quote" value={total || ""} />
       <input type="hidden" name="payment" value={f.payment} />
       <input type="hidden" name="status" value={f.status} />
@@ -285,8 +314,19 @@ export default function NewBookingForm({
                 <Label htmlFor="nb-phone" optional={f.channel === "walk-in"}>
                   Mobile number
                 </Label>
-                <Box
+                {/* Figma 3B.8: typing the number finds past customers; one tap fills the rest. */}
+                <SuggestField
+                  id="nb-phone"
+                  placeholder="10-digit mobile"
+                  value={phoneShow(f.phone)}
                   error={!!err("nb-phone")}
+                  inputProps={{ type: "tel", inputMode: "numeric", "aria-describedby": "nb-phone-msg" }}
+                  prefix={
+                    <>
+                      <span className="type-body-md text-secondary">+91</span>
+                      <span className="h-5.5 w-px bg-gray-200" />
+                    </>
+                  }
                   trailing={
                     err("nb-phone") ? (
                       <Icon name="warning-circle" size={20} className="text-[var(--support-error)]" />
@@ -294,34 +334,37 @@ export default function NewBookingForm({
                       <Icon name="check" size={20} className="text-brand" />
                     ) : null
                   }
-                >
-                  <span className="type-body-md text-secondary">+91</span>
-                  <span className="h-5.5 w-px bg-gray-200" />
-                  <input
-                    id="nb-phone"
-                    type="tel"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="10-digit mobile"
-                    value={phoneShow(f.phone)}
-                    aria-invalid={!!err("nb-phone")}
-                    aria-describedby="nb-phone-msg"
-                    onChange={(e) => {
-                      let d = e.target.value.replace(/\D/g, "");
-                      if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
-                      d = d.slice(0, 10);
-                      const match = d.length === 10 ? customers.find((c) => c.digits === d) : undefined;
-                      setF((p) => ({
-                        ...p,
-                        phone: d,
-                        // A returning customer fills in their name and usual pickup.
-                        name: match && !p.name ? match.name : p.name,
-                        from: match && !p.from ? match.usualPickup : p.from,
-                      }));
-                    }}
-                    className={bareInput}
-                  />
-                </Box>
+                  onChange={(v) => {
+                    let d = v.replace(/\D/g, "");
+                    if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
+                    set("phone", d.slice(0, 10));
+                  }}
+                  menuClassName="left-0 w-full sm:w-[520px] sm:max-w-[calc(100vw-2rem)]"
+                  items={lookup.map((c) => ({
+                    key: c.digits,
+                    icon: "user",
+                    title: c.name || `+91 ${phoneShow(c.digits)}`,
+                    sub: [
+                      f.phone.length < 10 && c.name ? `+91 ${phoneShow(c.digits)}` : "",
+                      `${c.trips} trip${c.trips === 1 ? "" : "s"}`,
+                      c.usualPickup ? `usually ${c.usualPickup}${c.usualDrop ? ` to ${c.usualDrop}` : ""}` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                  }))}
+                  onPick={(digits) => {
+                    const c = customers.find((x) => x.digits === digits);
+                    if (!c) return;
+                    setF((p) => ({
+                      ...p,
+                      phone: c.digits,
+                      name: p.name || c.name,
+                      from: p.from || c.usualPickup,
+                      to: p.to || c.usualDrop,
+                      payment: (["Cash", "UPI", "Monthly bill"] as const).find((x) => x === c.payment) ?? p.payment,
+                    }));
+                  }}
+                />
                 {err("nb-phone") ? (
                   <FieldError id="nb-phone-msg">{err("nb-phone")}</FieldError>
                 ) : (
@@ -398,9 +441,31 @@ export default function NewBookingForm({
                 <Label htmlFor="nb-from" tag={customer && f.from && f.from === customer.usualPickup ? "Usual" : undefined}>
                   Pickup
                 </Label>
-                <Box icon="map-pin" error={!!err("nb-from")}>
-                  <input id="nb-from" name="from" placeholder="Village, street or landmark" value={f.from} onChange={text("from")} aria-invalid={!!err("nb-from")} className={bareInput} />
-                </Box>
+                {/* Figma 3B.9: three most used pickups (a past customer sees their own), plus drop a pin. */}
+                <SuggestField
+                  id="nb-from"
+                  icon="map-pin"
+                  placeholder="Village, street or landmark"
+                  value={f.from}
+                  error={!!err("nb-from")}
+                  inputProps={{ name: "from" }}
+                  onChange={(v) => set("from", v)}
+                  openOnFocus
+                  menuClassName="left-0 w-full sm:w-[420px] sm:max-w-[calc(100vw-2rem)]"
+                  items={pickupSuggestions.map((name) => ({ key: name, icon: "map-pin", title: name }))}
+                  onPick={(name) => set("from", name)}
+                  footer={
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.from.trim() || "Dumraon, Bihar")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 px-3.5 pb-1.5 pt-2.5 type-ui text-link transition-colors hover:text-link-hover"
+                    >
+                      <Icon name="map-pin" size={16} />
+                      Drop a pin on the map
+                    </a>
+                  }
+                />
                 <FieldError id="nb-from-msg">{err("nb-from")}</FieldError>
               </div>
               <button
@@ -416,9 +481,27 @@ export default function NewBookingForm({
                 <Label htmlFor="nb-to" optional={hourly}>
                   Drop
                 </Label>
-                <Box icon="map-pin" error={!!err("nb-to")}>
-                  <input id="nb-to" name="to" placeholder="Type or pick a popular place" value={f.to} onChange={text("to")} aria-invalid={!!err("nb-to")} className={bareInput} />
-                </Box>
+                {/* Figma 3B.10: closest matches with km and fare; picking one fills the summary. */}
+                <SuggestField
+                  id="nb-to"
+                  icon="map-pin"
+                  placeholder="Type or pick a popular place"
+                  value={f.to}
+                  error={!!err("nb-to")}
+                  inputProps={{ name: "to" }}
+                  onChange={(v) => set("to", v)}
+                  menuClassName="left-0 w-full sm:w-[460px] sm:max-w-[calc(100vw-2rem)]"
+                  items={dropSuggestions.map((d) => ({
+                    key: d.name,
+                    icon: "map-pin",
+                    title: <Highlight text={d.name} query={f.to.trim()} />,
+                    meta: d.route ? `${d.route.km} km · ${inr(d.route.fare)}` : undefined,
+                  }))}
+                  onPick={(name) => {
+                    const r = routes.find((x) => x.to === name);
+                    setF((p) => ({ ...p, to: name, from: r ? p.from || r.from : p.from, fare: "" }));
+                  }}
+                />
                 <FieldError id="nb-to-msg">{err("nb-to")}</FieldError>
               </div>
             </div>
@@ -443,7 +526,7 @@ export default function NewBookingForm({
             title="Date and time"
             aside={f.date ? `${day(f.date, { weekday: "short", day: "numeric", month: "short" })}${f.time ? `, ${clock(f.time)}` : ""}` : undefined}
           >
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            <div className="relative grid grid-cols-4 gap-2 sm:grid-cols-7">
               {strip.map((d, i) => {
                 const on = f.date === d;
                 const top = i === 0 ? "Today" : i === 1 ? "Tomorrow" : day(d, { weekday: "short" });
@@ -464,51 +547,15 @@ export default function NewBookingForm({
                   </button>
                 );
               })}
-              <OtherDate value={f.date} inStrip={strip.includes(f.date)} min={today} onChange={(d) => set("date", d)} />
+              <OtherDate value={f.date} inStrip={strip.includes(f.date)} min={today} fullDays={fullDays} onChange={(d) => set("date", d)} />
             </div>
 
-            <div className="flex flex-col gap-3.5 sm:flex-row sm:items-start">
-              <div className="flex flex-col gap-1.5 sm:w-55">
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="nb-time">Pickup time</Label>
-                <Box
-                  icon="clock"
-                  error={!!err("nb-time")}
-                  trailing={
-                    err("nb-time") ? (
-                      <Icon name="warning-circle" size={20} className="pointer-events-none text-[var(--support-error)]" />
-                    ) : (
-                      <Icon name="caret-down" size={18} className="pointer-events-none" />
-                    )
-                  }
-                  className="relative"
-                >
-                  <select
-                    id="nb-time"
-                    value={f.time}
-                    aria-invalid={!!err("nb-time")}
-                    onChange={(e) => {
-                      const t = e.target.value;
-                      set("time", t);
-                      if (t && !quick.includes(t)) setAnchor(fromMin(Math.floor(toMin(t) / 30) * 30 - 30));
-                    }}
-                    className={`${bareInput} cursor-pointer appearance-none pr-1 ${f.time ? "" : "text-secondary"}`}
-                  >
-                    <option value="">Choose a time</option>
-                    {(f.time && !SLOTS.includes(f.time) ? [...SLOTS, f.time].sort() : SLOTS).map((t) => (
-                      <option key={t} value={t}>
-                        {clock(t, true)}
-                      </option>
-                    ))}
-                  </select>
-                </Box>
+                {/* Figma 3B.11: 15-minute list around the usual slot; typing a time also works. */}
+                <TimeField id="nb-time" value={f.time} onChange={(t) => set("time", t)} around={customer?.usualTime || nextHalfHour(startedAt)} error={!!err("nb-time")} />
                 <FieldError id="nb-time-msg">{err("nb-time")}</FieldError>
-              </div>
-              <div className="flex flex-wrap gap-2 sm:pt-[26px]">
-                {quick.map((t) => (
-                  <Chip key={t} on={f.time === t} onClick={() => set("time", t)}>
-                    {clock(t)}
-                  </Chip>
-                ))}
               </div>
             </div>
 
@@ -556,6 +603,7 @@ export default function NewBookingForm({
                         ...p,
                         carClass: id,
                         carId: c && p.carId && !c.carIds.includes(p.carId) ? "" : p.carId,
+                        vendorCar: "",
                         fare: "",
                       }))
                     }
@@ -586,33 +634,19 @@ export default function NewBookingForm({
               <Label htmlFor="nb-car" optional>
                 Assign a car
               </Label>
-              <Box icon="car-simple" trailing={<Icon name="caret-down" size={18} className="pointer-events-none" />}>
-                <select
-                  id="nb-car"
-                  name="carId"
-                  value={f.carId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    const home = classes.find((c) => c.carIds.includes(id));
-                    setF((p) => ({ ...p, carId: id, carClass: id && home && p.carClass !== home.id ? home.id : p.carClass }));
-                  }}
-                  className={`${bareInput} cursor-pointer appearance-none`}
-                >
-                  <option value="">Decide later</option>
-                  {cars
-                    .filter((c) => !cls || cls.carIds.includes(c.id))
-                    .map((c) => {
-                      const isFree = !busy[f.date]?.includes(c.id);
-                      const when = f.date === today ? "today" : day(f.date, { weekday: "long" });
-                      return (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                          {c.number ? ` · ${c.number}` : ""} · {isFree ? `free all ${when}` : `booked ${when}`}
-                        </option>
-                      );
-                    })}
-                </select>
-              </Box>
+              {/* Figma 3B.13: only free cars of the picked type; vendor cars when none of ours are free. */}
+              <CarPicker
+                id="nb-car"
+                label={car ? `${car.name} · ${busy[f.date]?.includes(car.id) ? "booked" : "free all"} ${carWhen}` : vendorCar ? `${vendorCar.model} · ${vendorCar.vendor}` : "Decide later"}
+                value={f.carId || (f.vendorCar ? `v:${f.vendorCar}` : "")}
+                choices={carChoices}
+                empty={`No ${cls ? `${cls.name} ` : ""}car free ${carWhen === "today" ? "today" : `on ${carWhen}`}`}
+                onChange={(key) => {
+                  if (key.startsWith("v:")) return setF((p) => ({ ...p, carId: "", vendorCar: key.slice(2) }));
+                  const home = classes.find((c) => c.carIds.includes(key));
+                  setF((p) => ({ ...p, carId: key, vendorCar: "", carClass: key && home && p.carClass !== home.id ? home.id : p.carClass }));
+                }}
+              />
             </div>
           </Card>
 
@@ -705,7 +739,7 @@ export default function NewBookingForm({
             <Fact icon="users">
               {f.people} {f.people === 1 ? "person" : "people"}
             </Fact>
-            <Fact icon="car-simple">{car?.name ?? (classLabel || "No car yet")}</Fact>
+            <Fact icon="car-simple">{car?.name ?? vendorCar?.model ?? (classLabel || "No car yet")}</Fact>
           </div>
 
           <hr className="border-gray-100" />
@@ -793,40 +827,5 @@ export default function NewBookingForm({
         </aside>
       </div>
     </form>
-  );
-}
-
-// "Other" date tile: opens the browser's date picker; shows the chosen date
-// when it is beyond the six-day strip.
-function OtherDate({ value, inStrip, min, onChange }: { value: string; inStrip: boolean; min: string; onChange: (d: string) => void }) {
-  const input = useRef<HTMLInputElement>(null);
-  const on = !inStrip && !!value;
-  const label = useMemo(() => (on ? new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }) : "Other"), [on, value]);
-  return (
-    <label
-      className={`relative flex min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border px-4 py-2.5 transition-colors ${
-        on ? "border-transparent bg-brand text-on-color" : "border-gray-200 text-[var(--icon-secondary)] hover:bg-layer-hover"
-      }`}
-      onClick={(e) => {
-        e.preventDefault();
-        try {
-          input.current?.showPicker();
-        } catch {
-          input.current?.focus();
-        }
-      }}
-    >
-      <Icon name="calendar-blank" size={22} />
-      <span className={`truncate type-body-sm ${on ? "" : "text-secondary"}`}>{label}</span>
-      <input
-        ref={input}
-        type="date"
-        min={min}
-        value={value}
-        onChange={(e) => e.target.value && onChange(e.target.value)}
-        aria-label="Pick another date"
-        className="pointer-events-none absolute inset-0 opacity-0"
-      />
-    </label>
   );
 }

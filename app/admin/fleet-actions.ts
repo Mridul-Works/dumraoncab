@@ -12,13 +12,13 @@ import { createCar, deleteCar, getCar, updateCar } from "@/lib/fleet";
 import { field, isDate, money, publishSite, refreshAdmin, type FormState } from "./form";
 
 const PHOTO_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const MAX_PHOTO = 4 * 1024 * 1024;
+const MAX_PHOTO = 5 * 1024 * 1024;
 
 const validImage = (src: string) => /^\/uploads\/[a-f0-9-]+\.(jpg|png|webp)$/.test(src) || /^https:\/\/\S+$/.test(src);
 
 // Add car + Edit car share one form.
 export async function saveCar(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireAdmin();
+  const { email } = await requireAdmin();
   const id = field(formData, "id", 64);
   const name = field(formData, "name", 60);
   const type = field(formData, "type", 20) as CarType;
@@ -42,13 +42,14 @@ export async function saveCar(_prev: FormState, formData: FormData): Promise<For
     image,
     note: field(formData, "note", 160),
     shown: formData.get("shown") === "on",
+    verified: formData.get("verified") === "on",
   };
 
   let savedId = id;
   if (id) {
-    if (!(await updateCar(id, input))) return { error: "This car was deleted." };
+    if (!(await updateCar(id, input, email))) return { error: "This car was deleted." };
   } else {
-    savedId = (await createCar(input)).id;
+    savedId = (await createCar(input, email)).id;
   }
   publishSite();
   redirect(`/admin/fleet?saved=${encodeURIComponent(savedId)}`);
@@ -56,8 +57,8 @@ export async function saveCar(_prev: FormState, formData: FormData): Promise<For
 
 // "Shown on site" switch on the car grid.
 export async function setCarShown(id: string, shown: boolean) {
-  await requireAdmin();
-  await updateCar(id, { shown });
+  const { email } = await requireAdmin();
+  await updateCar(id, { shown }, email);
   publishSite();
 }
 
@@ -78,7 +79,7 @@ export async function uploadCarPhoto(formData: FormData): Promise<{ url?: string
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo first." };
   const ext = PHOTO_TYPES[file.type];
   if (!ext) return { error: "Use a JPG, PNG or WebP photo." };
-  if (file.size > MAX_PHOTO) return { error: "That photo is over 4 MB — please use a smaller one." };
+  if (file.size > MAX_PHOTO) return { error: "That photo is over 5 MB — please use a smaller one." };
 
   const bytes = Buffer.from(await file.arrayBuffer());
   // Check the file really is the image type it claims to be.

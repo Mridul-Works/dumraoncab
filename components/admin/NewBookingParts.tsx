@@ -10,12 +10,18 @@ export type CustomerInfo = {
   since: string; // ISO date of their first booking
   last: { date: string; from: string; to: string; car: string };
   usualPickup: string;
+  usualDrop: string;
+  usualTime: string; // "HH:MM" or ""
+  places: string[]; // their three most used pickups
   payment: string;
 };
 export type ServiceOption = { slug: string; name: string; label: string; icon: string };
 export type RouteOption = { slug: string; from: string; to: string; fare: number; km: number; minutes: number };
+export type PlaceOption = { name: string };
 export type CarClassOption = { id: string; name: string; rate: number; seats: number; carIds: string[] };
 export type CarOption = { id: string; name: string; number: string; fareClass: string };
+// An approved vendor's car; key = "<vendorId>:<carId>".
+export type VendorCarOption = { key: string; vendor: string; model: string; number: string; type: string; seats: number };
 
 // Figma "Card · …": white, hairline, 24px sides.
 export function Card({ title, aside, extra, children }: { title: string; aside?: React.ReactNode; extra?: React.ReactNode; children: React.ReactNode }) {

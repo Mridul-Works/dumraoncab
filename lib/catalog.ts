@@ -20,6 +20,7 @@ export type Vehicle = {
   rate: string;
   image: string;
   note: string;
+  verified: boolean; // show the "Verified · Own fleet" tag
 };
 
 export type PublicRoute = CabRoute & { fareFrom: string };
@@ -55,6 +56,7 @@ async function buildCatalog(): Promise<Catalog> {
       rate: rateForCar(c, fares),
       image: c.image,
       note: c.note,
+      verified: c.verified !== false,
     });
   }
 

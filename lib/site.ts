@@ -69,6 +69,61 @@ export function customerQuoteText(b: CustomerTrip) {
   ].join("\n");
 }
 
+// Admin panel (Figma 3.6 + 9.3): WhatsApp message once a car and driver are
+// assigned. `when` is "Sat 31 Oct, 4:30 AM"; `callAt` the time the driver calls.
+export function customerDriverText(b: {
+  name: string;
+  from: string;
+  to: string;
+  when: string;
+  driverName: string;
+  driverMobile: string;
+  callAt?: string;
+  quote?: number;
+  freeCancelUntil?: string;
+  office: string; // "+91 95258 02341"
+}) {
+  const trip = b.to ? `${b.from} to ${b.to}` : b.from;
+  return [
+    `Namaste${b.name ? ` ${b.name.split(" ")[0]} ji` : ""}, your cab is booked.`,
+    [
+      `${[b.when, trip].filter(Boolean).join(" · ")}.`,
+      `${b.driverName} will call you${b.callAt ? ` at ${b.callAt}` : ""} from ${b.driverMobile}.`,
+      b.quote ? `Total ${rupees(b.quote)}, pay by UPI after the trip.` : "",
+      b.freeCancelUntil ? `Free cancellation until ${b.freeCancelUntil}.` : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    `Team Dumraon Cab · ${b.office}`,
+  ].join("\n");
+}
+
+// Admin panel (Figma 3.7): reasons offered when staff cancel a booking, and
+// the WhatsApp line sent to the customer. `day` is "Mon 2 Nov".
+export const cancelReasons = ["Customer changed plans", "No car free at that time", "Could not reach customer", "Price too high"];
+export const customerCancelText = (day: string) => `Your booking${day ? ` for ${day}` : ""} is cancelled. Call us to book again.`;
+
+// Booking PDF (Figma 9.1): first term on the customer copy; `until` is "Sat 31 Oct, 2:30 AM".
+export const freeCancelHours = 2;
+export const freeCancelTerm = (until: string) => `Free cancellation up to ${freeCancelHours} hours before pickup, so until ${until}.`;
+
+// Booking PDF (Figma 9.2): the driver's "Before you go" checklist.
+export const driverChecklist = ["Car clean, water bottles inside", "Help the passengers with their bags", "Toll card or cash for tolls", "Keep toll and parking receipts"];
+
+// Admin "Share menu" (Figma 3B.6): WhatsApp message sending a trip to the
+// driver — pickup, route and note, never the fare. `when` is "Sat 31 Oct, 4:30 AM".
+export function driverTripText(b: { ref: string; name: string; phone: string; from: string; to: string; when: string; car: string; people?: number; note?: string }) {
+  return [
+    `Trip ${b.ref} · ${site.name}`,
+    `Pickup: ${b.from}${b.when ? `, ${b.when}` : ""}`,
+    ...(b.to ? [`Drop: ${b.to}`] : []),
+    `Customer: ${[b.name, b.phone].filter(Boolean).join(" · ") || "Walk-in"}${b.people ? ` · ${b.people} ${b.people === 1 ? "person" : "people"}` : ""}`,
+    ...(b.car ? [`Car: ${b.car}`] : []),
+    ...(b.note ? [`Note: ${b.note}`] : []),
+    `Office: ${site.phoneDisplay}`,
+  ].join("\n");
+}
+
 /* ---------------------------------- services ---------------------------------- */
 
 export type Service = {
@@ -490,3 +545,110 @@ export const steps = [
     text: "Cash or UPI when the trip ends. Receipts for tolls and taxes included.",
   },
 ];
+
+/* ------------------------------- vendors (admin) ------------------------------- */
+// Copy and reference lists for the admin Vendors section (Figma Flow 6) and the
+// WhatsApp messages staff send to vendors from it.
+
+// Places a vendor can work around ("Works around" chips + the Add place search).
+export const vendorPlaces: { name: string; lat: number; lng: number }[] = [
+  { name: "Dumraon", lat: 25.553, lng: 84.151 },
+  { name: "Buxar", lat: 25.564, lng: 83.978 },
+  { name: "Arrah", lat: 25.556, lng: 84.663 },
+  { name: "Patna", lat: 25.594, lng: 85.137 },
+  { name: "Patna Airport", lat: 25.591, lng: 85.088 },
+  { name: "Brahmpur", lat: 25.648, lng: 84.31 },
+  { name: "Nawanagar", lat: 25.412, lng: 84.203 },
+  { name: "Itarhi", lat: 25.43, lng: 84.02 },
+  { name: "Chausa", lat: 25.52, lng: 83.9 },
+  { name: "Rajpur", lat: 25.4, lng: 83.93 },
+  { name: "Simri", lat: 25.66, lng: 84.07 },
+  { name: "Bihiya", lat: 25.55, lng: 84.46 },
+  { name: "Jagdishpur", lat: 25.47, lng: 84.42 },
+  { name: "Bikramganj", lat: 25.21, lng: 84.25 },
+  { name: "Sasaram", lat: 24.95, lng: 84.03 },
+  { name: "Bihta", lat: 25.56, lng: 84.87 },
+  { name: "Danapur", lat: 25.63, lng: 85.05 },
+  { name: "Ballia", lat: 25.76, lng: 84.15 },
+  { name: "Ghazipur", lat: 25.58, lng: 83.58 },
+  { name: "Varanasi", lat: 25.32, lng: 82.97 },
+  { name: "Varanasi Airport", lat: 25.45, lng: 82.86 },
+  { name: "Pt. DDU Junction", lat: 25.28, lng: 83.12 },
+  { name: "Gaya", lat: 24.79, lng: 85.0 },
+  { name: "Bodh Gaya", lat: 24.7, lng: 84.99 },
+];
+
+// States and districts offered in the vendor address form.
+export const vendorRegions: Record<string, string[]> = {
+  Bihar: [
+    "Araria", "Arwal", "Aurangabad", "Banka", "Begusarai", "Bhagalpur", "Bhojpur", "Buxar", "Darbhanga", "East Champaran",
+    "Gaya", "Gopalganj", "Jamui", "Jehanabad", "Kaimur", "Katihar", "Khagaria", "Kishanganj", "Lakhisarai", "Madhepura",
+    "Madhubani", "Munger", "Muzaffarpur", "Nalanda", "Nawada", "Patna", "Purnia", "Rohtas", "Saharsa", "Samastipur",
+    "Saran", "Sheikhpura", "Sheohar", "Sitamarhi", "Siwan", "Supaul", "Vaishali", "West Champaran",
+  ],
+  "Uttar Pradesh": ["Ballia", "Chandauli", "Deoria", "Ghazipur", "Gorakhpur", "Jaunpur", "Mau", "Mirzapur", "Prayagraj", "Varanasi"],
+  Jharkhand: ["Bokaro", "Dhanbad", "Garhwa", "Hazaribagh", "Palamu", "Ranchi"],
+};
+
+// PIN code → town, district, state and map pin (fills the address form).
+export const vendorPins: Record<string, { town: string; district: string; state: string; lat: number; lng: number; spot: string }> = {
+  "802119": { town: "Dumraon", district: "Buxar", state: "Bihar", lat: 25.5533, lng: 84.1513, spot: "Dumraon Railway Station" },
+  "802136": { town: "Dumraon", district: "Buxar", state: "Bihar", lat: 25.5526, lng: 84.1515, spot: "Dumraon" },
+  "802101": { town: "Buxar", district: "Buxar", state: "Bihar", lat: 25.5647, lng: 83.9777, spot: "Buxar Railway Station" },
+  "802301": { town: "Arrah", district: "Bhojpur", state: "Bihar", lat: 25.5541, lng: 84.6631, spot: "Arrah Junction" },
+  "800001": { town: "Patna", district: "Patna", state: "Bihar", lat: 25.6029, lng: 85.1376, spot: "Patna GPO" },
+  "821115": { town: "Sasaram", district: "Rohtas", state: "Bihar", lat: 24.9497, lng: 84.0315, spot: "Sasaram" },
+  "277001": { town: "Ballia", district: "Ballia", state: "Uttar Pradesh", lat: 25.7584, lng: 84.1487, spot: "Ballia" },
+  "233001": { town: "Ghazipur", district: "Ghazipur", state: "Uttar Pradesh", lat: 25.5839, lng: 83.5784, spot: "Ghazipur" },
+  "221001": { town: "Varanasi", district: "Varanasi", state: "Uttar Pradesh", lat: 25.3176, lng: 82.9739, spot: "Varanasi" },
+};
+
+export const vendorCarModels = [
+  "Toyota Innova Crysta", "Toyota Innova", "Mahindra Scorpio N", "Mahindra Scorpio", "Mahindra Bolero", "Mahindra XUV700",
+  "Maruti Ertiga", "Maruti Swift Dzire", "Maruti WagonR", "Hyundai Aura", "Honda Amaze", "Kia Carens", "Tata Nexon", "Force Tempo Traveller",
+];
+export const vendorCarTypes = ["Hatchback", "Sedan", "SUV", "MUV", "Tempo Traveller"];
+export const vendorFuels = ["Diesel", "Petrol", "CNG", "EV"];
+
+export const vendorRejectReasons = [
+  { id: "docs", label: "Documents don’t match", hint: "Names or numbers differ between Aadhaar, licence and RC" },
+  { id: "car", label: "Car doesn’t meet our standard", hint: "Too old, damaged or not the type we run" },
+  { id: "duplicate", label: "Already a vendor", hint: "Same person under another number" },
+  { id: "other", label: "Something else", hint: "Write it in the message" },
+];
+
+export const vendorSuspendReasons = ["Customer complaint", "Late pickups", "Car not clean or in poor condition", "Documents expired", "Payment dispute", "Something else"];
+
+export const vendorReuploadReasons = ["Photo is blurry", "Part of the document is cut off", "Wrong document", "Document has expired", "Name doesn’t match the profile"];
+
+// WhatsApp messages to vendors. `first` = first name.
+export const vendorMessages = {
+  welcome: (first: string) =>
+    [
+      `Namaste ${first} ji, welcome to ${site.name}!`,
+      `You are approved and can take trips from today. Open the driver app to see trips: ${site.url}/driver`,
+      `Payouts go to your UPI every Monday.`,
+    ].join("\n"),
+  added: (first: string) =>
+    [
+      `Namaste ${first} ji, you are now registered with ${site.name}.`,
+      `We are checking your documents. Sign in to the driver app with this mobile number: ${site.url}/driver`,
+    ].join("\n"),
+  reject: (first: string, reasonId: string, detail: string) => {
+    const why: Record<string, string> = {
+      docs: detail ? `the owner name on the RC of ${detail} does not match your Aadhaar` : "the names on your documents do not match",
+      car: "your car does not meet our standard right now",
+      duplicate: "you are already registered with us under another number",
+    };
+    return why[reasonId] ? `Namaste ${first} ji, ${why[reasonId]}. Please apply again with matching documents.` : `Namaste ${first} ji, `;
+  },
+  suspend: (first: string, until: string) =>
+    `Namaste ${first} ji, your trips with ${site.name} are paused ${until ? `till ${until}` : "for now"}. Please call us on ${site.phoneDisplay} to talk about it.`,
+  reactivate: (first: string) => `Namaste ${first} ji, you are back on trips with ${site.name} from today.`,
+  reupload: (first: string, doc: string, reason: string) =>
+    `Namaste ${first} ji, please upload your ${doc} again in the driver app${reason ? ` — ${reason.toLowerCase()}` : ""}. ${site.url}/driver`,
+  askDoc: (first: string, doc: string) => `Namaste ${first} ji, please send your ${doc} in the driver app so you can start trips: ${site.url}/driver`,
+};
+
+// Link vendors use to sign up themselves (driver app).
+export const vendorPartnerPath = "/driver";

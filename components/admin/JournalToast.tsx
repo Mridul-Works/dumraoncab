@@ -2,22 +2,28 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { undoEntry } from "@/app/admin/journal-actions";
+import { undoApprove, undoEntry } from "@/app/admin/journal-actions";
 import Icon from "@/components/admin/Icon";
 
 // Figma 4C.7 toast: "Entry saved · Scorpio VLX · net ₹1,099  Undo  ×".
 // Undo deletes the new entry and restores the booking it closed.
+// Figma 4B.7 toast: "DC-1083 approved. ₹640 added to Rakesh's Monday payout.
+// Undo ×" (centred) — Undo puts the driver entry back to waiting.
 export default function JournalToast({
   message,
   entryId,
   bookingId,
   was,
+  approvedId,
+  center,
   closeHref,
 }: {
   message: string;
   entryId?: string; // only for new entries (edits can't be undone)
   bookingId?: string;
   was?: string;
+  approvedId?: string; // a just-approved driver entry
+  center?: boolean;
   closeHref: string;
 }) {
   const router = useRouter();
@@ -25,17 +31,21 @@ export default function JournalToast({
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-20 z-30 flex items-center gap-3 rounded-lg border border-gray-100 bg-layer py-3 pl-3.5 pr-3 shadow-[0_16px_48px_var(--shadow-md)] [animation:pop_.2s_ease-out] sm:inset-x-auto sm:bottom-6 sm:right-6 md:bottom-8 md:right-10"
+      className={`fixed inset-x-4 bottom-20 z-30 flex items-center gap-3 rounded-lg border border-gray-100 bg-layer py-3 pl-3.5 pr-3 shadow-[0_16px_48px_var(--shadow-md)] [animation:pop_.2s_ease-out] sm:inset-x-auto sm:bottom-6 md:bottom-8 ${
+        center ? "sm:left-1/2 sm:-translate-x-1/2 md:left-[calc(50%+124px)]" : "sm:right-6 md:right-10"
+      }`}
     >
       <span className="grid size-6.5 shrink-0 place-items-center rounded-full bg-brand text-on-color">
         <Icon name="check" size={14} />
       </span>
       <p className="min-w-0 flex-1 type-ui text-primary">{message}</p>
-      {entryId && (
+      {(entryId || approvedId) && (
         <button
           type="button"
           disabled={undoing}
-          onClick={() => startUndo(() => undoEntry(entryId, closeHref, bookingId, was))}
+          onClick={() =>
+            startUndo(() => (approvedId ? undoApprove(approvedId, closeHref, was) : undoEntry(entryId as string, closeHref, bookingId, was)))
+          }
           className="type-ui text-link hover:text-link-hover disabled:opacity-40"
         >
           {undoing ? "Undoing…" : "Undo"}

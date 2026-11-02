@@ -1,10 +1,12 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { setCarShown } from "@/app/admin/fleet-actions";
 import FleetCard, { ToggleArt, carMeta } from "@/components/admin/FleetCard";
-import { EmptyState, ServiceBadge, btnText, cardCls } from "@/components/admin/ui";
+import Icon from "@/components/admin/Icon";
+import { EmptyState, ServiceBadge, btnPrimary, btnText, cardCls } from "@/components/admin/ui";
 import { CAR_TYPES, type Car, type CarType, type ServiceState } from "@/lib/catalogTypes";
 
 type GridCar = Car & { rate: string; service: ServiceState; outToday: boolean };
@@ -13,6 +15,8 @@ export default function FleetGrid({ cars }: { cars: GridCar[] }) {
   const [tab, setTab] = useState<"All" | CarType>("All");
   const types = CAR_TYPES.filter((t) => cars.some((c) => c.type === t));
   const visible = tab === "All" ? cars : cars.filter((c) => c.type === tab);
+
+  if (cars.length === 0) return <NoCarsYet />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,6 +61,26 @@ export default function FleetGrid({ cars }: { cars: GridCar[] }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// Figma 4.6 "Fleet · no cars yet": Empty state card with the garage illustration.
+function NoCarsYet() {
+  return (
+    <div className={`${cardCls} flex flex-col items-center py-12 sm:py-[72px]`}>
+      <div className="flex w-full max-w-[520px] flex-col items-center gap-2 px-6 py-10 text-center">
+        <Image src="/admin-illustrations/no-cars.svg" alt="" width={240} height={160} unoptimized className="h-40 w-60" />
+        <span aria-hidden="true" className="h-3" />
+        <h2 className="type-h3 text-primary">No cars yet</h2>
+        <p className="type-body-md text-secondary">Add your first car. It shows on /fleet and in the booking form once it is switched on.</p>
+        <div className="flex gap-3 pt-4">
+          <Link href="/admin/fleet/new" className={btnPrimary}>
+            <Icon name="plus" size={16} />
+            Add car
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

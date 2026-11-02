@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { publishFares } from "@/app/admin/fares-actions";
 import Icon from "@/components/admin/Icon";
 import { btnGhost, btnPrimary, inputCls } from "@/components/admin/ui";
 import { inr, type Fares } from "@/lib/catalogTypes";
 
-// Figma "Flow 5 · Fares": 5.1 overview · 5.2 editing · 5.3 published.
+// Figma "Flow 5 · Fares": 5.1 overview · 5.2 editing · 5.3 published · 5.4 couldn't publish.
 
 type RouteRow = { slug: string; from: string; to: string; distance: string };
 type PriceKind = "perKm" | "hourly" | "routes";
@@ -22,7 +22,8 @@ type Draft = {
 };
 
 // One edited value, for the unsaved bar and the published toast.
-type Change = { key: string; label: string; before: string; after: string };
+// `subject` names the change in the published toast (5.3: "Nexon now ₹14/km").
+type Change = { key: string; label: string; subject?: string; before: string; after: string };
 
 // Fields show Indian digit grouping ("2,799"); toNumber strips it again.
 const grouped = (n: number) => n.toLocaleString("en-IN");
@@ -107,6 +108,8 @@ export default function FaresEditor({
   // After "Save and publish": what changed (for the toast and green values).
   const [published, setPublished] = useState<Change[] | null>(null);
   const [toast, setToast] = useState(false);
+  // 5.4: the publish request itself failed (offline / server down).
+  const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const changes = useMemo<Change[]>(() => {
@@ -116,6 +119,7 @@ export default function FaresEditor({
         list.push({
           key: `perKm:${c.id}`,
           label: c.name,
+          subject: carsByClass[c.id]?.join(" · ") || c.name,
           before: shownPrice(saved.perKm[c.id]),
           after: `${shownPrice(draft.perKm[c.id])} per km`,
         });
@@ -150,7 +154,7 @@ export default function FaresEditor({
         after: "edited",
       });
     return list;
-  }, [draft, saved, fares, routes]);
+  }, [draft, saved, fares, routes, carsByClass]);
 
   const invalid = useMemo(() => {
     const bad = new Set<string>();
@@ -223,13 +227,10 @@ export default function FaresEditor({
         .filter(Boolean),
     };
     startTransition(async () => {
-      const res = await publishFares(next).catch(
-        () =>
-          ({
-            error: "Couldn't publish — check your connection and try again.",
-          }) as { error: string },
-      );
-      if ("error" in res && res.error) setError(res.error);
+      const res = await publishFares(next).catch(() => null);
+      setFailed(!res);
+      if (!res) return;
+      if (res.error) setError(res.error);
       else {
         setEditing(false);
         setPublished(done);
@@ -551,6 +552,15 @@ export default function FaresEditor({
         </div>
       )}
 
+      {/* 5.4 — couldn't publish */}
+      {failed && (
+        <PublishFailed
+          busy={pending}
+          onKeep={() => setFailed(false)}
+          onRetry={publish}
+        />
+      )}
+
       {/* 5.3 — published toast */}
       {toast && published && (
         <div
@@ -563,7 +573,7 @@ export default function FaresEditor({
           <p className="min-w-0 flex-1 type-ui text-primary">
             Fares published
             {published.length === 1 && published[0].key !== "rules"
-              ? ` · ${published[0].label} now ${published[0].after.replace(" per km", "/km")} on the site`
+              ? ` · ${published[0].subject ?? published[0].label} now ${published[0].after.replace(" per km", "/km")} on the site`
               : published.length > 1
                 ? ` · ${published.length} changes live on the site`
                 : ""}
@@ -587,6 +597,78 @@ export default function FaresEditor({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// Figma 5.4 "Couldn’t publish" modal. Edits stay in the form; the site keeps the old rates.
+function PublishFailed({
+  busy,
+  onKeep,
+  onRetry,
+}: {
+  busy: boolean;
+  onKeep: () => void;
+  onRetry: () => void;
+}) {
+  const retry = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    retry.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onKeep();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onKeep]);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+      <button
+        type="button"
+        aria-label="Keep editing"
+        onClick={onKeep}
+        className="absolute inset-0 cursor-default bg-scrim [animation:fade_.15s_ease-out]"
+      />
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="publish-failed-title"
+        aria-describedby="publish-failed-desc"
+        className="relative flex w-full max-w-[480px] flex-col items-center gap-2 rounded-lg bg-layer px-8 pb-7 pt-6 text-center shadow-[0_16px_48px_0_var(--shadow-md)] [animation:pop_.15s_ease-out]"
+      >
+        <Image
+          src="/admin-illustrations/publish-failed.svg"
+          alt=""
+          width={192}
+          height={128}
+          unoptimized
+          className="h-32 w-48"
+        />
+        <h2 id="publish-failed-title" className="type-h3 text-primary">
+          Couldn’t publish fares
+        </h2>
+        <p id="publish-failed-desc" className="type-body-sm text-secondary">
+          Your changes are still here. Check the internet and try again. The
+          website keeps the old rates until then.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3 pt-4">
+          <button
+            type="button"
+            onClick={onKeep}
+            disabled={busy}
+            className={btnGhost}
+          >
+            Keep editing
+          </button>
+          <button
+            ref={retry}
+            type="button"
+            onClick={onRetry}
+            disabled={busy}
+            className={btnPrimary}
+          >
+            {busy ? "Publishing…" : "Try again"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

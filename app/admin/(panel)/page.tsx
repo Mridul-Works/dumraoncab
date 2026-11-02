@@ -6,7 +6,7 @@ import RequestActions from "@/components/admin/RequestActions";
 import { NumberStrip, StatusBadge, btnGhost, btnPrimary, btnText, cardCls } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
 import { istDate, istTime, phoneDigits, tripKey, type Booking } from "@/lib/bookingTypes";
-import { daysBetween, inr, serviceState, weekday, type Car } from "@/lib/catalogTypes";
+import { daysBetween, entryNet, inr, serviceState, weekday, type Car } from "@/lib/catalogTypes";
 import { listCars } from "@/lib/fleet";
 import { listEntries } from "@/lib/journal";
 import { listBookings } from "@/lib/store";
@@ -43,6 +43,9 @@ function duration(min: number) {
 
 const dayLabel = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", timeZone: "UTC" }).replace(",", "");
+
+// ISO timestamp → "4:05 AM" in India.
+const istClock = (iso: string) => clock(new Date(Date.parse(iso) + 5.5 * 60 * 60 * 1000).toISOString().slice(11, 16)).replace(/^0/, "");
 
 const route = (b: Booking) => (b.to ? `${b.from} → ${b.to}` : b.from || "No pickup yet");
 
@@ -98,6 +101,14 @@ export default async function DashboardPage() {
   const weekRequests = perDay.reduce((s, d) => s + d.count, 0);
   const lastWeekRequests = lastWeek.reduce((s, d) => s + requestsOn(d), 0);
   const peak = Math.max(1, ...perDay.map((d) => d.count));
+
+  // Money side of the week, from the Trip log (Figma 2.1 "This week").
+  const tripsIn = (days: string[]) => entries.filter((e) => days.includes(e.date));
+  const weekTrips = tripsIn(week);
+  const revenue = weekTrips.reduce((s, e) => s + e.fare, 0);
+  const lastRevenue = tripsIn(lastWeek).reduce((s, e) => s + e.fare, 0);
+  const revenuePct = lastRevenue ? Math.round(((revenue - lastRevenue) / lastRevenue) * 100) : null;
+  const netWeek = weekTrips.reduce((s, e) => s + entryNet(e), 0);
 
   // ---- Fleet right now
   const busy = new Map<string, Booking>();
@@ -207,12 +218,11 @@ export default async function DashboardPage() {
           </div>
 
           {callBack.length === 0 ? (
-            <div className="flex flex-col items-center px-5 py-14 text-center">
-              <span className="grid size-14 place-items-center rounded-full bg-gray-100 text-brand">
-                <Icon name="check" size={24} />
-              </span>
-              <p className="mt-3 type-h3 text-primary">All caught up</p>
-              <p className="mt-1.5 type-body-sm text-secondary">Every request today got a reply. New ones from the website appear here.</p>
+            <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static line-art SVG from the design */}
+              <img src="/admin-illustrations/all-caught-up.svg" alt="" width={180} height={120} />
+              <p className="type-h3 text-primary">All caught up</p>
+              <p className="type-body-sm text-secondary">Every request today got a reply. New ones from the website appear here.</p>
             </div>
           ) : (
             <>
@@ -333,9 +343,12 @@ export default async function DashboardPage() {
               g.items.length === 0 ? null : (
                 <div key={g.day}>
                   {groups.length > 1 && (
-                    <p className="mb-2.5 mt-1 border-b border-gray-100 pb-1.5 type-body-sm text-secondary">
-                      {g.day === today ? "Today" : "Tomorrow"} · {dayLabel(g.day).replace(/ 0/, " ")}
-                    </p>
+                    <div className="flex items-center gap-2 pb-2.5 pt-1.5">
+                      <p className="type-ui text-secondary">
+                        {g.day === today ? "Today" : "Tomorrow"} · {dayLabel(g.day).replace(/ 0/, " ")}
+                      </p>
+                      <span className="h-px flex-1 bg-gray-100" />
+                    </div>
                   )}
                   <ol>
                     {g.items.map((b, i) => {
@@ -343,13 +356,14 @@ export default async function DashboardPage() {
                       const trip = onTrip(b);
                       const isNext = b.id === next?.id;
                       const last = i === g.items.length - 1;
+                      // Figma 2.2: a finished pickup gets a 16px grey disc with a white tick.
                       const dot = done
-                        ? "bg-gray-200"
+                        ? "size-4 bg-gray-200 text-on-color"
                         : trip
-                          ? "bg-brand"
+                          ? "size-3.5 bg-brand"
                           : isNext
-                            ? "border-2 border-brand bg-layer"
-                            : "border-2 border-gray-200 bg-layer";
+                            ? "size-3.5 border-2 border-brand bg-layer"
+                            : "size-3.5 border-2 border-gray-200 bg-layer";
                       const right = done
                         ? { text: "Completed", cls: "text-secondary" }
                         : trip
@@ -361,8 +375,8 @@ export default async function DashboardPage() {
                         <li key={b.id}>
                           <Link href={panelHref(b)} className="group flex items-start gap-3.5">
                             <span className={`w-21 shrink-0 type-mono-md ${done ? "text-secondary" : "text-primary"}`}>{clock(b.time)}</span>
-                            <span className="flex flex-col items-center self-stretch pt-0.5">
-                              <span className={`grid size-3.5 shrink-0 place-items-center rounded-full ${dot}`} />
+                            <span className="flex w-4 flex-col items-center self-stretch pt-[3px]">
+                              <span className={`grid shrink-0 place-items-center rounded-full ${dot}`}>{done && <Icon name="check-10" size={10} />}</span>
                               {!last && <span className="w-0.5 flex-1 bg-gray-200" />}
                             </span>
                             <span className={`min-w-0 flex-1 pb-4.5 ${done ? "text-secondary" : ""}`}>
@@ -370,6 +384,7 @@ export default async function DashboardPage() {
                               <span className="mt-0.5 block truncate type-body-sm text-secondary">
                                 {route(b)}
                                 {carName(b) ? ` · ${carName(b)}` : " · car not assigned"}
+                                {done && b.trip?.endedAt ? ` · back ${istClock(b.trip.endedAt)}` : ""}
                               </span>
                             </span>
                             <span className={`shrink-0 type-body-sm ${right.cls}`}>{right.text}</span>
@@ -425,15 +440,44 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      {/* Bookings this week */}
+      {/* This week: requests, money from the Trip log, requests per day */}
       <section className={`flex flex-col gap-3 p-5 ${cardCls}`}>
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="flex-1 type-h4 text-primary">Bookings this week</h2>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h2 className="flex-1 type-h4 text-primary">This week</h2>
           <span className="type-body-sm text-secondary">
             {weekRequests} request{weekRequests === 1 ? "" : "s"}
             {pct !== null && ` · ${signed(pct)}% vs last week`}
           </span>
+          <Link href="/admin/analytics" className={`${btnText} pl-4`}>
+            Open analytics
+            <Icon name="arrow-right" />
+          </Link>
         </div>
+        <dl className="flex flex-wrap gap-x-12 gap-y-3">
+          <div>
+            <dt className="type-body-sm text-secondary">Revenue</dt>
+            <dd className="mt-0.5 flex items-baseline gap-2">
+              <span className="type-h2 tabular-nums text-primary">{inr(revenue)}</span>
+              {revenuePct !== null && <span className={`type-body-sm ${revenuePct < 0 ? "text-error" : "text-brand"}`}>{signed(revenuePct)}%</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="type-body-sm text-secondary">Net earnings</dt>
+            <dd className="mt-0.5 flex items-baseline gap-2">
+              <span className="type-h2 tabular-nums text-primary">{netWeek < 0 ? `−${inr(-netWeek)}` : inr(netWeek)}</span>
+              <span className="type-body-sm text-secondary">after fuel and driver cut</span>
+            </dd>
+          </div>
+          <div>
+            <dt className="type-body-sm text-secondary">Trips</dt>
+            <dd className="mt-0.5 flex items-baseline gap-2">
+              <span className="type-h2 tabular-nums text-primary">{weekTrips.length}</span>
+              <span className="type-body-sm text-secondary">
+                from {weekRequests} request{weekRequests === 1 ? "" : "s"}
+              </span>
+            </dd>
+          </div>
+        </dl>
         <div className="flex items-end gap-2 sm:gap-6">
           {perDay.map((d) => {
             const isToday = d.day === today;
@@ -442,7 +486,7 @@ export default async function DashboardPage() {
                 <span className={`type-mono-sm ${isToday ? "text-brand" : "text-secondary"}`}>{d.count}</span>
                 <span
                   className={`w-full rounded-sm ${isToday ? "bg-brand" : "bg-gray-100"}`}
-                  style={{ height: `${Math.max(4, Math.round((d.count / peak) * 64))}px` }}
+                  style={{ height: `${Math.max(4, Math.round((d.count / peak) * 63))}px` }}
                 />
                 <span className={`type-body-sm ${isToday ? "text-primary" : "text-secondary"}`}>{isToday ? "Today" : weekday(d.day)}</span>
               </div>

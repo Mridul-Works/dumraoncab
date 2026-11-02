@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { bookingRef } from "@/components/admin/BookingFormat";
+import CheckEntryPanel from "@/components/admin/CheckEntryPanel";
 import EntryPanel, { type BookingOption, type BusyCar } from "@/components/admin/EntryPanel";
 import Icon from "@/components/admin/Icon";
 import JournalToast from "@/components/admin/JournalToast";
@@ -13,28 +15,32 @@ import {
   DayHeader,
   EntryRow,
   FareSplit,
-  IdleRow,
+  GapRow,
   KmChart,
   RailPanel,
   ServiceGauge,
   ServiceRow,
   TableHead,
   Totals,
+  gapWhen,
   kmText,
+  odometerGaps,
   pct,
   type Attention,
+  type OdoGap,
 } from "@/components/admin/JournalParts";
 import ServiceForm from "@/components/admin/ServiceForm";
 import { EmptyState, PageHeader, btnGhost, btnPrimary, btnText, cardCls } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
 import { istDate } from "@/lib/bookingTypes";
-import { carLabel, daysBetween, entryNet, inr, serviceState, shortDate, weekday, type Car } from "@/lib/catalogTypes";
+import { carLabel, daysBetween, entryNet, inr, serviceState, shortDate, weekday } from "@/lib/catalogTypes";
 import { listCars } from "@/lib/fleet";
-import { listEntries, type JournalRecord } from "@/lib/journal";
+import { counts, listAllEntries, needsCheck, type JournalRecord } from "@/lib/journal";
 import { site } from "@/lib/site";
 import { listBookings } from "@/lib/store";
+import { listVendors } from "@/lib/vendors";
 
-export const metadata: Metadata = { title: "Daily journal" };
+export const metadata: Metadata = { title: "Trip log" };
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
@@ -62,7 +68,9 @@ const perKm = (fare: number, km: number) => (km > 0 ? `₹${(fare / km).toFixed(
 export default async function JournalPage({ searchParams }: { searchParams: Search }) {
   await requireAdmin();
   const sp = await searchParams;
-  const [entries, cars, bookings] = await Promise.all([listEntries(), listCars(), listBookings()]);
+  const [allEntries, cars, bookings, vendors] = await Promise.all([listAllEntries(), listCars(), listBookings(), listVendors()]);
+  // Driver entries count once the office approves them (Figma 4B.5–4B.7).
+  const entries = allEntries.filter(counts);
   const today = istDate();
   const yesterday = istDate(-1);
 
@@ -72,6 +80,13 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   if (from > to) [from, to] = [to, from];
   const car = cars.find((c) => c.id === one(sp.car));
   const carById = new Map(cars.map((c) => [c.id, c]));
+  const vendorById = new Map(vendors.map((v) => [v.id, v]));
+  const bookingById = new Map(bookings.map((b) => [b.id, b]));
+  // Fleet cars, plus vendors' own cars for driver entries.
+  const vendorCars = new Map(vendors.flatMap((v) => v.cars.map((c) => [c.id, { name: c.model, number: c.number }] as const)));
+  const carInfo = (id: string) => carById.get(id) ?? vendorCars.get(id);
+  const driverOf = (e: JournalRecord) => (e.vendorId ? vendorById.get(e.vendorId)?.name : undefined) ?? "Driver";
+  const firstName = (name: string) => name.split(/\s+/)[0];
 
   const rangeQs = (extra: Record<string, string> = {}) => {
     const q = new URLSearchParams();
@@ -83,9 +98,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   };
   const returnTo = rangeQs({ car: car?.id ?? "", all: one(sp.all) });
   const plus = (extra: string) => `${returnTo}${returnTo.includes("?") ? "&" : "?"}${extra}`;
+  // Driver entries open the check panel; staff entries the entry panel.
+  const editOf = (e: JournalRecord) => plus(e.source === "driver" ? `check=${e.id}` : `entry=${e.id}`);
 
   const inRange = entries.filter((e) => e.date >= from && e.date <= to);
-  const journaledIds = new Set(entries.map((e) => e.bookingId).filter(Boolean));
+  const journaledIds = new Set(allEntries.map((e) => e.bookingId).filter(Boolean));
+  const gaps = odometerGaps(entries);
 
   /* ------------------------------ entry panel ------------------------------ */
   const editing = one(sp.entry) ? entries.find((e) => e.id === one(sp.entry)) : undefined;
@@ -98,12 +116,35 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
         ((b.status === "confirmed" || b.status === "completed") && !journaledIds.has(b.id) && b.date && b.date <= today && b.date >= istDate(-45)),
     )
     .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))
-    .map((b) => ({ id: b.id, date: b.date, time: b.time, name: b.name, phone: b.phone, from: b.from, to: b.to, carId: b.carId ?? "", quote: b.quote ?? 0 }));
+    .map((b) => ({
+      id: b.id,
+      ref: bookingRef(b),
+      round: /round/i.test(b.service),
+      date: b.date,
+      time: b.time,
+      name: b.name,
+      phone: b.phone,
+      from: b.from,
+      to: b.to,
+      carId: b.carId ?? "",
+      quote: b.quote ?? 0,
+    }));
   const busy: BusyCar[] = bookings
     .filter((b) => b.carId && b.date && (b.status === "contacted" || b.status === "confirmed") && b.id !== editing?.bookingId && b.id !== one(sp.booking))
     .map((b) => ({ carId: b.carId as string, date: b.date, label: `On trip${b.time ? ` · ${time12(b.time)}` : ""}` }));
 
-  const panel = panelOpen ? (
+  const checking = one(sp.check) ? allEntries.find((e) => e.id === one(sp.check) && e.source === "driver") : undefined;
+  const checkBooking = checking?.bookingId ? bookingById.get(checking.bookingId) : undefined;
+  const panel = checking ? (
+    <CheckEntryPanel
+      key={checking.id}
+      entry={checking}
+      driverName={driverOf(checking)}
+      car={carInfo(checking.carId)}
+      bookingRef={checkBooking ? bookingRef(checkBooking) : undefined}
+      returnTo={returnTo}
+    />
+  ) : panelOpen ? (
     <EntryPanel
       key={editing?.id ?? `new-${one(sp.booking)}-${one(sp.date)}`}
       entry={editing}
@@ -116,6 +157,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       baseTown={site.address.locality}
       returnTo={returnTo}
       defaultCarId={car?.id}
+      startPicking={one(sp.pick) === "1"}
     />
   ) : null;
 
@@ -123,14 +165,31 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   const saved = one(sp.saved) ? entries.find((e) => e.id === one(sp.saved)) : undefined;
   // Only a brand-new entry can be undone (the save action marks it with added=1).
   const fresh = saved && !saved.updatedAt && one(sp.added) === "1";
+  // Figma 4B.7: "DC-1083 approved. ₹640 added to Rakesh's Monday payout."
+  const approved = one(sp.approved) ? allEntries.find((e) => e.id === one(sp.approved) && e.status === "approved") : undefined;
+  const fixed = one(sp.fixed) ? allEntries.find((e) => e.id === one(sp.fixed)) : undefined;
+  const refOf = (e: JournalRecord) => {
+    const b = e.bookingId ? bookingById.get(e.bookingId) : undefined;
+    return b ? bookingRef(b) : "Trip";
+  };
   const toast = saved ? (
     <JournalToast
-      message={`Entry saved · ${carById.get(saved.carId)?.name ?? "Removed car"} · net ${inr(entryNet(saved))}`}
+      message={`Entry saved · ${carInfo(saved.carId)?.name ?? "Removed car"} · net ${inr(entryNet(saved))}`}
       entryId={fresh ? saved.id : undefined}
       bookingId={saved.bookingId}
       was={one(sp.was)}
       closeHref={returnTo}
     />
+  ) : approved ? (
+    <JournalToast
+      center
+      message={`${refOf(approved)} approved. ${inr(approved.driverCut)} added to ${firstName(driverOf(approved))}’s Monday payout.`}
+      approvedId={approved.id}
+      was={one(sp.was)}
+      closeHref={returnTo}
+    />
+  ) : fixed ? (
+    <JournalToast center message={`Sent to ${firstName(driverOf(fixed))}. ${refOf(fixed)} stays on hold.`} closeHref={returnTo} />
   ) : null;
 
   /* ================================ One car ================================ */
@@ -143,25 +202,27 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
     const service = serviceState(car, entries, today);
     const allMine = entries.filter((e) => e.carId === car.id);
     const lastEntry = allMine[0];
+    // A meter reading from a later trip beats the estimate.
+    const lastReading = allMine.find((e) => e.odoEnd != null)?.odoEnd;
+    const kmNow = Math.max(service.kmNow ?? 0, lastReading ?? 0) || undefined;
+    // Odometer gaps (Figma 4B.3): shown on the day the next trip started.
+    const myGaps = gaps.filter((g) => g.carId === car.id && g.toDate >= from && g.toDate <= to);
+    const gapKm = myGaps.reduce((sum, g) => sum + g.km, 0);
+    const gapByDay = new Map<string, number>();
+    for (const g of myGaps) gapByDay.set(g.toDate, (gapByDay.get(g.toDate) ?? 0) + g.km);
+    const gapBefore = new Map<string, OdoGap>(myGaps.map((g) => [g.beforeId, g]));
     const rangeName =
       from === `${today.slice(0, 8)}01` && to === today ? "this month" : to === today && daysBetween(from, to).length <= 7 ? "this week" : "in range";
 
-    // Trips and idle runs, newest first.
-    type Row = { kind: "trip"; e: JournalRecord } | { kind: "idle"; start: string; end: string; n: number };
+    // Trips, newest first, with any odometer gap under the trip that closed it.
+    type Row = { kind: "trip"; e: JournalRecord } | { kind: "gap"; g: OdoGap };
     const rows: Row[] = [];
-    // Idle runs only between logged trips (no trips at all → empty state).
-    const firstDay = mine.length ? mine[mine.length - 1].date : "9999-12-31";
-    for (const d of [...days].reverse().filter((d) => d <= today && d >= firstDay)) {
-      const list = mine.filter((e) => e.date === d);
-      if (list.length) for (const e of list) rows.push({ kind: "trip", e });
-      else {
-        const last = rows[rows.length - 1];
-        if (last?.kind === "idle") {
-          last.start = d;
-          last.n++;
-        } else rows.push({ kind: "idle", start: d, end: d, n: 1 });
-      }
+    for (const e of mine) {
+      rows.push({ kind: "trip", e });
+      const g = gapBefore.get(e.id);
+      if (g) rows.push({ kind: "gap", g });
     }
+    const monthName = from.slice(0, 7) === to.slice(0, 7) ? new Date(`${from}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", timeZone: "UTC" }) : null;
 
     const gauge = service.kmNow != null && car.nextServiceKm != null && car.odometerKm != null && car.nextServiceKm > car.odometerKm;
     const daysToService = car.nextServiceDate ? Math.round((Date.parse(car.nextServiceDate) - Date.parse(today)) / 86_400_000) : null;
@@ -185,7 +246,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
           <div className="min-w-0 flex-1">
             <Link href={rangeQs()} className="inline-flex items-center gap-1.5 type-ui text-link hover:text-link-hover">
               <Icon name="arrow-left" size={14} />
-              Daily journal
+              Trip log
             </Link>
             <p className="flex flex-wrap items-baseline gap-x-3">
               <span className="type-h2 text-primary">{car.name}</span>
@@ -213,10 +274,16 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
               {
                 icon: "gauge",
                 label: "Odometer now",
-                value: service.kmNow != null ? kmText(service.kmNow) : "—",
-                sub: service.kmNow != null ? (lastEntry ? `last entry ${shortDate(lastEntry.date)}` : "from last reading") : "no reading yet",
+                value: kmNow != null ? kmText(kmNow) : "—",
+                sub: kmNow != null ? (lastEntry ? `last entry ${shortDate(lastEntry.date)}` : "from last reading") : "no reading yet",
               },
-              { icon: "gauge", label: `Driven ${rangeName}`, value: kmText(t.km), sub: `${t.trips} trip${t.trips === 1 ? "" : "s"}` },
+              {
+                icon: "gauge",
+                label: `Driven ${rangeName}`,
+                value: kmText(t.km + gapKm),
+                sub: `${t.trips} trip${t.trips === 1 ? "" : "s"}${gapKm ? ` · ${kmText(gapKm)} not logged` : ""}`,
+                subTone: gapKm ? "amber" : "default",
+              },
               { icon: "wallet", label: "Fare", value: inr(t.fare), sub: perKm(t.fare, t.km) },
               {
                 icon: "gas-pump",
@@ -237,7 +304,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
         </div>
 
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-stretch">
-          <KmChart days={days.slice(-62)} kmByDay={kmByDay} today={today} label={rangeLabel(from, to)} />
+          <KmChart days={days.slice(-62)} kmByDay={kmByDay} gapByDay={gapByDay} today={today} label={monthName ?? rangeLabel(from, to)} />
 
           <section className={`flex w-full shrink-0 flex-col gap-4 px-5 py-4 lg:w-[340px] ${cardCls}`}>
             <div className="flex items-center gap-2">
@@ -258,7 +325,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
                 <div className="flex items-start gap-2">
                   <div>
                     <p className="type-mono-sm text-primary">{(car.odometerKm as number).toLocaleString("en-IN")}</p>
-                    <p className="type-body-sm text-secondary">Reading{car.odometerDate ? ` · ${shortDate(car.odometerDate)}` : ""}</p>
+                    <p className="type-body-sm text-secondary">Last{car.odometerDate ? ` · ${shortDate(car.odometerDate)}` : ""}</p>
                   </div>
                   <span className="flex-1" />
                   <div className="text-center">
@@ -299,15 +366,11 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
                   key={r.e.id}
                   e={r.e}
                   lead={<DateLead date={r.e.date} weekday={weekday(r.e.date)} />}
-                  editHref={plus(`entry=${r.e.id}`)}
+                  editHref={editOf(r.e)}
                   highlight={r.e.id === saved?.id}
                 />
               ) : (
-                <IdleRow
-                  key={`idle-${r.start}`}
-                  text={r.n === 1 ? `No trips logged on ${shortDate(r.start)}` : `No trips logged ${shortDate(r.start)} – ${shortDate(r.end)} (${r.n} days)`}
-                  addHref={plus(`new=1&date=${r.end}`)}
-                />
+                <GapRow key={`gap-${r.g.beforeId}`} gap={r.g} addHref={plus(`new=1&date=${r.g.toDate}`)} />
               ),
             )
           )}
@@ -321,21 +384,44 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   /* ================================ Overview ================================ */
   const t = totals(inRange);
   const carsUsed = new Set(inRange.map((e) => e.carId)).size;
-  const carName = (id: string) => carById.get(id)?.name ?? "Removed car";
+  const carName = (id: string) => carInfo(id)?.name ?? "Removed car";
 
   // Needs attention
   const attention: Attention[] = [];
+  // Driver entries waiting for the office, or sent back to the driver (any date).
+  for (const e of allEntries) {
+    if (e.source !== "driver") continue;
+    const who = `${driverOf(e)} · ${carName(e.carId)} · ${shortDate(e.date)}`;
+    if (needsCheck(e)) attention.push({ key: `d-${e.id}`, title: "Driver entry to check", detail: who, href: plus(`check=${e.id}`) });
+    else if (e.status === "fix") attention.push({ key: `x-${e.id}`, title: "Waiting for the driver’s fix", detail: who, href: plus(`check=${e.id}`) });
+  }
+  const inRangeGaps = gaps.filter((g) => g.toDate >= from && g.toDate <= to);
   for (const e of inRange) {
     const where = `${carName(e.carId)} · ${shortDate(e.date)}`;
-    if (e.fare > 0 && e.fuel > e.fare) attention.push({ key: `f-${e.id}`, title: "Fuel more than fare", detail: `${where} · −${inr(-entryNet(e))}`, href: plus(`entry=${e.id}`) });
-    else if (e.fare > 0 && entryNet(e) < 0) attention.push({ key: `l-${e.id}`, title: "Ran at a loss", detail: `${where} · −${inr(-entryNet(e))}`, href: plus(`entry=${e.id}`) });
+    if (e.fare > 0 && e.fuel > e.fare) attention.push({ key: `f-${e.id}`, title: "Fuel more than fare", detail: `${where} · −${inr(-entryNet(e))}`, href: editOf(e) });
+    else if (e.fare > 0 && entryNet(e) < 0) attention.push({ key: `l-${e.id}`, title: "Ran at a loss", detail: `${where} · −${inr(-entryNet(e))}`, href: editOf(e) });
+    const gap = inRangeGaps.find((g) => g.beforeId === e.id);
+    if (gap)
+      attention.push({
+        key: `g-${e.id}`,
+        title: `Odometer gap of ${kmText(gap.km)}`,
+        detail: `${carName(gap.carId)} · ${gapWhen(gap)}`,
+        href: carById.has(gap.carId) ? rangeQs({ car: gap.carId }) : editOf(e),
+      });
     if (e.fare === 0 && (e.customer || e.bookingId))
-      attention.push({ key: `z-${e.id}`, title: "No fare entered", detail: `${where}${e.km ? ` · ${e.km} km` : ""}`, href: plus(`entry=${e.id}`) });
+      attention.push({ key: `z-${e.id}`, title: "No fare entered", detail: `${where}${e.km ? ` · ${e.km} km` : ""}`, href: editOf(e) });
+    if (e.odoEnd != null && e.odoStart == null)
+      attention.push({
+        key: `s-${e.id}`,
+        title: "Start reading missing",
+        detail: `${where} · shows ${kmText(e.km ?? 0)}`,
+        href: carById.has(e.carId) ? rangeQs({ car: e.carId }) : editOf(e),
+      });
   }
   for (const b of bookings) {
     if (journaledIds.has(b.id) || !b.date || b.date > today || b.date < istDate(-45)) continue;
     if (b.status === "completed")
-      attention.push({ key: `b-${b.id}`, title: "Trip not in the journal", detail: `${b.name || "Unnamed"} · ${shortDate(b.date)} · ${b.from} → ${b.to || "—"}`, href: plus(`new=1&booking=${b.id}`) });
+      attention.push({ key: `b-${b.id}`, title: "Trip not in the Trip log", detail: `${b.name || "Unnamed"} · ${shortDate(b.date)} · ${b.from} → ${b.to || "—"}`, href: plus(`new=1&booking=${b.id}`) });
     else if (b.status === "confirmed" && b.date < today)
       attention.push({ key: `c-${b.id}`, title: "Still marked confirmed", detail: `${b.name || "Unnamed"} · was due ${shortDate(b.date)}`, href: `/admin/bookings?id=${b.id}` });
   }
@@ -388,17 +474,50 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
 
   const exportHref = `/admin/journal/export?from=${from}&to=${to}`;
 
+  const header = (
+    <PageHeader title="Trip log" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
+      <a href={exportHref} className={btnGhost}>
+        Export
+      </a>
+      <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
+        <Icon name="plus" size={16} />
+        New entry
+      </Link>
+    </PageHeader>
+  );
+
+  // First day, nothing written yet (Figma 4B.4).
+  if (allEntries.length === 0) {
+    return (
+      <>
+        {header}
+        <section className={`mt-5 flex flex-col items-center py-[72px] ${cardCls}`}>
+          <div className="flex w-full max-w-[520px] flex-col items-center gap-2 px-6 py-10 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static design illustration */}
+            <img src="/admin-illustrations/no-trips.svg" alt="" width={240} height={160} />
+            <span aria-hidden="true" className="h-3" />
+            <h2 className="type-h3 text-primary">No entries yet</h2>
+            <p className="type-body-md text-secondary">Write down each trip with its fare, fuel and toll. Totals for each car fill in on their own.</p>
+            <div className="flex flex-wrap justify-center gap-3 pt-4">
+              <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
+                <Icon name="plus" size={16} />
+                New entry
+              </Link>
+              <Link href={plus("new=1&pick=1")} scroll={false} className={btnGhost}>
+                Pick from a booking
+              </Link>
+            </div>
+          </div>
+        </section>
+        {panel}
+        {toast}
+      </>
+    );
+  }
+
   return (
     <>
-      <PageHeader title="Daily journal" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
-        <a href={exportHref} className={btnGhost}>
-          Export
-        </a>
-        <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
-          <Icon name="plus" size={16} />
-          New entry
-        </Link>
-      </PageHeader>
+      {header}
 
       <div className="mt-5">
         <JournalToolbar from={from} to={to} today={today} carId="" cars={cars.map((c) => ({ id: c.id, label: carLabel(c) }))} attention={attention.length} />
@@ -488,8 +607,8 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
                     <EntryRow
                       key={e.id}
                       e={e}
-                      lead={<CarLead car={carById.get(e.carId) as Car | undefined} href={rangeQs({ car: e.carId })} />}
-                      editHref={plus(`entry=${e.id}`)}
+                      lead={<CarLead car={carInfo(e.carId)} href={carById.has(e.carId) ? rangeQs({ car: e.carId }) : undefined} />}
+                      editHref={editOf(e)}
                       highlight={e.id === saved?.id}
                     />
                   ))}

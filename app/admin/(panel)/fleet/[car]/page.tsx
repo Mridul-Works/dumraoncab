@@ -21,7 +21,8 @@ export default async function EditCarPage({ params }: Props) {
   if (!car) notFound();
 
   const stamp = car.updatedAt ?? car.createdAt;
-  const intro = [stamp ? `Last updated ${day(stamp)}` : "", car.number].filter(Boolean).join(" · ") || "Changes go live on /fleet as soon as you save.";
+  // Figma 4.2: "Last updated 12 Oct 2026 by staff@dumraoncab.com"
+  const intro = stamp ? `Last updated ${day(stamp)}${car.updatedBy ? ` by ${car.updatedBy}` : ""}` : "Changes go live on /fleet as soon as you save.";
 
   return (
     <div className="flex flex-col gap-6">

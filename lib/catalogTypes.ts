@@ -22,6 +22,7 @@ export type Car = {
   image: string; // Cloudinary URL or /uploads/… file
   note: string; // one-liner on the public car card
   shown: boolean; // listed on the public site
+  verified?: boolean; // "Verified · Own fleet" tag on the public car card (unset = shown)
   // Service tracking (set from the journal's one-car view)
   odometerKm?: number; // reading at odometerDate
   odometerDate?: string;
@@ -29,9 +30,10 @@ export type Car = {
   nextServiceDate?: string;
   createdAt?: string;
   updatedAt?: string;
+  updatedBy?: string; // admin email of the last fleet-form save
 };
 
-export type CarSeed = Omit<Car, "number" | "shown" | "createdAt" | "updatedAt">;
+export type CarSeed = Omit<Car, "number" | "shown" | "createdAt" | "updatedAt" | "updatedBy">;
 
 // Only images next/image is configured to optimise; anything else renders as-is.
 export const optimisableImage = (src: string) => src.startsWith("https://res.cloudinary.com/dwfe5swye/");

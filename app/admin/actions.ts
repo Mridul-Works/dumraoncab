@@ -1,10 +1,19 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { credentialsMatch, endSession, requireAdmin, startSession } from "@/lib/adminAuth";
+import {
+  clearFailedSignIns,
+  credentialsMatch,
+  endSession,
+  lockedForMinutes,
+  recordFailedSignIn,
+  requireAdmin,
+  startSession,
+} from "@/lib/adminAuth";
 import { BOOKING_STATUSES, type BookingStatus } from "@/lib/bookingTypes";
 import { getCar } from "@/lib/fleet";
-import { addBooking, deleteBooking, updateBooking } from "@/lib/store";
+import { addBooking, deleteBooking, getBooking, updateBooking } from "@/lib/store";
+import { getVendor } from "@/lib/vendors";
 import { field, money, refreshAdmin, type FormState } from "./form";
 
 /* ---------------------------------- session ---------------------------------- */
@@ -14,13 +23,24 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   const password = typeof formData.get("password") === "string" ? (formData.get("password") as string) : "";
   if (!email || !password) return { error: "Enter your email and password.", email };
 
+  // Figma 1.2: five wrong tries lock sign-in from this address for 15 minutes.
+  const locked = await lockedForMinutes();
+  if (locked) return { error: `Too many wrong tries. Try again in ${locked} min, or ask the owner to reset it.`, email };
+
   if (!credentialsMatch(email, password)) {
     // Slow down guessing.
     await new Promise((r) => setTimeout(r, 800));
-    return { error: "Incorrect email or password. Try again.", email };
+    const left = await recordFailedSignIn();
+    return {
+      error: left
+        ? `Incorrect email or password. ${left} ${left === 1 ? "try" : "tries"} left.`
+        : "Incorrect email or password. Sign-in is locked for 15 min.",
+      email,
+    };
   }
 
-  await startSession(email, password);
+  await clearFailedSignIns();
+  await startSession(email, password, formData.get("remember") === "on");
   redirect("/admin");
 }
 
@@ -48,14 +68,78 @@ export async function saveBookingDetails(_prev: FormState, formData: FormData): 
   if (carId && !(await getCar(carId))) return { error: "That car is no longer in the fleet." };
   const people = money(formData, "people", 60);
   const status = field(formData, "setStatus", 20) as BookingStatus;
+  // Picking one of our cars in "Car sent" replaces a vendor assignment.
+  const before = await getBooking(id);
+  const swapsVendor = Boolean(carId && before?.vendorId);
 
   const saved = await updateBooking(id, {
     quote: money(formData, "quote") || undefined,
     people: people || undefined,
     carId: carId || undefined,
+    ...(swapsVendor ? { vendorId: undefined, vendorCarId: undefined, driverName: undefined, driverMobile: undefined, trip: undefined } : {}),
     adminNote: field(formData, "adminNote", 1000),
-    ...(BOOKING_STATUSES.includes(status) ? { status } : {}),
+    // Reopening a cancelled booking clears the reason.
+    ...(BOOKING_STATUSES.includes(status) ? { status, ...(status !== "cancelled" ? { cancelReason: undefined } : {}) } : {}),
   });
+  if (!saved) return { error: "This booking was deleted." };
+  refreshAdmin();
+  return { ok: true };
+}
+
+// Figma 3.6 "Assign car and driver": one of our own cars with its driver, or
+// an approved vendor and one of their cars (the vendor drives).
+export type AssignInput =
+  | { kind: "own"; carId: string; driverName: string; driverMobile: string }
+  | { kind: "vendor"; vendorId: string; vendorCarId: string };
+
+export async function assignBooking(id: string, input: AssignInput): Promise<{ ok?: true; error?: string }> {
+  await requireAdmin();
+  const booking = await getBooking(id);
+  if (!booking) return { error: "This booking was deleted." };
+
+  if (input.kind === "own") {
+    const car = await getCar(input.carId);
+    if (!car) return { error: "That car is no longer in the fleet." };
+    const driverName = input.driverName.trim().slice(0, 80);
+    const digits = input.driverMobile.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "");
+    if (!driverName) return { error: "Add the driver's name." };
+    if (digits.length !== 10) return { error: "Enter all 10 digits of the driver's mobile." };
+    await updateBooking(id, {
+      carId: car.id,
+      car: car.name,
+      driverName,
+      driverMobile: `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`,
+      vendorId: undefined,
+      vendorCarId: undefined,
+      trip: undefined,
+    });
+  } else {
+    const vendor = await getVendor(input.vendorId);
+    const car = vendor?.cars.find((c) => c.id === input.vendorCarId);
+    if (!vendor || vendor.status !== "approved") return { error: "That vendor is no longer approved." };
+    if (!car) return { error: "That car is no longer on the vendor's list." };
+    const sameVendor = booking.vendorId === vendor.id && booking.vendorCarId === car.id;
+    await updateBooking(id, {
+      vendorId: vendor.id,
+      vendorCarId: car.id,
+      car: car.model,
+      carId: undefined,
+      driverName: vendor.name,
+      driverMobile: vendor.mobile,
+      // A new vendor gets the trip offered in the driver app.
+      trip: sameVendor ? booking.trip : { stage: "offered" },
+    });
+  }
+  refreshAdmin();
+  return { ok: true };
+}
+
+// Figma 3.7 "Cancel booking": the reason feeds the cancellations report.
+export async function cancelBooking(id: string, reason: string): Promise<{ ok?: true; error?: string }> {
+  await requireAdmin();
+  const cancelReason = reason.trim().slice(0, 200);
+  if (!cancelReason) return { error: "Choose a reason." };
+  const saved = await updateBooking(id, { status: "cancelled", cancelReason });
   if (!saved) return { error: "This booking was deleted." };
   refreshAdmin();
   return { ok: true };
@@ -86,6 +170,10 @@ export async function createBooking(_prev: FormState, formData: FormData): Promi
 
   const carId = field(formData, "carId", 64);
   const car = carId ? await getCar(carId) : undefined;
+  // Or an approved vendor's car — offered when none of ours are free (Figma 3B.13).
+  const vendorId = car ? "" : field(formData, "vendorId", 64);
+  const vendor = vendorId ? await getVendor(vendorId) : undefined;
+  const vendorCar = vendor?.status === "approved" ? vendor.cars.find((c) => c.id === field(formData, "vendorCarId", 64)) : undefined;
   const status = field(formData, "status", 20) as BookingStatus;
   const people = money(formData, "people", 60);
   const bags = money(formData, "bags", 30);
@@ -119,8 +207,11 @@ export async function createBooking(_prev: FormState, formData: FormData): Promi
     date: field(formData, "date", 20),
     time: field(formData, "time", 20),
     // A specific car, else the class asked for ("SUV / MUV")
-    car: car?.name ?? field(formData, "carClass", 40),
+    car: car?.name ?? vendorCar?.model ?? field(formData, "carClass", 40),
     carId: car?.id,
+    ...(vendor && vendorCar
+      ? { vendorId: vendor.id, vendorCarId: vendorCar.id, ...(vendor.kind === "driver" ? { driverName: vendor.name, driverMobile: vendor.mobile } : {}) }
+      : {}),
     people: people || undefined,
     quote: money(formData, "quote") || undefined,
     notes: notes.slice(0, 500),
@@ -128,7 +219,8 @@ export async function createBooking(_prev: FormState, formData: FormData): Promi
   });
   refreshAdmin();
 
-  // Back to the list with a "Booking saved" toast (or a fresh form for "Save and add another").
-  const toast = new URLSearchParams({ saved: booking.id, n: booking.name, wa: field(formData, "wa", 1) === "1" ? "1" : "0" });
-  redirect(field(formData, "then", 20) === "another" ? `/admin/bookings/new?${toast}` : `/admin/bookings?${toast}`);
+  // "Booking saved" page (Figma 3B.4), or a fresh form with a toast for "Save and add another".
+  const wa = field(formData, "wa", 1) === "1" ? "1" : "0";
+  const toast = new URLSearchParams({ saved: booking.id, n: booking.name, wa });
+  redirect(field(formData, "then", 20) === "another" ? `/admin/bookings/new?${toast}` : `/admin/bookings/new/saved/${booking.id}?wa=${wa}`);
 }

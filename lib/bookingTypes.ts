@@ -27,9 +27,56 @@ export type Booking = {
   quote?: number; // ₹ quoted to the customer
   people?: number;
   carId?: string; // the specific fleet car assigned by staff
+  // Who drives it (Figma 3.6): our own driver, or an approved vendor + one of their cars.
+  vendorId?: string;
+  vendorCarId?: string;
+  driverName?: string;
+  driverMobile?: string;
+  cancelReason?: string; // Figma 3.7
+  // Driver app progress once a vendor is assigned (Figma Flow 10).
+  trip?: DriverTrip;
 };
 
-export type BookingPatch = Partial<Pick<Booking, "status" | "adminNote" | "quote" | "people" | "carId" | "car">>;
+// Driver-side trip state, written by the driver app (/driver).
+export type DriverTripStage = "offered" | "accepted" | "declined" | "to-pickup" | "waiting" | "on-trip" | "ended" | "paid";
+
+export type DriverTrip = {
+  stage: DriverTripStage;
+  declineReason?: string;
+  startKm?: number;
+  endKm?: number;
+  startedAt?: string;
+  endedAt?: string;
+  expenses?: { kind: string; amount: number; note?: string; receipt?: string; at?: string }[];
+  collected?: number; // ₹ received from the customer
+  payment?: "cash" | "upi" | "office"; // "office" = Pay the office later (10.33)
+  officeNote?: string; // "Office asked to fix"
+  approved?: boolean; // office checked the entry (Figma 4B.5–4B.7)
+  // Driver app (Figma Flow 10) — all optional:
+  share?: number; // ₹ the driver's share, set by staff when assigning (shown instead of the fare)
+  offeredAt?: string; // ISO, when the request was sent (10-minute answer window)
+  answeredAt?: string;
+  startPhoto?: string; // meter photos, upload names served by /uploads/[file]
+  endPhoto?: string;
+  arrivedAt?: string;
+  whatsappAt?: string; // driver sent "your cab is here" from their phone
+  boardedAt?: string;
+  noShowAt?: string; // driver told the office the customer is not coming (10.28)
+  paidAt?: string;
+  entryId?: string; // Trip log entry made by Send to office (10.36)
+  sentAt?: string;
+  cashHandedOver?: boolean; // office marked the cash as received (10.43)
+  cancelSeen?: boolean; // driver closed the "Trip cancelled" screen (10.40)
+  location?: { lat: number; lng: number; at: string }; // last position while on a trip
+  locationOff?: boolean; // 10.26: location is off on the driver's phone
+};
+
+export type BookingPatch = Partial<
+  Pick<
+    Booking,
+    "status" | "adminNote" | "quote" | "people" | "carId" | "car" | "vendorId" | "vendorCarId" | "driverName" | "driverMobile" | "cancelReason" | "trip"
+  >
+>;
 
 export const BOOKING_STATUSES: BookingStatus[] = ["new", "contacted", "confirmed", "completed", "cancelled"];
 

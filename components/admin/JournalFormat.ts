@@ -1,4 +1,4 @@
-// Formatting helpers shared by the journal page (server) and its client
+// Formatting helpers shared by the Trip log page (server) and its client
 // components. Plain functions only — no "use client", no Node imports.
 
 const fmt = (d: string, o: Intl.DateTimeFormatOptions) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { ...o, timeZone: "UTC" });
@@ -18,3 +18,13 @@ export function time12(t: string) {
   const h = Number(t.slice(0, 2));
   return `${h % 12 || 12}:${t.slice(3)} ${h < 12 ? "AM" : "PM"}`;
 }
+
+// ISO timestamp → Indian time "7:27 AM"
+export function istTime12(iso: string | undefined) {
+  if (!iso || Number.isNaN(Date.parse(iso))) return "";
+  return time12(new Date(Date.parse(iso) + 5.5 * 60 * 60 * 1000).toISOString().slice(11, 16));
+}
+
+// "Sat 31 Oct"
+export const dayLabel = (d: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "");

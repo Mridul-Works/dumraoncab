@@ -2,9 +2,9 @@ import Link from "next/link";
 import Icon from "@/components/admin/Icon";
 import { btnGhost, cardCls } from "@/components/admin/ui";
 import { entryNet, inr, shortDate, type Car } from "@/lib/catalogTypes";
-import type { JournalRecord } from "@/lib/journal";
+import type { JournalRecord } from "@/lib/journalTypes";
 
-// Building blocks for the Daily journal (Figma 4B.1 / 4B.3 / 4C.7).
+// Building blocks for the Trip log (Figma 4B.1 / 4B.3 / 4C.7).
 
 export const kmText = (n: number) => `${n.toLocaleString("en-IN")} km`;
 export const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
@@ -144,20 +144,86 @@ export function ServiceRow({ title, detail, progress, tone, href }: { title: str
 
 /* --------------------------------- entries table --------------------------------- */
 
-// Trip title and route line for one entry.
+// Route line for one entry: "Dumraon → Patna and back".
 export function routeText(e: Pick<JournalRecord, "from" | "to" | "roundTrip">) {
   if (!e.to) return e.from;
   return `${e.from} → ${e.to}${e.roundTrip ? " and back" : ""}`;
+}
+
+// Route as a row title: "Dumraon → Patna Airport, round trip".
+const routeTitle = (e: Pick<JournalRecord, "from" | "to" | "roundTrip">) =>
+  e.to ? `${e.from} → ${e.to}${e.roundTrip ? ", round trip" : ""}` : e.from;
+
+const hasMeter = (e: Pick<JournalRecord, "odoStart" | "odoEnd">) => e.odoStart != null || e.odoEnd != null;
+const reading = (n: number) => n.toLocaleString("en-IN");
+
+// Row title. With meter readings the second line shows the odometer, so the
+// route moves up into the title.
+export function entryTitle(e: JournalRecord) {
+  if (hasMeter(e)) return [e.customer, routeTitle(e), e.note].filter(Boolean).join(" · ") || "Trip";
+  return e.note ? [e.note, e.customer].filter(Boolean).join(" · ") : e.customer || routeText(e) || "Trip";
 }
 
 export type EntryTag = { label: string; tone: "amber" | "gray" };
 
 export function entryTags(e: JournalRecord): EntryTag[] {
   const tags: EntryTag[] = [];
+  if (e.payment && !e.payment.received) tags.push({ label: "Payment pending", tone: "gray" });
   if (e.fare === 0 && !e.customer && !e.bookingId) tags.push({ label: "Own use", tone: "gray" });
   else if (e.fare === 0) tags.push({ label: "No fare entered", tone: "amber" });
   if (e.fare > 0 && e.fuel > e.fare) tags.push({ label: "Fuel more than fare", tone: "amber" });
+  if (e.odoEnd != null && e.odoStart == null) tags.push({ label: "Start reading missing", tone: "amber" });
   return tags;
+}
+
+/* ------------------------------- odometer gaps ------------------------------- */
+
+// Kilometres on the meter between one trip's end and the next trip's start
+// that no entry accounts for (Figma 4B.3 "379 km not logged …").
+export type OdoGap = { carId: string; km: number; fromKm: number; toKm: number; fromDate: string; toDate: string; afterId: string; beforeId: string };
+
+const MIN_GAP_KM = 5;
+
+export function odometerGaps(entries: JournalRecord[]): OdoGap[] {
+  const byCar = new Map<string, JournalRecord[]>();
+  for (const e of entries) if (hasMeter(e)) byCar.set(e.carId, [...(byCar.get(e.carId) ?? []), e]);
+  const gaps: OdoGap[] = [];
+  for (const [carId, list] of byCar) {
+    const sorted = [...list].sort((a, b) => a.date.localeCompare(b.date) || (a.startedAt ?? a.createdAt).localeCompare(b.startedAt ?? b.createdAt));
+    for (let i = 1; i < sorted.length; i++) {
+      const a = sorted[i - 1];
+      const b = sorted[i];
+      if (a.odoEnd == null || b.odoStart == null) continue;
+      const km = b.odoStart - a.odoEnd;
+      if (km > MIN_GAP_KM) gaps.push({ carId, km, fromKm: a.odoEnd, toKm: b.odoStart, fromDate: a.date, toDate: b.date, afterId: a.id, beforeId: b.id });
+    }
+  }
+  return gaps;
+}
+
+const dayNum = (d: string) => String(Number(d.slice(8)));
+
+// "between 8 and 9 Oct" / "on 8 Oct"
+export function gapWhen(g: Pick<OdoGap, "fromDate" | "toDate">) {
+  if (g.fromDate === g.toDate) return `on ${shortDate(g.fromDate)}`;
+  const sameMonth = g.fromDate.slice(0, 7) === g.toDate.slice(0, 7);
+  return `between ${sameMonth ? dayNum(g.fromDate) : shortDate(g.fromDate)} and ${shortDate(g.toDate)}`;
+}
+
+// An odometer gap between two trips, with a shortcut to log the missing one.
+export function GapRow({ gap, addHref }: { gap: OdoGap; addHref: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-tag-amber py-2.5 pl-5 pr-4">
+      <Icon name="warning-circle" size={18} className="text-tag-amber" />
+      <p className="min-w-0 flex-1 type-ui text-tag-amber">
+        {kmText(gap.km)} not logged {gapWhen(gap)} ({reading(gap.fromKm)} → {reading(gap.toKm)})
+      </p>
+      <Link href={addHref} scroll={false} className={btnGhost}>
+        <Icon name="plus" size={16} />
+        Add missing trip
+      </Link>
+    </div>
+  );
 }
 
 const colKm = "w-[70px]";
@@ -171,7 +237,7 @@ export function TableHead({ first, firstWidth }: { first: string; firstWidth: st
   return (
     <div className="hidden items-start gap-4 border-b border-gray-100 py-3 pl-5 pr-[46px] type-body-sm text-secondary md:flex">
       <p className={`${firstWidth} shrink-0`}>{first}</p>
-      <p className="min-w-0 flex-1">Trip</p>
+      <p className="min-w-0 flex-1">Trip and odometer</p>
       <p className={`${colKm} shrink-0 text-right`}>Km</p>
       <p className={`${colFare} shrink-0 text-right`}>Fare</p>
       <p className={`${colFuel} shrink-0 text-right`}>Fuel</p>
@@ -208,18 +274,20 @@ export function EntryRow({
   highlight?: boolean;
 }) {
   const net = entryNet(e);
-  const title = e.note ? [e.note, e.customer].filter(Boolean).join(" · ") : e.customer || routeText(e) || "Trip";
+  const title = entryTitle(e);
   const tags = entryTags(e);
+  const meter = hasMeter(e);
+  const line = meter ? `${e.odoStart != null ? reading(e.odoStart) : "start missing"} → ${e.odoEnd != null ? reading(e.odoEnd) : "end missing"}` : routeText(e);
   return (
     <div className={`flex items-center gap-3 border-b border-gray-100 py-3.5 pl-5 pr-3 md:gap-4 ${highlight ? "bg-hover" : ""}`}>
       {lead}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="truncate type-body-md text-primary">{title}</p>
         <div className="flex flex-wrap items-center gap-2">
-          {routeText(e) && (
+          {line && (
             <span className="flex min-w-0 items-center gap-2 type-mono-sm text-secondary">
-              <Icon name="path" size={14} className="shrink-0 text-[var(--icon-secondary)]" />
-              <span className="truncate">{routeText(e)}</span>
+              <Icon name={meter ? "gauge" : "path"} size={14} className="shrink-0 text-[var(--icon-secondary)]" />
+              <span className="truncate">{line}</span>
             </span>
           )}
           {tags.map((t) => (
@@ -245,9 +313,9 @@ export function EntryRow({
   );
 }
 
-export function CarLead({ car, href }: { car: Car | undefined; href: string }) {
-  return (
-    <Link href={href} className="flex w-28 shrink-0 items-center gap-2.5 md:w-[150px]" title={car ? car.name : "Removed car"}>
+export function CarLead({ car, href }: { car: Pick<Car, "name" | "number"> | undefined; href?: string }) {
+  const body = (
+    <>
       <span className="hidden size-8 shrink-0 place-items-center rounded-full bg-gray-50 text-[var(--icon-secondary)] sm:grid">
         <Icon name="car-simple" size={18} />
       </span>
@@ -255,7 +323,19 @@ export function CarLead({ car, href }: { car: Car | undefined; href: string }) {
         <span className="block truncate type-ui text-primary">{car ? car.name : "Removed car"}</span>
         {car?.number && <span className="block truncate type-mono-sm text-secondary">{car.number}</span>}
       </span>
+    </>
+  );
+  const cls = "flex w-28 shrink-0 items-center gap-2.5 md:w-[150px]";
+  const title = car ? car.name : "Removed car";
+  // Vendor cars have no one-car view, so they don't link.
+  return href ? (
+    <Link href={href} className={cls} title={title}>
+      {body}
     </Link>
+  ) : (
+    <div className={cls} title={title}>
+      {body}
+    </div>
   );
 }
 
@@ -268,24 +348,23 @@ export function DateLead({ date, weekday }: { date: string; weekday: string }) {
   );
 }
 
-// A run of days with no trips for one car, with a shortcut to log one.
-export function IdleRow({ text, addHref }: { text: string; addHref: string }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-gray-50 py-2.5 pl-5 pr-4">
-      <Icon name="calendar-blank" size={18} className="text-[var(--icon-secondary)]" />
-      <p className="min-w-0 flex-1 type-ui text-secondary">{text}</p>
-      <Link href={addHref} scroll={false} className={btnGhost}>
-        <Icon name="plus" size={16} />
-        Add missing trip
-      </Link>
-    </div>
-  );
-}
-
 /* ---------------------------------- km per day ---------------------------------- */
 
-export function KmChart({ days, kmByDay, today, label }: { days: string[]; kmByDay: Map<string, number>; today: string; label: string }) {
-  const peak = Math.max(1, ...days.map((d) => kmByDay.get(d) ?? 0));
+// Logged km per day (green) with odometer gaps stacked on top (dashed amber).
+export function KmChart({
+  days,
+  kmByDay,
+  gapByDay,
+  today,
+  label,
+}: {
+  days: string[];
+  kmByDay: Map<string, number>;
+  gapByDay: Map<string, number>;
+  today: string;
+  label: string;
+}) {
+  const peak = Math.max(1, ...days.map((d) => (kmByDay.get(d) ?? 0) + (gapByDay.get(d) ?? 0)));
   const ticks = days.length > 1 ? [0, Math.round((days.length - 1) / 4), Math.round((days.length - 1) / 2), Math.round(((days.length - 1) * 3) / 4), days.length - 1] : [0];
   const tickLabel = (d: string, i: number) => (i === 0 || i === days.length - 1 ? shortDate(d) : String(Number(d.slice(8))));
   return (
@@ -300,8 +379,19 @@ export function KmChart({ days, kmByDay, today, label }: { days: string[]; kmByD
         <div className="relative flex h-full items-end gap-1">
           {days.map((d) => {
             const v = kmByDay.get(d) ?? 0;
+            const gap = gapByDay.get(d) ?? 0;
             return (
-              <div key={d} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end" title={`${shortDate(d)}: ${kmText(v)}`}>
+              <div
+                key={d}
+                className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5"
+                title={`${shortDate(d)}: ${kmText(v)}${gap ? ` · ${kmText(gap)} not logged` : ""}`}
+              >
+                {gap > 0 && (
+                  <div
+                    className="w-full rounded-xs border border-dashed border-[var(--tag-color-amber)] bg-tag-amber"
+                    style={{ height: `${Math.max(2, (gap / peak) * 100)}%` }}
+                  />
+                )}
                 {v > 0 ? (
                   <div className={`w-full rounded-xs bg-brand ${d === today ? "" : "opacity-90"}`} style={{ height: `${Math.max(2, (v / peak) * 100)}%` }} />
                 ) : (
@@ -319,10 +409,16 @@ export function KmChart({ days, kmByDay, today, label }: { days: string[]; kmByD
           </span>
         ))}
       </div>
-      <p className="flex items-center gap-1.5 type-body-sm text-secondary">
-        <span aria-hidden="true" className="size-2.5 rounded-xs bg-brand" />
-        Logged
-      </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <p className="flex items-center gap-1.5 type-body-sm text-secondary">
+          <span aria-hidden="true" className="size-2.5 rounded-xs bg-brand" />
+          Logged
+        </p>
+        <p className="flex items-center gap-1.5 type-body-sm text-secondary">
+          <span aria-hidden="true" className="size-2.5 rounded-xs bg-tag-amber" />
+          Not logged (odometer gap)
+        </p>
+      </div>
     </section>
   );
 }

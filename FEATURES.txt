@@ -75,39 +75,66 @@ components/admin/Icon.tsx (CSS mask, so they take the text colour).
 Shared pieces in components/admin/ui.tsx (buttons, inputs, cards,
 status badges, KPI strip) and Drawer.tsx (540px slide-over).
 Shell: light sidebar — Dashboard · Bookings (live "new" count) · Fleet
-· Daily journal · Fares; View live site; signed-in email; Sign out.
+· Trip log · Fares; View live site; signed-in email; Sign out.
 Mobile: top bar with search + sign-out icons and horizontal nav.
 Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled.
-- /admin/login: email + password card; wrong details show a red alert
-  ("Incorrect email or password") and keep the typed email; "Signing
-  in…" state. Works with no env setup (built-in password stored only
-  as a scrypt hash; session key derived from the password at login, so
-  the public repo can't be used to forge a session); ADMIN_EMAIL /
-  ADMIN_PASSWORD / ADMIN_SESSION_SECRET env vars override. HMAC-signed
-  httpOnly session cookie (7 days, constant-time checks); failed
-  attempts are slowed; changing the password signs every session out.
-  Every admin page, action and API re-checks it.
-- Search (⌘K / Ctrl+K, or the search pill in page headers): command
-  palette — jump to any section, quick actions, and search bookings
-  (name, phone, place, car, date) and cars (name, number plate).
-- /admin (Dashboard), all in Indian time: greeting + live date; KPI
-  strip (new requests and how many waited over 15 min, pickups today
-  done/on trip, confirmed this week vs last week + ₹ quoted, cars free)
-  — each links to the filtered list; "Needs a call back" (new requests,
-  oldest first, waiting chip turns amber after 15 min, handled-today
-  progress; Call / WhatsApp quote also mark the request Contacted; row
-  opens the booking); "Up next" card (next contacted/confirmed trip,
-  countdown, pickup/drop, car, Call customer / Open booking); today's
-  pickups timeline (completed / on trip / up next; adds tomorrow when
-  today is done); fleet right now (cars out, or free cars by type);
-  requests received this week bar chart vs last week.
+- /admin/login (Figma 1.1–1.3): route-map backdrop (Figma SVGs in
+  public/admin-login/, desktop only); card with brand band ("Admin
+  console", Staff only), Welcome back, email + password fields with
+  icons and a show/hide password toggle, "Keep me signed in" (ticked =
+  7-day cookie, unticked = browser-session cookie, 12 h max), Forgot
+  password? link, footer "Trouble signing in? Ask the owner to reset
+  it." Wrong details (1.2): red field + "Incorrect email or password.
+  N tries left." under it, typed email kept; 5 wrong tries lock sign-in
+  from that address for 15 min (in memory, cleared on restart).
+  Signing in (1.3): fields fade and lock, button shows "Signing in…".
+  Works with no env setup (built-in password stored only as a scrypt
+  hash; session key derived from the password at login, so the public
+  repo can't be used to forge a session); ADMIN_EMAIL / ADMIN_PASSWORD
+  / ADMIN_SESSION_SECRET env vars override. HMAC-signed httpOnly
+  session cookie (constant-time checks); failed attempts are slowed;
+  changing the password signs every session out. Every admin page,
+  action and API re-checks it.
+- /admin/login/forgot (Figma 1.5): no email service, so it says only
+  the owner resets staff passwords (ADMIN_PASSWORD) and shows the owner
+  contact from the Company profile (name, phone, hours) with Call the
+  owner / WhatsApp the owner buttons and Back to sign in.
+- Page not found (Figma 1.4): any unknown /admin/* address (old link,
+  typo) shows "This page doesn't exist" inside the admin shell with Go
+  to dashboard / Go to bookings; signed-out visitors go to sign in.
+- Search (Figma 2.4): on the Dashboard the header pill is a live search
+  box — results drop below it as you type, grouped Bookings (name,
+  ref, date/time, route, status badge), Drivers and cars (vendors and
+  fleet cars) and Trip log (entries with net), matching text in green,
+  arrow keys + Enter, Esc closes; ⌘K / Ctrl+K jumps into it. On other
+  pages ⌘K (or the mobile search icon) opens the same search in a
+  dialog, which also lists pages and quick actions.
+- /admin (Dashboard, Figma 2.1–2.3), all in Indian time: greeting + live
+  date; KPI strip (new requests and how many waited over 15 min,
+  pickups today done/on trip, confirmed this week vs last week + ₹
+  quoted, cars free) — each links to the filtered list; "Needs a call
+  back" (new requests, oldest first, waiting chip turns amber after 15
+  min, handled-today progress; Call / WhatsApp quote also mark the
+  request Contacted; row opens the booking; "All caught up"
+  illustration when empty); "Up next" card (next contacted/confirmed
+  trip, countdown, pickup/drop, car, Call customer / Open booking);
+  today's pickups timeline (completed with a tick and driver-app return
+  time / on trip / up next; adds a "Tomorrow" group when today is
+  done); fleet right now (cars out, or free cars by type); "This week"
+  card: requests vs last week, Open analytics link, Revenue (+% vs last
+  week), Net earnings and Trips from the Trip log, and a requests-per-
+  day bar chart.
 - /admin/bookings: KPI cards (new not contacted, pickups today with the
   next one, confirmed this week + ₹ quoted, completed this month vs
   last); status tabs with counts (All/New/Contacted/Confirmed/
   Completed/Cancelled); search; pickup-date presets (any, today,
   tomorrow, this week, next 7 days, upcoming, past); table (stacked
-  cards on small screens); "No bookings match" state with Clear search;
-  toasts after actions and after a new phone booking. Filters and the
+  cards on small screens) with PDF + Share icon buttons per row (Share opens
+  the same Figma 3B.6 share menu as the "Booking saved" page) and a
+  "Just added" row (on top, green edge) after a new phone booking; "No bookings match" state with Clear search;
+  "No bookings yet" state (no KPI cards) with Add phone booking;
+  illustrations from the Figma file; toasts after actions (optional
+  action link) and after a new phone booking. Filters and the
   open drawer live in the URL (?status=&source=&from=&to=&q=&id=).
   Export CSV (Excel-safe, UTF-8).
 - Booking drawer (?id=): name + status badge, phone and when/how it
@@ -115,43 +142,188 @@ Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled.
   confirmed — texts in lib/site.ts); trip facts; status control (New /
   Contacted / Confirmed / Completed); quoted fare, car sent, internal
   note; footer actions by status (Cancel · Mark contacted · Mark
-  confirmed · Mark completed · Add to journal · Delete · Reopen); every
-  status button also saves typed edits. Esc or scrim closes.
+  confirmed · Assign car and driver · Mark completed · Add to journal ·
+  Delete · Reopen); every status button also saves typed edits. Esc or
+  scrim closes. Confirmed/completed bookings show "Car and driver" with
+  links to the customer and driver PDF copies.
+- Assign car and driver (Figma 3.6, drawer step): our cars (free ones
+  first, "Booked at …" when another trip that day holds the car; driver
+  name + mobile, remembered per car) or an approved vendor and one of
+  their cars (vendor drives; the trip is offered in the driver app).
+  "Assign and send details" saves and opens WhatsApp to the customer
+  with the driver's name, number, call time, fare and free-cancellation
+  time (text in lib/site.ts); toast links to the driver copy.
+- Cancel booking (Figma 3.7): modal with a reason (lib/site.ts
+  cancelReasons, stored as cancelReason for the cancellations report)
+  and a "Tell the customer on WhatsApp" toggle. Reopen clears the reason.
+- Booking PDF (Figma Flow 9): /admin/bookings/[id]/pdf?copy=customer|
+  driver — printable A4 slip (print or save as PDF; toolbar hidden in
+  print). Customer copy: greeting, date/time, trip tags, key facts (pickup,
+  car plate, driver, total), route with stops and distance/drive time for
+  known routes, fare lines, UPI id, numbered terms (free-cancellation
+  line + Company profile terms). Driver copy: no fare; customer and
+  passengers, trip steps with times, write-in boxes for the Trip log,
+  "Before you go" checklist. Brand, phones, address, GSTIN, UPI and
+  terms come from the Company profile (lib/company.ts).
 - /admin/bookings/new (phone booking): channel (phone call / WhatsApp /
-  walk-in) and +91 mobile with returning-customer summary; one way /
-  round trip, trip type, pickup/drop with swap and popular-route chips;
-  date tiles, time list and quick chips, flight/train number; people
-  and bag counters, car class with free count, assign a car; notes for
-  driver and internal; summary with editable fare and discount, total,
-  payment, WhatsApp confirmation switch; Save / Save and add another;
-  missing-info checks; local draft with Discard.
+  walk-in) and +91 mobile — typing it lists past customers (trips, usual
+  pickup → drop); one tap fills name, usual pickup/drop and payment, and
+  a returning-customer summary shows; one way / round trip, trip type;
+  pickup with the three most used places (a past customer's own first)
+  plus "Drop a pin on the map" (opens Google Maps); drop with matching
+  places as you type (typed part in green, km · fare for fixed routes);
+  swap and popular-route chips; date tiles plus "Other" month calendar
+  (past days off, fully booked days faded); pickup time list every 15
+  min centred on the usual slot, or type a time; flight/train number;
+  people and bag counters, car class with free count; "Assign a car"
+  picker lists only free cars of the class, approved vendors' cars when
+  none of ours are free; notes for driver and internal; summary with
+  editable fare and discount, total, payment, WhatsApp confirmation
+  switch; Save / Save and add another; missing-info checks; local draft
+  with Discard.
+- /admin/bookings/new/saved/[id] (Booking saved): illustration, "<name>
+  is booked for <date> at <time>", WhatsApp-sent pill; booking card
+  (ref, status, Edit booking, route with drop time, km/drive time and
+  flight facts, customer, car, payment, driver note, total); Go to
+  bookings (row highlighted), New booking, Download PDF (customer copy)
+  and Share on WhatsApp menu (send to customer / driver, Download PDF,
+  Show fare switch — off gives the driver copy).
 - /admin/fleet: type tabs with counts, car cards (photo, name, plate,
   rate from fare class, "Out today" and service chips, shown-on-site
-  switch), Add car; saved/deleted toast.
+  switch), Add car; saved/deleted toast; "No cars yet" empty state
+  (garage illustration + Add car) when the fleet is empty.
 - /admin/fleet/new and /admin/fleet/[car]: form card + live "Preview on
-  /fleet" card; name, number (edit), type, seats/transmission/fuel,
-  fare class (rate shown read-only — set in Fares); photo dropzone
-  (JPG/PNG/WebP up to 4 MB, stored in data/uploads, served by
-  /uploads/[file]) or pasted link; shown on site; card note; Delete car
-  with a confirm dialog (journal history kept).
-- /admin/journal (Daily journal): range presets + custom range, car
-  filter, "need attention" link; totals strip and "where the fare went"
-  bar; needs attention, by car and service due panels; entries by day
-  ("Show earlier days"); Export CSV (/admin/journal/export).
-- New entry panel (?new=1, edit with ?entry=): date chips; customer and
-  mobile; one way / round trip; route and km; pick from a booking or
-  unlink; car accordion with search grouped by type (on-trip cars
-  dimmed); fare · fuel · driver cut with live net and ₹/km; inline
+  /fleet" card; edit header "Last updated <date> by <admin email>";
+  name, number (edit), type, seats/transmission/fuel, fare class (rate
+  shown read-only — set in Fares); photo dropzone (JPG/PNG, WebP also
+  accepted, up to 5 MB, stored in data/uploads, served by
+  /uploads/[file]) or pasted link; shown on site; "Verified · Own fleet"
+  tag switch (hides the tag on the public car card); card note; Delete
+  car with a confirm dialog (journal history kept).
+- /admin/journal (Trip log): range presets + custom range, car filter,
+  "need attention" link; totals strip and "where the fare went" bar;
+  needs attention (fuel more than fare, odometer gaps, no fare, start
+  reading missing, driver entries to check / waiting for a fix), by car
+  and service due panels; entries by day with "Trip and odometer"
+  (meter readings start → end when known, else the route) and tags
+  (Own use, No fare entered, Payment pending, Start reading missing);
+  "Show earlier days"; Export CSV (/admin/journal/export). Empty state
+  "No entries yet" with New entry / Pick from a booking.
+- New trip entry panel (?new=1, edit with ?entry=, ?pick=1 opens the
+  booking picker): date chips; customer and mobile; one way / round trip
+  (round trip by default); route and km; pick from a booking (search by
+  booking no., name or phone; today's and yesterday's confirmed trips
+  listed) or unlink; car accordion with search grouped by type (on-trip
+  cars dimmed); fare · fuel · driver cut with live net and ₹/km; inline
   errors; Save (marks a picked booking completed) with an Undo toast.
-- One car (/admin/journal?car=…): car totals, km per day chart, next
-  service card with gauge (and the service/odometer form), trips list
-  with "Add missing trip" for idle days.
+- Driver entries (from the driver app, lib/journal.ts addDriverEntry):
+  arrive "submitted" and only count once approved. Check trip panel
+  (?check=…): driver, trip, meter photos and readings (checked against
+  the route), expenses with receipts, payment, editable Fare / Fuel /
+  Driver share; Approve (closes the booking; toast "… added to <name>'s
+  Monday payout" with Undo) or Ask to fix (receipt / meter photos /
+  something else + message to the driver; entry stays on hold).
+- One car (/admin/journal?car=…): car totals (driven incl. km not
+  logged), km per day chart with odometer gaps, next service card with
+  gauge (and the service/odometer form), trips list with odometer-gap
+  rows and "Add missing trip".
 - /admin/fares: cards for per-km rates by car class, hourly packages,
   route "from" fares (with distance · duration) and extras/rules, with
   where each price shows. Edit fares (also ?edit=1): ₹ fields with
   Indian commas, changed fields green and invalid ones red, floating
   unsaved-changes bar (last change old → new · Discard · Save and
-  publish), leave-page warning; published toast with "View on site".
+  publish), leave-page warning; published toast ("Fares published ·
+  Nexon now ₹14/km on the site" — names the cars in the class) with
+  "View on site"; "Couldn't publish fares" dialog (Keep editing / Try
+  again) when the publish request fails — edits are kept.
+- /admin/analytics (Analytics, Figma Flow 7 — lib/analytics.ts): range
+  switch (7 days / This month / Last month / This year / Custom menu
+  with Today, Yesterday, quick ranges, From–To and "Compare with the N
+  days before"; all in the URL ?range=&from=&to=&cmp=0); KPI strip
+  (revenue, trips, net after fuel/tolls/driver cut, average fare, each
+  with % vs the previous period); revenue by day (by month for long
+  ranges, best bar in green); where bookings come from (phone / form /
+  widget) + requests that became trips; top routes by revenue;
+  earnings by car; vendors (trips, rating, fares); cancellations by
+  reason with a "no car free" note. Trips = trip-log entries plus
+  completed bookings never logged. Export: Download CSV
+  (/admin/analytics-export, every booking and trip entry in range),
+  PDF report (/admin/analytics-report — printable A4 page, opens the
+  browser's Save as PDF), Send on WhatsApp (opens wa.me to the company
+  WhatsApp number with a text summary + report link — there is no
+  WhatsApp API, staff tap send) with a toast and View PDF. Empty state
+  "Numbers show up after your first week" (Open Trip log / Go to
+  bookings) until the first booking or trip entry exists.
+- /admin/company (Company profile, Figma Flow 8 — data/company.json via
+  lib/company.ts): cards for Brand (logo upload — PNG/JPG/WebP up to
+  2 MB in data/uploads — business name, short name, tagline), Contact
+  (phone, WhatsApp with "same as phone", email, website), Office
+  (address, PIN, town, district, state, open 24 hours or opening
+  hours), Tax and registration (GSTIN, PAN, show GSTIN on PDFs),
+  Payments (UPI ID, bank account, UPI QR on PDFs) and PDFs and messages
+  (terms, one per line; WhatsApp sign-off). Changed fields get a green
+  edge; floating unsaved bar (what changed · Discard · Save changes)
+  and leave-page warning; Save checks the fields (e.g. "GSTIN has 15
+  characters") and jumps to the first problem; "Profile complete"
+  checklist (6 sections, red note on the one that needs work); live
+  "Where this shows" preview (booking PDF header, WhatsApp sign-off,
+  website footer); "Saved <date> by <staff>" and a saved toast.
+- /admin/vendors (Vendors, Figma Flow 6 — data/vendors.json via
+  lib/vendors.ts; components/admin/vendors/, app/admin/vendor-actions.ts):
+  list (6.1) with status tabs and counts (All · Pending · Approved ·
+  Suspended · Rejected), search by name, email, mobile or car number
+  (both in the URL ?status=&q=), amber "N vendors waiting for approval"
+  banner with Show pending, table (business + Owner/Driver tag,
+  contact, rating, trips, status) and row actions Approve / Reject
+  (pending), Suspend (approved), Reactivate (suspended), view only
+  (rejected) + eye to the profile. States: No vendors yet with Add
+  vendor / Copy partner link (6.12), no search results with Clear
+  search (6.13), "No vendors waiting" on an empty Pending tab (6.14),
+  "Couldn't load vendors" with Try again when the store can't be read
+  (6.15). Line-art illustrations in public/admin-art/.
+  /admin/vendors/new (6.3/6.4/6.18): Owner/Driver switch, name, mobile
+  (login), email, alternate number; person documents (photo, Aadhaar
+  front + back, licence, PAN optional) and per-car documents (RC,
+  insurance, permit, PUC) uploaded straight away; address with PIN
+  lookup ("District and state filled from the PIN code", map pin,
+  Change pin = paste a Google Maps pin); Works around range 10/25/50
+  km/Any + place chips with distance ("on request" beyond the range)
+  and an Add place search; cars (model, number, type, fuel, seats,
+  year); payout UPI + PAN; live Summary card (checks per section,
+  "N of M documents"). Saving needs name, a 10-digit mobile not used
+  by another vendor, the Aadhaar card and a UPI ID (owners also need a
+  car); otherwise a red "Fix N things to save …" banner and red fields.
+  Save opens a WhatsApp "you're registered" note to the vendor, then
+  shows Vendor added (6.5 — /admin/vendors/[id]/added: VN-code,
+  documents still to check, Check documents / Add another vendor /
+  Call); "Save and add another" returns to a blank form with a toast.
+  /admin/vendors/[id] (6.2): header with status and actions, banner
+  (documents to check / ready to approve / waiting for a re-upload /
+  car off trips / suspended / rejected with the message sent), cars
+  with a document summary, documents grouped person → car with
+  Verified · Needs review · Expires soon (≤30 days) · Expired · Missing
+  badges and View / Upload, contact (Call, WhatsApp), location (places,
+  Google Maps), payout (UPI, masked PAN), activity. Document review
+  drawer (6.6, ?doc= in the URL): file preview (front/back, open full
+  size), "Match with the profile" checklist with number / valid-till
+  fields (Aadhaar keeps only the last 4 digits), Next document, staff
+  note, Mark verified or Ask to re-upload (reason → WhatsApp, 6.17).
+  Approve (6.7 — per-car readiness, optional welcome WhatsApp; needs
+  photo, Aadhaar and licence uploaded), Reject (6.9 — reason + message
+  sent on WhatsApp; can apply again after 30 days), Suspend (6.10 —
+  reason, 7 / 30 days / until reactivated, ends by itself; upcoming
+  bookings can be moved to the nearest approved vendor with a ready car
+  of the same type), Reactivate; each shows a toast with Undo (6.8,
+  6.11, 6.16). /admin/vendors/[id]/edit reuses the form (?addCar=1).
+  A car can take trips only when the vendor is approved and its RC,
+  insurance, permit and PUC are verified and in date (carReady /
+  listApprovedVendors, used by booking assignment).
+  Vendor documents are private: saved in data/vendor-docs/ by
+  lib/vendorDocs.ts saveVendorDoc() (JPG/PNG/WebP/PDF, 5 MB, checked by
+  file signature) and served only to signed-in staff by
+  /admin/vendor-docs/[file] (404 otherwise, no caching). WhatsApp
+  messages and reason lists live in lib/site.ts (vendorMessages,
+  vendorRejectReasons, …); messages open wa.me — staff tap send.
 - Publishing: Fleet and Fares saves expire every public page built
   from the catalog at once (cache tag "catalog") — the next visitor
   sees the change; no redeploy.
@@ -160,11 +332,12 @@ Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled.
 ---------------------------------------------------------------------
 POST   /api/bookings          public — save a booking request
 GET    /api/bookings          admin — list all bookings
-PATCH  /api/bookings/[id]     admin — update status and/or note
+PATCH  /api/bookings/[id]     admin — update status, note, cancel reason, driver/vendor
 DELETE /api/bookings/[id]     admin — delete a booking
 GET    /api/bookings/export   admin — download all bookings as CSV
-GET    /admin/journal/export  admin — download journal entries as CSV
+GET    /admin/journal/export  admin — download Trip log entries as CSV
 GET    /uploads/[file]        uploaded car photos (immutable cache)
+GET    /admin/vendor-docs/[file] admin — private vendor documents (no cache)
 Admin edits use Server Actions (app/admin/*actions.ts). Files:
 bookings.json, fleet.json, fares.json, journal.json, uploads/. All
 writes go through lib/db.ts: serialised per file and atomic (temp
@@ -180,8 +353,8 @@ NOTE: JSON-file storage suits a VPS/Node host. On serverless
 - JSON-LD: TaxiService + LocalBusiness (geo, hours, priceRange,
   contactPoint per phone) sitewide; FAQPage on home; Service on
   service pages; BreadcrumbList on service & route pages
-- sitemap.xml (all 20 public pages) + robots.txt (blocks /admin
-  and /api); admin page additionally noindex
+- sitemap.xml (all 20 public pages) + robots.txt (blocks /admin,
+  /api and /driver); admin and driver app additionally noindex
 - OpenGraph + Twitter card; generated branded OG image; SVG favicon
 - PWA manifest; theme-color; /gallery redirect preserves old URL
 
@@ -229,4 +402,75 @@ edited in the admin; lib/site.ts keeps their seed values (seedFleet,
 seedFares). Public pages read them via getCatalog() (lib/catalog.ts).
 Launch checklist lives in README.md (confirm fares, real reviews,
 Search Console, Google Business Profile, admin env vars).
+
+9. DRIVER APP (/driver — phone web app, noindex, robots-blocked)
+---------------------------------------------------------------------
+Design: Figma "Flow 10 · Driver app" (10.1–10.47) on Chinkara. A
+390-wide phone layout (centred column on bigger screens). Pages in
+app/driver/, parts in components/driver/ (ui.tsx, fields.tsx,
+camera.tsx, Sheet.tsx, Trip.tsx …), actions in app/driver/actions.ts,
+server helpers in lib/driverTrips.ts, sign-in in lib/driverAuth.ts.
+Line art in public/driver-art/, icons from public/admin-icons/.
+- Sign in (10.1–10.4): Welcome → mobile number → 6-digit code. Code
+  is random, stored only as a hash with 10-min expiry
+  (data/driver-otp.json); 3 wrong tries → new code needed; resend
+  after 30 s, max 5 codes/hour per number; boxes turn red and clear
+  on the next tap; Android WebOTP auto-fill. NO SMS provider: in
+  development the code is printed to the server console and shown in
+  a "Dev only" note; in production set DRIVER_OTP_WEBHOOK (POST
+  {mobile, code}) or sign-in says "SMS is not set up". Session =
+  HMAC-signed httpOnly cookie (30 days) keyed by
+  DRIVER_SESSION_SECRET or data/driver-secret.key (auto-created).
+- Join (10.5–10.11): photo, name, own car vs Dumraon Cab car, where
+  you live, UPI → Aadhaar + licence (front and back stitched into one
+  photo) → cars (stepper, car details, RC/insurance/permit/PUC, 4
+  car photos) → check and submit. Draft kept in
+  data/driver-drafts.json; Submit creates a Vendor (source
+  "driver-app", status "pending") for /admin/vendors. Documents are
+  private (lib/vendorDocs.ts → data/vendor-docs).
+- Camera (10.7/10.8): live camera with guide box (getUserMedia),
+  gallery pick, phone camera fallback (<input capture>); "Camera is
+  off" screen with gallery option. Photos shrunk to 1600 px on the
+  phone before upload.
+- Office checks (10.12–10.15): Waiting for checking (documents
+  grouped Verified / Being checked / Upload), Fix a document when
+  staff ask for a re-upload, You are approved (once), Two quick
+  settings (trip alerts, location, camera via browser prompts).
+- Today (10.16–10.21, 10.47): greeting, Available switch (off duty
+  keeps booked trips, hides new requests), week stats from the Trip
+  log, next trip card, later trips, empty state, skeleton loading,
+  checks for new trips every 20 s with a sound. Trips paused when a
+  document has expired or the vendor is suspended.
+- Trip requests (10.18/10.19): a booking staff assign to the vendor
+  shows as a request sheet with a 10-minute countdown and the
+  driver's share (trip.share), never the fare. Take it / can't take
+  it (3 reasons) is saved on booking.trip for the booking drawer.
+- Trip (10.22–10.32, one page /driver/trip/[id] that follows
+  booking.trip.stage): details + checklist (lib/site.ts
+  driverChecklist) → start with odometer + meter photo (checks the
+  last reading: lower or 300+ km above needs a second look) → going
+  to pickup (route sketch, Open in Maps, location sent to the office
+  about once a minute; "Location is off" banner) → at pickup (free
+  waiting timer, one-tap WhatsApp "your cab is here" from the
+  driver's phone, customer not coming → tells the office) → on the
+  way (Maps, add toll/parking/fuel with receipt photo) → end trip
+  (meter + photo, expenses listed). Help sheet: call office / 112.
+- Payment (10.33–10.35): one total (quote + expenses); UPI QR made
+  on the phone from the company UPI ID (lib/company.ts; QR encoder in
+  components/driver/qr.ts), "not paid after 5 min" hint, driver
+  confirms "Customer has paid"; cash with amount check; pay the office
+  later.
+- Check and send (10.36–10.39): summary with edit rows → Send to
+  office creates a Trip log entry (addDriverEntry, "From driver
+  app"); trip done screen; offline: saved on the phone and sent
+  automatically when back online; office "ask to fix" opens Fix and
+  send again (resubmitDriverEntry).
+- Cancelled (10.40): full screen with a sound when the office
+  cancels an accepted trip.
+- Earnings (10.41–10.43): this week's approved share, trips with
+  "Being checked" until approved, next Monday payout, cash to hand
+  over (cash trips until staff set trip.cashHandedOver).
+- Account (10.44–10.46): car(s) and papers, handover photos, My
+  documents with Verified / Expires soon / Expired / Missing badges
+  and upload, payout UPI, call the office, sign out.
 =====================================================================

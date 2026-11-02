@@ -8,14 +8,16 @@ import Icon from "@/components/admin/Icon";
 import { time12 } from "@/components/admin/JournalFormat";
 import { FormError, btnDanger, btnGhost, btnPrimary } from "@/components/admin/ui";
 import { inr, type CarType } from "@/lib/catalogTypes";
-import type { JournalRecord } from "@/lib/journal";
+import type { JournalRecord } from "@/lib/journalTypes";
 
-// "New journal entry" slide-over (Figma 4C.1–4C.6): date chips, customer and
+// "New trip entry" slide-over (Figma 4B.2, 4C.1–4C.6): date chips, customer and
 // route (typed, or picked from a booking), car accordion with search, money,
 // note, and a live net-for-this-trip footer.
 
 export type BookingOption = {
   id: string;
+  ref: string; // "DC-1047"
+  round: boolean; // booked as a round trip
   date: string;
   time: string;
   name: string;
@@ -75,6 +77,7 @@ export default function EntryPanel({
   baseTown,
   returnTo,
   defaultCarId,
+  startPicking,
 }: {
   entry?: JournalRecord;
   prefillBookingId?: string;
@@ -86,6 +89,7 @@ export default function EntryPanel({
   baseTown: string;
   returnTo: string;
   defaultCarId?: string;
+  startPicking?: boolean; // open on the booking picker ("Pick from a booking", 4B.4)
 }) {
   const router = useRouter();
   const [state, action, saving] = useActionState(saveEntry, undefined);
@@ -93,7 +97,8 @@ export default function EntryPanel({
   const otherDate = useRef<HTMLInputElement>(null);
 
   const initialBooking = bookings.find((b) => b.id === (entry?.bookingId ?? prefillBookingId));
-  const roundInit = Boolean(entry?.roundTrip);
+  // New entries start as a round trip (Figma 4C.1); a booking says what it was.
+  const roundInit = entry ? Boolean(entry.roundTrip) : initialBooking ? initialBooking.round : true;
   const [f, setF] = useState(() => ({
     bookingId: initialBooking?.id ?? "",
     date: entry?.date ?? initialBooking?.date ?? prefillDate ?? today,
@@ -111,7 +116,7 @@ export default function EntryPanel({
     note: entry?.note ?? "",
   }));
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((prev) => ({ ...prev, [k]: e.target.value }));
-  const [mode, setMode] = useState<"manual" | "pick" | "linked">(initialBooking ? "linked" : "manual");
+  const [mode, setMode] = useState<"manual" | "pick" | "linked">(initialBooking ? "linked" : startPicking ? "pick" : "manual");
   const linked = mode === "linked" ? bookings.find((b) => b.id === f.bookingId) : undefined;
 
   function pickBooking(b: BookingOption) {
@@ -123,6 +128,7 @@ export default function EntryPanel({
       phone: digits(b.phone).slice(-10),
       from: b.from,
       to: b.to,
+      roundTrip: b.round,
       carId: b.carId || prev.carId,
       fare: b.quote ? String(b.quote) : prev.fare,
     }));
@@ -138,10 +144,16 @@ export default function EntryPanel({
   const bookingHits = useMemo(() => {
     const q = bookingQuery.trim().toLowerCase();
     const qd = digits(q);
+    // Without a search: confirmed trips from today and yesterday (Figma 4C.4).
+    if (!q) return bookings.filter((b) => b.date === today || b.date === shift(today, -1)).slice(0, 8);
     return bookings
-      .filter((b) => !q || `${b.name} ${b.from} ${b.to}`.toLowerCase().includes(q) || (qd.length >= 3 && digits(b.phone).includes(qd)))
+      .filter(
+        (b) =>
+          `${b.ref} ${b.name} ${b.from} ${b.to}`.toLowerCase().includes(q) ||
+          (qd.length >= 3 && (digits(b.phone).includes(qd) || b.ref.toLowerCase().includes(q.replace(/\s/g, "")))),
+      )
       .slice(0, 8);
-  }, [bookings, bookingQuery]);
+  }, [bookings, bookingQuery, today]);
   const whenLabel = (b: BookingOption) =>
     `${b.date === today ? "Today" : b.date === shift(today, -1) ? "Yesterday" : dayMonth(b.date)}${b.time ? ` ${time12(b.time)}` : ""}`;
 
@@ -202,7 +214,7 @@ export default function EntryPanel({
 
   return (
     <Drawer
-      title={entry ? "Edit journal entry" : "New journal entry"}
+      title={entry ? "Edit trip entry" : "New trip entry"}
       onClose={close}
       width="max-w-[520px]"
       footer={
@@ -233,7 +245,7 @@ export default function EntryPanel({
               type="button"
               disabled={saving || deleting}
               onClick={() => {
-                if (confirm("Delete this journal entry? This can't be undone.")) startDelete(() => removeEntry(entry.id, returnTo));
+                if (confirm("Delete this trip entry? This can't be undone.")) startDelete(() => removeEntry(entry.id, returnTo));
               }}
               className={btnDanger}
             >
@@ -327,13 +339,19 @@ export default function EntryPanel({
                   autoFocus
                   value={bookingQuery}
                   onChange={(e) => setBookingQuery(e.target.value)}
-                  placeholder="Search name, phone or place"
+                  placeholder="Search booking no., name or phone"
                   aria-label="Search bookings"
                   className={bareInput} style={noOutline}
                 />
               </label>
-              <p className="bg-gray-50 px-3.5 pb-1.5 pt-2 type-body-sm text-secondary">Recent trips not in the journal yet</p>
-              {bookingHits.length === 0 && <p className="border-t border-gray-100 px-3.5 py-3 type-body-sm text-secondary">No booking matches “{bookingQuery}”.</p>}
+              <p className="bg-gray-50 px-3.5 pb-1.5 pt-2 type-body-sm text-secondary">
+                {bookingQuery.trim() ? "Trips not in the Trip log yet" : "Confirmed trips, today and yesterday"}
+              </p>
+              {bookingHits.length === 0 && (
+                <p className="border-t border-gray-100 px-3.5 py-3 type-body-sm text-secondary">
+                  {bookingQuery.trim() ? `No booking matches “${bookingQuery}”.` : "None today or yesterday. Search for an older booking."}
+                </p>
+              )}
               {bookingHits.map((b) => (
                 <button
                   key={b.id}
@@ -345,10 +363,11 @@ export default function EntryPanel({
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-x-2">
                       <span className="type-ui text-primary">{b.name || "Unnamed"}</span>
-                      {b.phone && <span className="type-mono-sm text-secondary">{fmtPhone(digits(b.phone).slice(-10))}</span>}
+                      <span className="type-mono-sm text-secondary">{b.ref}</span>
                     </span>
                     <span className="block truncate type-body-sm text-secondary">
                       {b.from} → {b.to || "—"}
+                      {b.round ? ", round trip" : ""}
                     </span>
                   </span>
                   <span className="shrink-0 type-body-sm text-secondary">{whenLabel(b)}</span>
@@ -365,7 +384,9 @@ export default function EntryPanel({
               <input type="hidden" name="to" value={f.to} />
               <div className="flex items-center gap-2">
                 <Icon name="notebook" size={18} className="text-[var(--icon-secondary)]" />
-                <span className="flex-1 type-mono-sm text-secondary">Booking · {whenLabel(linked)}</span>
+                <span className="flex-1 type-mono-sm text-secondary" title={`Booking · ${whenLabel(linked)}`}>
+                  {linked.ref}
+                </span>
                 <span className="rounded-full border border-brand bg-hover px-2 py-0.5 type-body-sm text-brand">Linked</span>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -601,7 +622,6 @@ export default function EntryPanel({
           </div>
         </section>
 
-        {mode === "linked" && !entry && <p className="type-body-sm text-secondary">Saving marks the linked booking as completed.</p>}
         <FormError error={state?.error} />
       </form>
     </Drawer>

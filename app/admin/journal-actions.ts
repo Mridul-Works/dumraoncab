@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { BOOKING_STATUSES, phoneDigits, type BookingStatus } from "@/lib/bookingTypes";
 import { getCar } from "@/lib/fleet";
-import { addEntry, deleteEntry, updateEntry } from "@/lib/journal";
+import { addEntry, approveEntry, askToFix, deleteEntry, getEntry, unapproveEntry, updateEntry, type FixReason } from "@/lib/journal";
 import { getBooking, updateBooking } from "@/lib/store";
 import { field, isDate, money, refreshAdmin, type FormState } from "./form";
 
@@ -14,7 +14,7 @@ const safeReturn = (to: string) => (/^\/admin\/journal(\?[\w=&%.-]*)?$/.test(to)
 // returnTo with extra query params (drops any stale toast params first).
 function withParams(to: string, params: Record<string, string>) {
   const url = new URL(safeReturn(to), "http://x");
-  for (const k of ["saved", "added", "was", "new", "entry", "booking", "date"]) url.searchParams.delete(k);
+  for (const k of ["saved", "added", "was", "new", "entry", "booking", "date", "check", "approved", "fixed"]) url.searchParams.delete(k);
   for (const [k, v] of Object.entries(params)) if (v) url.searchParams.set(k, v);
   return `${url.pathname}${url.search}`;
 }
@@ -79,6 +79,66 @@ export async function undoEntry(id: string, returnTo: string, bookingId?: string
   if (bookingId && was && BOOKING_STATUSES.includes(was as BookingStatus)) {
     const booking = await getBooking(String(bookingId));
     if (booking?.status === "completed") await updateBooking(booking.id, { status: was as BookingStatus });
+  }
+  refreshAdmin();
+  redirect(withParams(String(returnTo), {}));
+}
+
+/* ------------------------ driver entries (Figma 4B.5–4B.7) ------------------------ */
+
+// Approve a driver's entry with the money as checked by the office. The
+// trip's booking is closed out and marked as checked for the driver app.
+export async function approveDriverEntry(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const id = field(formData, "id", 64);
+  if (field(formData, "fare", 20) === "") return { error: "Enter the fare. Use 0 if nothing was charged." };
+  const entry = await approveEntry(id, { fare: money(formData, "fare"), fuel: money(formData, "fuel"), driverCut: money(formData, "driverCut") });
+  if (!entry) return { error: "This entry was deleted." };
+  let was = "";
+  const booking = entry.bookingId ? await getBooking(entry.bookingId) : undefined;
+  if (booking) {
+    const patch: Parameters<typeof updateBooking>[1] = {};
+    if (booking.trip) patch.trip = { ...booking.trip, approved: true, officeNote: undefined };
+    if (booking.status === "new" || booking.status === "contacted" || booking.status === "confirmed") {
+      was = booking.status;
+      patch.status = "completed";
+    }
+    await updateBooking(booking.id, patch);
+  }
+  refreshAdmin();
+  redirect(withParams(field(formData, "returnTo", 300), { approved: id, was }));
+}
+
+const FIX_REASONS: FixReason[] = ["receipt", "meter", "other"];
+
+// Send the entry back to the driver with a note; it stays on hold.
+export async function askDriverToFix(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const id = field(formData, "id", 64);
+  const reason = field(formData, "reason", 10) as FixReason;
+  const note = field(formData, "note", 500);
+  if (!FIX_REASONS.includes(reason)) return { error: "Pick what needs fixing." };
+  if (!note) return { error: "Write a short message for the driver." };
+  const entry = await askToFix(id, reason, note);
+  if (!entry) return { error: "This entry was deleted." };
+  const booking = entry.bookingId ? await getBooking(entry.bookingId) : undefined;
+  if (booking?.trip) await updateBooking(booking.id, { trip: { ...booking.trip, approved: false, officeNote: note } });
+  refreshAdmin();
+  redirect(withParams(field(formData, "returnTo", 300), { fixed: id }));
+}
+
+// Toast "Undo" after approving: back to waiting, booking restored.
+export async function undoApprove(id: string, returnTo: string, was?: string) {
+  await requireAdmin();
+  const entry = await getEntry(String(id));
+  if (entry && (await unapproveEntry(entry.id)) && entry.bookingId) {
+    const booking = await getBooking(entry.bookingId);
+    if (booking) {
+      const patch: Parameters<typeof updateBooking>[1] = {};
+      if (booking.trip) patch.trip = { ...booking.trip, approved: false };
+      if (was && booking.status === "completed" && BOOKING_STATUSES.includes(was as BookingStatus)) patch.status = was as BookingStatus;
+      await updateBooking(booking.id, patch);
+    }
   }
   refreshAdmin();
   redirect(withParams(String(returnTo), {}));

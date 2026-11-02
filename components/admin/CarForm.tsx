@@ -68,6 +68,7 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
   const [fareChoice, setFareChoice] = useState(car ? car.fareClass || ON_REQUEST : "");
   const [image, setImage] = useState(car?.image ?? "");
   const [shown, setShown] = useState(car?.shown ?? true);
+  const [verified, setVerified] = useState(car?.verified ?? true);
   const [showLink, setShowLink] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -91,7 +92,7 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
     const fd = new FormData();
     fd.set("photo", file);
     startUpload(async () => {
-      const res: { url?: string; error?: string } = await uploadCarPhoto(fd).catch(() => ({ error: "Upload failed — check the file is under 4 MB." }));
+      const res: { url?: string; error?: string } = await uploadCarPhoto(fd).catch(() => ({ error: "Upload failed — check the file is under 5 MB." }));
       if (res.url) setImage(res.url);
       else setUploadError(res.error ?? "Upload failed.");
       if (fileInput.current) fileInput.current.value = "";
@@ -111,7 +112,7 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
         <div className={`grid gap-3.5 ${car ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
           <div>
             <Label htmlFor="car-name">Car name</Label>
-            <input id="car-name" name="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder={car ? undefined : "e.g. Scorpio VLX"} className={inputCls} />
+            <input id="car-name" name="name" required value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
           </div>
           {car && (
             <div>
@@ -148,7 +149,7 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
           </div>
           <div>
             <Label htmlFor="car-seats">Seats</Label>
-            <input id="car-seats" name="seats" value={seats} onChange={(e) => setSeats(e.target.value)} placeholder={car ? undefined : "e.g. 7 seats"} className={inputCls} />
+            <input id="car-seats" name="seats" value={seats} onChange={(e) => setSeats(e.target.value)} className={inputCls} />
           </div>
         </div>
 
@@ -212,7 +213,7 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
               <span className="block truncate type-ui text-primary">
                 {uploading ? "Uploading…" : image ? fileName(image) : "Drop a photo or click to upload"}
               </span>
-              <span className="block type-body-sm text-secondary">Real photo of this car. JPG, PNG or WebP, landscape, up to 4 MB.</span>
+              <span className="block type-body-sm text-secondary">Real photo of this car. JPG or PNG, landscape, up to 5 MB.</span>
             </label>
             {image && (
               <button type="button" disabled={uploading} onClick={() => fileInput.current?.click()} className={btnGhost}>
@@ -247,6 +248,7 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
           title="Shown on website"
           hint="Turn off to hide it from /fleet and the booking form without deleting it."
         />
+        <SwitchRow name="verified" checked={verified} onChange={setVerified} title="Show “Verified · Own fleet” tag" hint="Matches the tag on the public car card." />
 
         <FormError error={state?.error} />
 

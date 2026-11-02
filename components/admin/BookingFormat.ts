@@ -42,3 +42,38 @@ export const sourceId = (b: Booking) => (b.source === "admin" ? "phone-call" : b
 
 // "Dumraon → Patna Airport", or just the pickup for local trips.
 export const route = (b: Booking) => (b.to ? `${b.from} → ${b.to}` : b.from);
+
+// Short reference printed on the booking PDF and shown in WhatsApp file names: "DC-3F9A1C".
+export const bookingRef = (b: Pick<Booking, "id">) => `DC-${b.id.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase()}`;
+
+// "17:30" → "5:30 PM" (no leading zero, as on the slip and in WhatsApp texts)
+export const fmtClock = (t: string) => fmtTime(t).replace(/^0/, "");
+
+// "2026-11-02" → "Mon 2 Nov"
+export function fmtDay(d: string) {
+  if (!d) return "";
+  const p = parts(d);
+  return `${DAYS[p.dow]} ${p.day} ${MONTHS[p.m - 1]}`;
+}
+
+// Shift a trip's date + "HH:MM" by some minutes (may cross midnight).
+export function shiftTime(d: string, t: string, minutes: number): { date: string; time: string } {
+  const ms = Date.parse(`${d || "2000-01-01"}T${t}:00Z`) + minutes * 60_000;
+  const iso = new Date(ms).toISOString();
+  return { date: d ? iso.slice(0, 10) : "", time: iso.slice(11, 16) };
+}
+
+// "Mon 2 Nov, 5:30 AM" — empty parts dropped.
+export const fmtWhen = (b: Pick<Booking, "date" | "time">) => [fmtDay(b.date), b.time ? fmtClock(b.time) : ""].filter(Boolean).join(", ");
+
+// Extras the phone-booking form folds into the notes ("Round trip · Flight/train: 6E 2134 · 3 bags").
+export function tripExtras(b: Pick<Booking, "notes">) {
+  const n = b.notes ?? "";
+  const bags = /(\d+) bags?/i.exec(n);
+  const flight = /Flight\/train:\s*([^·\n]+)/i.exec(n);
+  return { roundTrip: /round trip/i.test(n), bags: bags ? Number(bags[1]) : 0, flight: flight ? flight[1].trim() : "" };
+}
+
+// Who drives the trip, for the drawer, slip and messages.
+export const hasDriver = (b: Pick<Booking, "driverName" | "driverMobile">) => Boolean(b.driverName && b.driverMobile);
+export const pdfHref = (id: string, copy: "customer" | "driver") => `/admin/bookings/${id}/pdf?copy=${copy}`;

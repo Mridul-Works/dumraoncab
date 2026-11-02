@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/admin/Icon";
+import { navItemCls } from "@/components/admin/navStyles";
 
 export const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "squares-four" },
-  { href: "/admin/bookings", label: "Bookings", icon: "calendar" },
-  { href: "/admin/fleet", label: "Fleet", icon: "car-profile" },
-  { href: "/admin/journal", label: "Daily journal", icon: "notebook" },
+  { href: "/admin/bookings", label: "Bookings", icon: "calendar-check" },
+  { href: "/admin/fleet", label: "Fleet", icon: "car-simple-18" },
+  { href: "/admin/vendors", label: "Vendors", icon: "storefront" },
+  { href: "/admin/journal", label: "Trip log", icon: "notebook-18" },
   { href: "/admin/fares", label: "Fares", icon: "currency-inr" },
+  { href: "/admin/analytics", label: "Analytics", icon: "chart-bar" },
 ];
 
-// Figma "Nav item": 12×10 padding, 18px icon, ui text; selected = layer-selected fill.
-export const navItemCls = "flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2.5 type-ui transition-colors";
 
 export default function AdminNav({ newCount }: { newCount: number }) {
   const pathname = usePathname();
@@ -39,5 +40,20 @@ export default function AdminNav({ newCount }: { newCount: number }) {
         );
       })}
     </nav>
+  );
+}
+
+// Sidebar footer link (Company profile) — same look as a nav item, highlighted when open.
+export function SideLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+  const active = usePathname().startsWith(href);
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`${navItemCls} ${active ? "bg-layer-selected text-primary" : "text-secondary hover:bg-layer-hover hover:text-primary"}`}
+    >
+      <Icon name={icon} size={18} className={active ? "text-[var(--icon-primary)]" : "text-[var(--icon-secondary)]"} />
+      {label}
+    </Link>
   );
 }
