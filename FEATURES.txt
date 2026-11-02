@@ -160,7 +160,7 @@ Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled.
   driver — printable A4 slip (print or save as PDF; toolbar hidden in
   print). Customer copy: greeting, date/time, trip tags, key facts (pickup,
   car plate, driver, total), route with stops and distance/drive time for
-  known routes, fare lines, UPI id, numbered terms (free-cancellation
+  known routes, fare lines, UPI id (plus a scannable UPI QR when Company profile "Add a UPI QR" is on), numbered terms (free-cancellation
   line + Company profile terms). Driver copy: no fare; customer and
   passengers, trip steps with times, write-in boxes for the Trip log,
   "Before you go" checklist. Brand, phones, address, GSTIN, UPI and

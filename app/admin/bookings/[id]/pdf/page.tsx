@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { bookingRef, fmtClock, fmtDay, fmtWhen, shiftTime, tripExtras } from "@/components/admin/BookingFormat";
 import Icon from "@/components/admin/Icon";
+import { qrMatrix, upiLink } from "@/components/driver/qr";
 import { StatusBadge } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
 import type { Booking } from "@/lib/bookingTypes";
@@ -233,7 +234,9 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
                 {company.upi && (
                   <div className="flex w-[200px] shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-gray-100 px-5 py-4 text-center">
                     <p className="type-h4 text-primary">Pay by UPI</p>
-                    <p className="type-body-sm text-secondary">After the trip, to</p>
+                    {/* Company profile "Add a UPI QR to booking PDFs" (Figma 8.1) */}
+                    {company.upiQr && <UpiQr text={upiLink(company.upi, company.name, b.quote ?? 0, bookingRef(b))} />}
+                    <p className="type-body-sm text-secondary">{company.upiQr ? "Scan after the trip, or pay" : "After the trip, to"}</p>
                     <p className="break-all type-mono-sm text-primary">{company.upi}</p>
                   </div>
                 )}
@@ -389,5 +392,17 @@ function Step({ n, time, text, last = false }: { n: number; time: string; text: 
       <p className="type-ui text-primary">{time}</p>
       <p className="type-body-sm text-secondary">{text}</p>
     </li>
+  );
+}
+
+// UPI payment QR (same encoder as the driver app's Collect payment screen).
+function UpiQr({ text }: { text: string }) {
+  const rows = qrMatrix(text);
+  const n = rows.length + 8; // 4-module quiet zone
+  const d = rows.map((r, y) => r.map((on, x) => (on ? `M${x + 4} ${y + 4}h1v1h-1z` : "")).join("")).join("");
+  return (
+    <svg viewBox={`0 0 ${n} ${n}`} width={112} height={112} role="img" aria-label="UPI payment QR code" shapeRendering="crispEdges" className="bg-white text-black">
+      <path d={d} fill="currentColor" />
+    </svg>
   );
 }
