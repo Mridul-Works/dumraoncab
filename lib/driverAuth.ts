@@ -33,9 +33,10 @@ export const SHOW_CODE_ON_SCREEN = !WEBHOOK && (isDev || !!DEMO_CODE);
 
 // Last 10 digits of an Indian mobile number, or "" when it isn't one.
 export function mobileDigits(input: string): string {
-  const d = input.replace(/\D/g, "");
-  const ten = d.length === 12 && d.startsWith("91") ? d.slice(2) : d.length === 11 && d.startsWith("0") ? d.slice(1) : d;
-  return /^[6-9]\d{9}$/.test(ten) ? ten : "";
+  let d = input.replace(/\D/g, "");
+  // Drop country code / trunk prefixes, even doubled ("+91 +91 …", "091 …").
+  while (d.length > 10 && (d.startsWith("91") || d.startsWith("0"))) d = d.startsWith("0") ? d.slice(1) : d.slice(2);
+  return /^[6-9]\d{9}$/.test(d) ? d : "";
 }
 
 // "9835122408" → "+91 98351 22408"

@@ -70,7 +70,10 @@ const shortCookie = { httpOnly: true, sameSite: "lax" as const, secure: process.
 export async function requestCode(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const mobile = mobileDigits(str(fd, "mobile", 20));
   if (!mobile) return { error: "Enter your 10-digit mobile number." };
-  const res = await sendCode(mobile);
+  const res = await sendCode(mobile).catch((err: Error) => {
+    console.error("[driver-app] sign-in failed:", err);
+    return { ok: false as const, error: "Sign-in isn’t working right now. Please call the office." };
+  });
   if (!res.ok) return { error: res.error };
   const jar = await cookies();
   jar.set(PENDING, mobile, shortCookie);
@@ -83,7 +86,10 @@ export async function resendCode(): Promise<ActionState> {
   const jar = await cookies();
   const mobile = mobileDigits(jar.get(PENDING)?.value ?? "");
   if (!mobile) redirect("/driver/sign-in");
-  const res = await sendCode(mobile);
+  const res = await sendCode(mobile).catch((err: Error) => {
+    console.error("[driver-app] resend failed:", err);
+    return { ok: false as const, error: "Sign-in isn’t working right now. Please call the office.", resendIn: undefined };
+  });
   if (!res.ok) return { error: res.error, resendIn: res.resendIn };
   if (res.devCode) jar.set(DEV_CODE, res.devCode, shortCookie);
   return { ok: true, resendIn: res.resendIn, devCode: res.devCode };

@@ -17,6 +17,13 @@ export const DATA_DIR = path.join(process.cwd(), "data");
 const REDIS_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "").replace(/\/$/, "");
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
 export const usingRedis = !!(REDIS_URL && REDIS_TOKEN);
+
+// On Vercel the filesystem is read-only: without Redis every save would fail
+// with a confusing EROFS error, so say plainly what's missing instead.
+const NO_DATABASE = "No database is connected. In Vercel → Storage, connect Upstash for Redis to this project, then redeploy.";
+function assertWritable() {
+  if (!usingRedis && process.env.VERCEL) throw new Error(NO_DATABASE);
+}
 const PREFIX = "dc:"; // keeps this app's keys apart if the database is shared
 
 async function redis<T = unknown>(...command: (string | number)[]): Promise<T> {
@@ -89,6 +96,7 @@ export function jsonFile<T>(name: string, fallback: () => T) {
       await redis("SET", key, JSON.stringify(data));
       return;
     }
+    assertWritable();
     await fs.mkdir(DATA_DIR, { recursive: true });
     // Write-then-rename so a crash mid-write never leaves a truncated file.
     const tmp = `${file}.${process.pid}.tmp`;
@@ -128,6 +136,7 @@ export async function putUpload(folder: UploadFolder, name: string, bytes: Buffe
     await redis("SET", `${PREFIX}file:${folder}:${name}`, bytes.toString("base64"));
     return;
   }
+  assertWritable();
   await fs.mkdir(path.join(DATA_DIR, folder), { recursive: true });
   await fs.writeFile(path.join(DATA_DIR, folder, name), bytes);
 }
