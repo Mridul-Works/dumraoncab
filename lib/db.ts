@@ -1,6 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
+import os from "os";
 import { randomUUID } from "crypto";
+import { buildDemoData } from "./demoData.mjs";
 
 // Storage used by every store (bookings, fleet, fares, trip log, vendors,
 // company, driver app) and every upload (car photos, logo, vendor documents,
@@ -11,18 +13,37 @@ import { randomUUID } from "crypto";
 //    UPSTASH_REDIS_REST_TOKEN are present. Needed on Vercel/serverless, where
 //    the filesystem can't be written.
 //  - JSON files in data/ otherwise (local development, VPS, Docker).
-
-export const DATA_DIR = path.join(process.cwd(), "data");
+//  - Demo mode: on Vercel with no Redis connected, JSON files in the
+//    function's temporary folder, filled with the demo data (lib/demoData.mjs)
+//    on first use. Lets the live site be tried with no setup, but each server
+//    instance has its own copy and it resets on restarts/redeploys — connect
+//    Redis before using the site for real.
 
 const REDIS_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "").replace(/\/$/, "");
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
 export const usingRedis = !!(REDIS_URL && REDIS_TOKEN);
+export const demoStorage = !usingRedis && !!process.env.VERCEL;
 
-// On Vercel the filesystem is read-only: without Redis every save would fail
-// with a confusing EROFS error, so say plainly what's missing instead.
-const NO_DATABASE = "No database is connected. In Vercel → Storage, connect Upstash for Redis to this project, then redeploy.";
-function assertWritable() {
-  if (!usingRedis && process.env.VERCEL) throw new Error(NO_DATABASE);
+export const DATA_DIR = demoStorage ? path.join(os.tmpdir(), "dumraoncab-data") : path.join(process.cwd(), "data");
+
+// Demo mode: put the demo data in place once per server instance.
+let demoReady: Promise<void> | null = null;
+function ensureDemoData(): Promise<void> {
+  if (!demoStorage) return Promise.resolve();
+  demoReady ??= (async () => {
+    const marker = path.join(DATA_DIR, "bookings.json");
+    if (await fs.access(marker).then(() => true, () => false)) return;
+    const { vendors, bookings, journal, docs } = buildDemoData();
+    await fs.mkdir(path.join(DATA_DIR, "vendor-docs"), { recursive: true });
+    for (const d of docs) await fs.writeFile(path.join(DATA_DIR, "vendor-docs", d.name), d.bytes);
+    await fs.writeFile(path.join(DATA_DIR, "vendors.json"), JSON.stringify(vendors));
+    await fs.writeFile(path.join(DATA_DIR, "journal.json"), JSON.stringify(journal));
+    await fs.writeFile(marker, JSON.stringify(bookings)); // last: marks the set complete
+  })().catch((err) => {
+    demoReady = null;
+    throw err;
+  });
+  return demoReady;
 }
 const PREFIX = "dc:"; // keeps this app's keys apart if the database is shared
 
@@ -81,6 +102,7 @@ export function jsonFile<T>(name: string, fallback: () => T) {
       const raw = await redis<string | null>("GET", key);
       return raw == null ? fallback() : (JSON.parse(raw) as T);
     }
+    await ensureDemoData();
     try {
       return JSON.parse(await fs.readFile(file, "utf8")) as T;
     } catch (err) {
@@ -96,7 +118,6 @@ export function jsonFile<T>(name: string, fallback: () => T) {
       await redis("SET", key, JSON.stringify(data));
       return;
     }
-    assertWritable();
     await fs.mkdir(DATA_DIR, { recursive: true });
     // Write-then-rename so a crash mid-write never leaves a truncated file.
     const tmp = `${file}.${process.pid}.tmp`;
@@ -136,7 +157,6 @@ export async function putUpload(folder: UploadFolder, name: string, bytes: Buffe
     await redis("SET", `${PREFIX}file:${folder}:${name}`, bytes.toString("base64"));
     return;
   }
-  assertWritable();
   await fs.mkdir(path.join(DATA_DIR, folder), { recursive: true });
   await fs.writeFile(path.join(DATA_DIR, folder, name), bytes);
 }
@@ -147,6 +167,7 @@ export async function getUpload(folder: UploadFolder, name: string): Promise<Buf
     const b64 = await redis<string | null>("GET", `${PREFIX}file:${folder}:${name}`);
     return b64 == null ? null : Buffer.from(b64, "base64");
   }
+  await ensureDemoData();
   try {
     return await fs.readFile(path.join(DATA_DIR, folder, name));
   } catch {

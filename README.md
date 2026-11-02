@@ -44,15 +44,19 @@ server-rendered booking page.
   - **Vercel / live:** Redis. In Vercel → Storage, add **Upstash for Redis** and connect
     it to this project; that sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Redeploy.
     Data, sign-in codes and uploads (photos, vendor documents) all live there.
+  - **Vercel with no Redis yet — demo mode:** works with no setup. Data lives in each
+    server's temporary folder, filled with the demo data on first use; saves can vanish
+    when Vercel restarts or switches servers. Fine for trying it out, not for real use.
   - **Local / VPS:** JSON files in `data/` (gitignored) and uploads in `data/uploads/`,
     `data/vendor-docs/`. Back up `data/` regularly.
 - Demo data: `npm run seed` fills empty storage with sample bookings, vendors (with
   sample documents) and trip-log entries dated around today; `npm run seed -- --force`
   replaces them. The script reads `.env.local`: with the Vercel `KV_REST_API_URL` /
   `KV_REST_API_TOKEN` in it, it seeds the **live** database. Demo driver for `/driver`:
-  mobile 95256 66262. Without SMS, set `DRIVER_DEMO_CODE=123456` (local `.env.local`
-  and/or Vercel env) — every number then signs in with that code, so remove it once
-  real SMS (`DRIVER_OTP_WEBHOOK`) is set up.
+  mobile 95256 66262. **Demo shortcut: type `111` as the mobile number to go straight
+  in as the demo driver, no code** (on until real SMS `DRIVER_OTP_WEBHOOK` is set up, or
+  `DRIVER_DEMO_SHORTCUT=off`). Optional `DRIVER_DEMO_CODE=123456` makes every number
+  sign in with that code. Both let anyone in, so turn them off before real use.
 - Publishing: saving in Fleet or Fares expires every public page that shows cars or
   prices (cache tag `catalog`), so the next visitor sees the change — no redeploy.
   If you ever edit `data/fleet.json` or `data/fares.json` by hand, delete

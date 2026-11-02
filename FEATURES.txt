@@ -344,7 +344,10 @@ writes go through lib/db.ts: serialised per file and atomic (temp
 file + rename); a corrupt file raises an error instead of reading as
 empty. Fleet and fares fall back to the seeds in lib/site.ts until
 first saved.
-Storage backend is chosen by lib/db.ts: Redis (Upstash REST, plain
+Storage backend is chosen by lib/db.ts. DEMO MODE: on Vercel with no
+Redis, JSON files in the server's temp folder, filled with the demo
+data (lib/demoData.mjs) on first use — no setup, but per-instance and
+reset on restarts. Otherwise: Redis (Upstash REST, plain
 fetch — no package) when KV_REST_API_URL + KV_REST_API_TOKEN (Vercel
 "Upstash for Redis" integration) or UPSTASH_REDIS_REST_URL/TOKEN are
 set — required on Vercel, whose filesystem is read-only; otherwise
@@ -430,7 +433,10 @@ Line art in public/driver-art/, icons from public/admin-icons/.
   development the code is printed to the server console and shown in
   a "Demo" note; for a demo/preview without SMS set DRIVER_DEMO_CODE
   (6 digits — every number then uses that code, shown on screen; anyone
-  can sign in, so remove it once SMS works); in production set
+  can sign in, so remove it once SMS works). DEMO SHORTCUT: mobile
+  "111" signs straight in as the demo driver (95256 66262), no code —
+  on until DRIVER_OTP_WEBHOOK is set or DRIVER_DEMO_SHORTCUT=off;
+  in production set
   DRIVER_OTP_WEBHOOK (POST {mobile, code}) or sign-in says "SMS is
   not set up". Session =
   HMAC-signed httpOnly cookie (30 days) keyed by

@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
-import { jsonFile } from "./db";
+import { demoStorage, jsonFile } from "./db";
+import { DEMO_DRIVER_MOBILE } from "./demoData.mjs";
 
 // Driver app sign-in (Figma 10.2–10.4): mobile number + 6-digit one-time code.
 //
@@ -31,6 +32,15 @@ const DEMO_CODE = /^\d{6}$/.test(process.env.DRIVER_DEMO_CODE ?? "") ? process.e
 // Show the code on screen when it isn't sent by SMS (development or demo mode).
 export const SHOW_CODE_ON_SCREEN = !WEBHOOK && (isDev || !!DEMO_CODE);
 
+// Demo shortcut: typing 111 as the mobile number signs straight in as the demo
+// driver (Kishor Kumar, 95256 66262), no code. On by default so the app can be
+// tried with no setup; switches itself off once real SMS (DRIVER_OTP_WEBHOOK)
+// is set up, or with DRIVER_DEMO_SHORTCUT=off. Anyone who knows it can open
+// the demo driver's account, so turn it off before real drivers use the app.
+export const DEMO_SHORTCUT = !WEBHOOK && process.env.DRIVER_DEMO_SHORTCUT !== "off";
+export const isDemoShortcut = (input: string) => DEMO_SHORTCUT && input.replace(/\D/g, "") === "111";
+export const DEMO_MOBILE = DEMO_DRIVER_MOBILE;
+
 // Last 10 digits of an Indian mobile number, or "" when it isn't one.
 export function mobileDigits(input: string): string {
   let d = input.replace(/\D/g, "");
@@ -52,6 +62,16 @@ async function sessionKey(): Promise<Buffer> {
   const env = process.env.DRIVER_SESSION_SECRET;
   if (env) {
     cachedKey = createHash("sha256").update(`dc-driver:${env}`).digest();
+    return cachedKey;
+  }
+  // Demo storage on Vercel is per server instance, so a stored key would differ
+  // between instances and sign drivers out at random; use a secret the whole
+  // deployment shares instead.
+  const shared = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD;
+  if (demoStorage) {
+    cachedKey = createHash("sha256")
+      .update(`dc-driver-demo:${shared || `${process.env.VERCEL_PROJECT_ID ?? ""}:${process.env.VERCEL_GIT_REPO_ID ?? ""}`}`)
+      .digest();
     return cachedKey;
   }
   // Created once and kept in the store (data/driver-secret.json or Redis);
@@ -136,6 +156,8 @@ export type VerifyResult = { ok: true } | { ok: false; error: string; triesLeft:
 export async function verifyCode(input: string, code: string): Promise<VerifyResult> {
   const mobile = mobileDigits(input);
   if (!mobile || !/^\d{6}$/.test(code)) return { ok: false, error: "Enter the 6-digit code.", triesLeft: MAX_TRIES };
+  // Demo code works on any server instance, without a stored record.
+  if (!WEBHOOK && DEMO_CODE && safeEqual(code, DEMO_CODE)) return { ok: true };
   const key = await sessionKey();
   const now = Date.now();
 

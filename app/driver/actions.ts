@@ -5,7 +5,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { refresh, revalidatePath } from "next/cache";
 import {
+  DEMO_MOBILE,
   endDriverSession,
+  isDemoShortcut,
   mobileDigits,
   requireDriverSession,
   sendCode,
@@ -68,6 +70,11 @@ function touched() {
 const shortCookie = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/driver", maxAge: 15 * 60 };
 
 export async function requestCode(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  // Demo shortcut (lib/driverAuth.ts): 111 → straight in as the demo driver.
+  if (isDemoShortcut(str(fd, "mobile", 20))) {
+    await startDriverSession(DEMO_MOBILE);
+    redirect("/driver");
+  }
   const mobile = mobileDigits(str(fd, "mobile", 20));
   if (!mobile) return { error: "Enter your 10-digit mobile number." };
   const res = await sendCode(mobile).catch((err: Error) => {
