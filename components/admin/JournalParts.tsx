@@ -282,7 +282,8 @@ export function EntryRow({
     <div className={`flex items-center gap-3 border-b border-gray-100 py-3.5 pl-5 pr-3 md:gap-4 ${highlight ? "bg-hover" : ""}`}>
       {lead}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate type-body-md text-primary">{title}</p>
+        {/* Phones: room is tight next to the car and net, so wrap to two lines instead of cutting to a few letters. */}
+        <p className="line-clamp-2 break-words type-body-md text-primary md:line-clamp-none md:truncate">{title}</p>
         <div className="flex flex-wrap items-center gap-2">
           {line && (
             <span className="flex min-w-0 items-center gap-2 type-mono-sm text-secondary">
@@ -325,7 +326,7 @@ export function CarLead({ car, href }: { car: Pick<Car, "name" | "number"> | und
       </span>
     </>
   );
-  const cls = "flex w-28 shrink-0 items-center gap-2.5 md:w-[150px]";
+  const cls = "flex w-22 shrink-0 items-center gap-2.5 sm:w-28 md:w-[150px]";
   const title = car ? car.name : "Removed car";
   // Vendor cars have no one-car view, so they don't link.
   return href ? (

@@ -124,7 +124,7 @@ export default function DocReviewDrawer({
               <label htmlFor="reupload-reason" className={labelCls}>
                 What’s wrong with it?
               </label>
-              <select id="reupload-reason" value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}>
+              <select id="reupload-reason" value={reason} onChange={(e) => setReason(e.target.value)} className={`${inputCls} select-caret`}>
                 {vendorReuploadReasons.map((r) => (
                   <option key={r}>{r}</option>
                 ))}

@@ -399,6 +399,13 @@ replaces them.
   sections (JS-applied so no-JS/crawlers see everything), hover
   micro-interactions (card lift, image zoom, arrow slide); all
   respect prefers-reduced-motion
+- Inputs (app/globals.css): text fields show focus once — their own
+  (or icon wrapper's) border turns brand green, no extra ring; the
+  page focus ring (buttons, links) lives in the base layer so
+  component focus styles win and keeps each element's corners. On
+  phones / touch screens field text is at least 16px so iOS doesn't
+  zoom on tap. Native dropdowns use the `select-caret` utility (Figma
+  caret-down) instead of the browser arrow.
 - Accessibility: skip-to-content link, visible focus rings, aria
   labels/roles on tabs/menu/carousel, labelled form fields,
   keyboard-usable menus and accordions

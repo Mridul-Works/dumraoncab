@@ -69,7 +69,7 @@ const FUELS = ["Diesel", "Petrol", "CNG", "EV"];
 // Car details for a car added on 10.9 (shown on 10.10 until filled in).
 export function CarDetailsForm({ car }: { car: { id: string; model: string; number: string; type: string; fuel: string; seats: number; year: number } }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(saveCar, undefined);
-  const select = "w-full rounded-md border border-gray-200 bg-layer px-[14px] py-[10px] type-body-sm text-primary";
+  const select = "w-full rounded-md border border-gray-200 bg-layer px-[14px] py-[10px] type-body-sm text-primary outline-none focus:border-brand";
   return (
     <form action={action} className="flex flex-col gap-[14px] rounded-md border border-gray-200 bg-layer p-[14px]">
       <input type="hidden" name="id" value={car.id} />
@@ -78,7 +78,7 @@ export function CarDetailsForm({ car }: { car: { id: string; model: string; numb
       <div className="flex gap-[10px]">
         <label className="flex flex-1 flex-col gap-[6px] type-ui text-primary">
           Type
-          <select name="type" defaultValue={car.type} className={select}>
+          <select name="type" defaultValue={car.type} className={`${select} select-caret`}>
             {TYPES.map((t) => (
               <option key={t}>{t}</option>
             ))}
@@ -86,7 +86,7 @@ export function CarDetailsForm({ car }: { car: { id: string; model: string; numb
         </label>
         <label className="flex flex-1 flex-col gap-[6px] type-ui text-primary">
           Fuel
-          <select name="fuel" defaultValue={car.fuel} className={select}>
+          <select name="fuel" defaultValue={car.fuel} className={`${select} select-caret`}>
             {FUELS.map((t) => (
               <option key={t}>{t}</option>
             ))}

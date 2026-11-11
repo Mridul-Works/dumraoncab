@@ -36,6 +36,11 @@ const istMinutes = (date: string, time = "00:00") => Date.parse(`${date}T${time}
 function duration(min: number) {
   const m = Math.max(0, Math.round(min));
   if (m < 60) return `${m} min`;
+  // Past a day, hours read badly ("217 h 45 min"): say days.
+  if (m >= 24 * 60) {
+    const d = Math.floor(m / (24 * 60));
+    return d === 1 ? "1 day" : `${d} days`;
+  }
   const h = Math.floor(m / 60);
   const r = m % 60;
   return r ? `${h} h ${String(r).padStart(2, "0")} min` : `${h} h`;
@@ -330,10 +335,10 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className={cardCls}>
           <div className="flex items-center gap-2 pb-2.5 pl-5 pr-3 pt-3.5">
-            <h2 className="type-h4 text-primary">Today’s pickups</h2>
+            <h2 className="whitespace-nowrap type-h4 text-primary">Today’s pickups</h2>
             <span className="type-ui text-secondary">{pickupCount}</span>
             <span className="flex-1" />
-            <Link href="/admin/bookings" className={`${btnText} px-5 py-2.5`}>
+            <Link href="/admin/bookings" className={`${btnText} whitespace-nowrap px-3 py-2.5 sm:px-5`}>
               View all bookings
             </Link>
           </div>

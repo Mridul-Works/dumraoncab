@@ -519,7 +519,7 @@ export default function EntryPanel({
           </div>
           <div
             className={`overflow-hidden rounded-lg bg-layer ${
-              carErr ? "border-2 border-[var(--support-error)]" : q ? "border-2 border-brand" : "border border-gray-200"
+              carErr ? "border-2 border-[var(--support-error)]" : q ? "border-2 border-brand" : "border border-gray-200 focus-within:border-brand"
             }`}
           >
             <label className="flex items-center gap-2.5 bg-gray-50 px-3.5 py-3 text-[var(--icon-secondary)]">

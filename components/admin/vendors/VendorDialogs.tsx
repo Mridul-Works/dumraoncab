@@ -264,7 +264,7 @@ export function SuspendDialog({
         <label htmlFor="suspend-reason" className={labelCls}>
           Reason
         </label>
-        <select id="suspend-reason" value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}>
+        <select id="suspend-reason" value={reason} onChange={(e) => setReason(e.target.value)} className={`${inputCls} select-caret`}>
           {vendorSuspendReasons.map((r) => (
             <option key={r}>{r}</option>
           ))}

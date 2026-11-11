@@ -360,11 +360,30 @@ h4 {
   color: var(--text-primary);
 }
 
-/* Zero specificity so a component's own focus style (e.g. inputs) wins. */
-:where(:focus-visible) {
-  outline: var(--border-width-s) solid var(--border-focus);
-  outline-offset: 3px;
-  border-radius: var(--radius-sm);
+/* Focus ring for buttons, links and other controls. In the base layer so a
+   component's own focus utilities (focus:outline-none, focus:border-brand…)
+   win; it keeps each element's own corner radius. */
+@layer base {
+  :focus-visible {
+    outline: var(--border-width-s) solid var(--border-focus);
+    outline-offset: 3px;
+  }
+
+  /* Text fields show focus once — with their own border (or their icon
+     wrapper's border) turning brand green, as in the Figma "Input" focus
+     state — never with the ring above on top of it. */
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"]), select, textarea):focus-visible {
+    outline: none;
+  }
+}
+
+/* Phones: iOS zooms the page when a field under 16px gets focus. Lift field
+   text to 16px on touch and phone-width screens (larger text, e.g. code
+   boxes, is left alone). */
+@media (pointer: coarse), (max-width: 767px) {
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), select, textarea):not([class*="type-h"], [class*="type-display"]) {
+    font-size: 16px;
+  }
 }
 
 /* Section seam — quiet hairline */
@@ -496,4 +515,16 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Native <select> with the Figma caret-down on the right instead of each
+   browser's own arrow (same asset the admin Select component draws). */
+@utility select-caret {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("/admin-icons/caret-down.svg");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  background-size: 16px 16px;
+  cursor: pointer;
 }

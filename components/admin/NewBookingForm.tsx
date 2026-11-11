@@ -258,9 +258,9 @@ export default function NewBookingForm({
             <Icon name="arrow-left" size={16} />
             Bookings
           </Link>
-          <h1 className="mt-1 type-h2 text-primary">New booking</h1>
+          <h1 className="mt-1 whitespace-nowrap type-h2 text-primary">New booking</h1>
         </div>
-        <p className="type-body-sm text-secondary">{draftAt && !pristine ? `Draft saved ${clock(draftAt)}` : `${channelLabel} · started ${clock(startedAt)}`}</p>
+        <p className="order-last w-full type-body-sm text-secondary sm:order-none sm:w-auto">{draftAt && !pristine ? `Draft saved ${clock(draftAt)}` : `${channelLabel} · started ${clock(startedAt)}`}</p>
         <button
           type="button"
           className={btnGhost}

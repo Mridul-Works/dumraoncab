@@ -385,7 +385,7 @@ export default function VendorForm({ vendor, addCar = false, added }: { vendor?:
                   District
                 </label>
                 {districts.length ? (
-                  <select id="v-district" value={district} onChange={(e) => setDistrict(e.target.value)} className={inputCls}>
+                  <select id="v-district" value={district} onChange={(e) => setDistrict(e.target.value)} className={`${inputCls} select-caret`}>
                     <option value="">Choose</option>
                     {district && !districts.includes(district) && <option>{district}</option>}
                     {districts.map((d) => (
@@ -400,7 +400,7 @@ export default function VendorForm({ vendor, addCar = false, added }: { vendor?:
                 <label htmlFor="v-state" className={labelCls}>
                   State
                 </label>
-                <select id="v-state" value={state} onChange={(e) => (setState(e.target.value), setDistrict(""))} className={inputCls}>
+                <select id="v-state" value={state} onChange={(e) => (setState(e.target.value), setDistrict(""))} className={`${inputCls} select-caret`}>
                   {!vendorRegions[state] && <option>{state}</option>}
                   {Object.keys(vendorRegions).map((s) => (
                     <option key={s}>{s}</option>
@@ -417,7 +417,8 @@ export default function VendorForm({ vendor, addCar = false, added }: { vendor?:
             <div className="flex flex-wrap items-center gap-3.5 rounded-md border border-gray-100 bg-gray-50 p-3 sm:flex-nowrap">
               {/* eslint-disable-next-line @next/next/no-img-element -- static map thumbnail */}
               <img src="/admin-art/mini-map.svg" alt="" width={88} height={64} className={`block h-16 w-22 shrink-0 ${geo ? "" : "opacity-40"}`} />
-              <div className="min-w-0 flex-1">
+              {/* basis-48: on phones the text keeps a readable width and the button wraps below. */}
+              <div className="min-w-0 flex-1 basis-48">
                 {pinEdit ? (
                   <>
                     <label htmlFor="v-geo" className="type-ui text-primary">
@@ -536,7 +537,7 @@ export default function VendorForm({ vendor, addCar = false, added }: { vendor?:
                       <label htmlFor={`c${i}-type`} className={labelCls}>
                         Type
                       </label>
-                      <select id={`c${i}-type`} value={c.type} onChange={(e) => setCar(i, { type: e.target.value })} className={inputCls}>
+                      <select id={`c${i}-type`} value={c.type} onChange={(e) => setCar(i, { type: e.target.value })} className={`${inputCls} select-caret`}>
                         {!vendorCarTypes.includes(c.type) && <option>{c.type}</option>}
                         {vendorCarTypes.map((t) => (
                           <option key={t}>{t}</option>
@@ -547,7 +548,7 @@ export default function VendorForm({ vendor, addCar = false, added }: { vendor?:
                       <label htmlFor={`c${i}-fuel`} className={labelCls}>
                         Fuel
                       </label>
-                      <select id={`c${i}-fuel`} value={c.fuel} onChange={(e) => setCar(i, { fuel: e.target.value })} className={inputCls}>
+                      <select id={`c${i}-fuel`} value={c.fuel} onChange={(e) => setCar(i, { fuel: e.target.value })} className={`${inputCls} select-caret`}>
                         {!vendorFuels.includes(c.fuel) && <option>{c.fuel}</option>}
                         {vendorFuels.map((t) => (
                           <option key={t}>{t}</option>

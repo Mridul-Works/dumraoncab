@@ -157,7 +157,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-[2px] rounded-md border border-gray-200 bg-layer p-[12px]">
       <span className="type-h4 text-primary">{value}</span>
-      <span className="truncate type-body-sm text-secondary">{label}</span>
+      <span className="type-body-sm leading-tight text-secondary">{label}</span>
     </div>
   );
 }

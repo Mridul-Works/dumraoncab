@@ -225,7 +225,7 @@ export default function HeroBooking({ vehicles: fleet, routes, packages }: Props
             <div>
               <label htmlFor="hb-to" className={labelCls}>{toLabel[tab]}</label>
               {tab === "Hourly" ? (
-                <select id="hb-to" name="to" className={fieldCls}>
+                <select id="hb-to" name="to" className={`${fieldCls} select-caret`}>
                   {packages.map((p) => (
                     <option key={p}>{p}</option>
                   ))}
@@ -252,7 +252,7 @@ export default function HeroBooking({ vehicles: fleet, routes, packages }: Props
             </div>
             <div>
               <label htmlFor="hb-car" className={labelCls}>Car</label>
-              <select id="hb-car" name="car" defaultValue="Any — suggest for me" className={fieldCls}>
+              <select id="hb-car" name="car" defaultValue="Any — suggest for me" className={`${fieldCls} select-caret`}>
                 <option>Any — suggest for me</option>
                 {fleet
                   .filter((v) => v.category !== "Utility")

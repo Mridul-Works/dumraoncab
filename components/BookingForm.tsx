@@ -73,7 +73,7 @@ export default function BookingForm({ vehicles: fleet }: { vehicles: Vehicle[] }
         </div>
         <div>
           <label htmlFor="bf-service" className={labelCls}>Service</label>
-          <select id="bf-service" name="service" className={inputCls} defaultValue={services[0].name}>
+          <select id="bf-service" name="service" className={`${inputCls} select-caret`} defaultValue={services[0].name}>
             {services.map((s) => (
               <option key={s.slug} value={s.name}>{s.name}</option>
             ))}
@@ -81,7 +81,7 @@ export default function BookingForm({ vehicles: fleet }: { vehicles: Vehicle[] }
         </div>
         <div>
           <label htmlFor="bf-car" className={labelCls}>Preferred car</label>
-          <select id="bf-car" name="car" className={inputCls} defaultValue="Any — suggest for me">
+          <select id="bf-car" name="car" className={`${inputCls} select-caret`} defaultValue="Any — suggest for me">
             <option>Any — suggest for me</option>
             {fleet.filter((v) => v.category !== "Utility").map((v) => (
               <option key={v.name} value={`${v.name} (${v.category})`}>
