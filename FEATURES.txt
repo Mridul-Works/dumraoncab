@@ -472,6 +472,10 @@ Line art in public/driver-art/, icons from public/admin-icons/.
   shows as a request sheet with a 10-minute countdown and the
   driver's share (trip.share), never the fare. Take it / can't take
   it (3 reasons) is saved on booking.trip for the booking drawer.
+  Each request alerts (sound, vibrate, notification) only once per
+  device, and once answered it never pops up again on that device,
+  even after reopening the app or if a refresh returns stale data.
+  Only a new request (or the office re-sending it) shows again.
 - Trip (10.22–10.32, one page /driver/trip/[id] that follows
   booking.trip.stage): details + checklist (lib/site.ts
   driverChecklist) → start with odometer + meter photo (checks the

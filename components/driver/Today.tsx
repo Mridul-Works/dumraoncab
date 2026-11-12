@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/admin/Icon";
 import { acceptTrip, declineTrip, setAvailable, type ActionState } from "@/app/driver/actions";
@@ -54,16 +54,54 @@ export function AutoRefresh({ seconds = 20 }: { seconds?: number }) {
   return null;
 }
 
-// Short alert sound + notification, once per trip request.
-export function useAlertOnce(key: string, text: string) {
+// Per-device memory of trip requests already alerted / answered. Kept in
+// localStorage so it survives reopening the app, and so a stale copy of the
+// data (demo storage: each server instance has its own) can't bring back a
+// request the driver already answered.
+const MARKS = "dc-marks";
+const markListeners = new Set<() => void>();
+function readMarks(): string {
+  try {
+    return localStorage.getItem(MARKS) ?? "";
+  } catch {
+    return "";
+  }
+}
+function hasMark(mark: string) {
+  return readMarks().split(" ").includes(mark);
+}
+function addMark(mark: string) {
+  try {
+    const list = readMarks().split(" ").filter(Boolean).filter((m) => m !== mark);
+    list.push(mark);
+    localStorage.setItem(MARKS, list.slice(-200).join(" "));
+  } catch {
+    // private mode: nothing to remember with
+  }
+  markListeners.forEach((l) => l());
+}
+function useMark(mark: string) {
+  return useSyncExternalStore(
+    (l) => {
+      markListeners.add(l);
+      window.addEventListener("storage", l);
+      return () => {
+        markListeners.delete(l);
+        window.removeEventListener("storage", l);
+      };
+    },
+    () => hasMark(mark),
+    () => false,
+  );
+}
+
+// Short alert sound + notification, once per trip request on this device.
+export function useAlertOnce(key: string, text: string, skip = false) {
   useEffect(() => {
-    const seen = `dc-alert-${key}`;
-    try {
-      if (sessionStorage.getItem(seen)) return;
-      sessionStorage.setItem(seen, "1");
-    } catch {
-      // private mode: alert anyway
-    }
+    if (skip) return;
+    const seen = `alert:${key}`;
+    if (hasMark(seen)) return;
+    addMark(seen);
     try {
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new Ctx();
@@ -86,7 +124,7 @@ export function useAlertOnce(key: string, text: string) {
       // no notifications here
     }
     navigator.vibrate?.([300, 150, 300]);
-  }, [key, text]);
+  }, [key, text, skip]);
 }
 
 function Countdown({ until }: { until: number }) {
@@ -119,12 +157,17 @@ export function OfferSheet({ offer }: { offer: OfferView }) {
   const [step, setStep] = useState<"ask" | "decline">("ask");
   const [accepting, start] = useTransition();
   const [state, action, declining] = useActionState<ActionState, FormData>(declineTrip, undefined);
-  useAlertOnce(offer.id, `New trip from the office: ${offer.when}`);
+  // A new offer of the same booking (office re-sends it) has a new deadline.
+  const request = `${offer.id}@${offer.deadline}`;
+  const answered = useMark(`answered:${request}`);
+  useAlertOnce(request, `New trip from the office: ${offer.when}`, answered);
+
+  if (answered) return null;
 
   if (step === "decline")
     return (
       <Sheet open label="Why can’t you take it?" handle onClose={() => setStep("ask")}>
-        <form action={action} className="flex flex-col gap-[16px]">
+        <form action={action} onSubmit={() => addMark(`answered:${request}`)} className="flex flex-col gap-[16px]">
           <input type="hidden" name="id" value={offer.id} />
           <h2 className="type-h3 text-primary">Why can’t you take it?</h2>
           <div className="flex flex-col gap-[12px]" role="radiogroup">
@@ -158,7 +201,10 @@ export function OfferSheet({ offer }: { offer: OfferView }) {
         ]}
       />
       <div className="flex flex-col gap-[4px]">
-        <button type="button" disabled={accepting} onClick={() => start(() => acceptTrip(offer.id))} className={btnClass("primary")}>
+        <button type="button" disabled={accepting} onClick={() => {
+            addMark(`answered:${request}`);
+            start(() => acceptTrip(offer.id));
+          }} className={btnClass("primary")}>
           <Icon name="check" size={16} />
           Take this trip
         </button>
