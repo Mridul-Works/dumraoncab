@@ -77,6 +77,8 @@ status badges, KPI strip) and Drawer.tsx (540px slide-over).
 Shell: light sidebar — Dashboard · Bookings (live "new" count) · Fleet
 · Trip log · Fares; View live site; signed-in email; Sign out.
 Mobile: top bar with search + sign-out icons and horizontal nav.
+Loading: app/admin/(panel)/loading.tsx shows grey placeholders in the
+page area (sidebar stays) the moment a page is opened.
 Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled.
 - /admin/login (Figma 1.1–1.3): route-map backdrop (Figma SVGs in
   public/admin-login/, desktop only); card with brand band ("Admin
@@ -455,6 +457,12 @@ Line art in public/driver-art/, icons from public/admin-icons/.
   data/driver-drafts.json; Submit creates a Vendor (source
   "driver-app", status "pending") for /admin/vendors. Documents are
   private (lib/vendorDocs.ts → data/vendor-docs).
+- Instant feedback: every button that saves shows a spinner and
+  busy text ("Saving…", "Sending…") as soon as it's tapped
+  (components/driver/SubmitBtn.tsx for server-action forms, Busy in
+  ui.tsx for client buttons). Today, Trip, Earnings and Account
+  (incl. car/documents) have loading.tsx placeholder screens
+  (components/driver/Skeleton.tsx) so opening them is instant.
 - Camera (10.7/10.8): live camera with guide box (getUserMedia),
   gallery pick, phone camera fallback (<input capture>); "Camera is
   off" screen with gallery option. Photos shrunk to 1600 px on the

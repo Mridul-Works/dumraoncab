@@ -21,7 +21,7 @@ import { inr, num } from "./format";
 import { qrMatrix, upiLink } from "./qr";
 import { EXPENSE_KINDS, meterProblem } from "./rules";
 import { Sheet } from "./Sheet";
-import { Banner, btnClass, CheckLine, Notice, Spacer } from "./ui";
+import { Banner, Busy, btnClass, CheckLine, Notice, Spacer } from "./ui";
 
 const Err = ({ state }: { state: ActionState }) =>
   state?.error ? (
@@ -168,7 +168,7 @@ export function StartForm({ id, last }: { id: string; last?: number }) {
       <Err state={state} />
       <Spacer />
       <button type="submit" disabled={pending || !value || !!problem || !photo} className={btnClass("primary")}>
-        {pending ? "Starting…" : "Start and go to pickup"}
+        <Busy on={pending} text="Starting…">Start and go to pickup</Busy>
       </button>
     </form>
   );
@@ -285,7 +285,7 @@ export function NotComing({ id, since, customer, tel }: { id: string; since: num
             }
             className={btnClass("primary")}
           >
-            Tell the office
+            <Busy on={pending} text="Telling the office…">Tell the office</Busy>
           </button>
         )}
       </Sheet>
@@ -348,7 +348,7 @@ export function ExpenseButton({ id, variant = "half" }: { id: string; variant?: 
           <UploadBox label="Receipt photo" hint="Take it now, so nothing is typed from memory" name="receipt" camera={{ title: `${kind} receipt`, guide: "Fit the receipt inside the box." }} onPhoto={setPhoto} />
           <Err state={state} />
           <button type="submit" disabled={pending || !toNumber(amount) || !photo} className={btnClass("primary")}>
-            {pending ? "Saving…" : "Save expense"}
+            <Busy on={pending}>Save expense</Busy>
           </button>
         </form>
       </Sheet>
@@ -435,7 +435,7 @@ export function EndForm({
       <Err state={state} />
       <Spacer />
       <button type="submit" disabled={pending || !value || bad || !photo} className={btnClass("primary")}>
-        {editing ? "Save" : "Next: collect payment"}
+        <Busy on={pending}>{editing ? "Save" : "Next: collect payment"}</Busy>
       </button>
     </form>
   );
@@ -534,7 +534,7 @@ export function PaymentForm({
       <Err state={state} />
       <Spacer />
       <button type="submit" disabled={pending || (method === "cash" && !got)} className={btnClass("primary")}>
-        {method === "upi" ? "Customer has paid" : method === "cash" ? "Confirm cash received" : "Next: check and send"}
+        <Busy on={pending}>{method === "upi" ? "Customer has paid" : method === "cash" ? "Confirm cash received" : "Next: check and send"}</Busy>
       </button>
     </form>
   );
@@ -650,7 +650,7 @@ export function SendForm({ id, offlineDone }: { id: string; offlineDone: React.R
       <Spacer />
       <p className="text-center type-body-sm text-secondary">You can change it until the office checks it.</p>
       <button type="button" onClick={send} disabled={pending} className={btnClass("primary")}>
-        {pending ? "Sending…" : "Send to office"}
+        <Busy on={pending} text="Sending…">Send to office</Busy>
       </button>
     </div>
   );
@@ -680,7 +680,7 @@ export function FixForm({ id, target, label, hint, needsPhoto, footnote }: { id:
       <Err state={state} />
       <Spacer />
       <button type="submit" disabled={pending || (needsPhoto && !photo)} className={btnClass("primary")}>
-        {pending ? "Sending…" : "Send again"}
+        <Busy on={pending} text="Sending…">Send again</Busy>
       </button>
     </form>
   );

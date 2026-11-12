@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { firstName, shortModel } from "@/components/driver/format";
-import { Art, Body, btnClass, Divider, ListRow, Screen, Spacer } from "@/components/driver/ui";
+import { Art, Body, Divider, ListRow, Screen, Spacer } from "@/components/driver/ui";
 import { seenApproved } from "@/app/driver/actions";
 import { requireVendor } from "@/lib/driverTrips";
 import { CAR_DOCS, type VendorCar } from "@/lib/vendorTypes";
+import { SubmitBtn } from "@/components/driver/SubmitBtn";
 
 export const metadata: Metadata = { title: "You are approved" };
 
@@ -48,9 +49,7 @@ export default async function ApprovedPage() {
         </div>
         <Spacer />
         <form action={seenApproved}>
-          <button type="submit" className={btnClass("primary")}>
-            Go to Today
-          </button>
+          <SubmitBtn busy="Opening…">Go to Today</SubmitBtn>
         </form>
       </Body>
     </Screen>

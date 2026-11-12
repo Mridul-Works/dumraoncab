@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Icon from "@/components/admin/Icon";
 import { finishSettings } from "@/app/driver/actions";
-import { btnClass, Divider, Spacer } from "./ui";
+import { Busy, btnClass, Divider, Spacer } from "./ui";
 
 type Perm = "on" | "off" | "unknown";
 
@@ -113,12 +113,12 @@ export function QuickSettings() {
             {next.ask}
           </button>
           <button type="button" className={btnClass("ghost")} disabled={pending} onClick={done}>
-            Not now
+            <Busy on={pending} text="Opening…">Not now</Busy>
           </button>
         </div>
       ) : (
         <button type="button" className={btnClass("primary")} disabled={pending} onClick={done}>
-          Go to Today
+          <Busy on={pending} text="Opening…">Go to Today</Busy>
         </button>
       )}
     </>

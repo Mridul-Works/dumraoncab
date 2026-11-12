@@ -6,6 +6,7 @@ import { Body, Divider, ListRow, Screen, Tag } from "@/components/driver/ui";
 import { signOut } from "@/app/driver/actions";
 import { officeContact, requireApproved } from "@/lib/driverTrips";
 import { VENDOR_KIND_LABELS } from "@/lib/vendorTypes";
+import { SubmitBtn } from "@/components/driver/SubmitBtn";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -55,10 +56,10 @@ export default async function AccountPage() {
           <ListRow icon="phone" title="Call the office" detail={office.display} href={office.tel} />
           <Divider />
           <form action={signOut}>
-            <button type="submit" className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left hover:bg-layer-hover">
+            <SubmitBtn busy="Signing out…" className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left type-ui text-primary hover:bg-layer-hover disabled:opacity-50">
               <Icon name="sign-out" size={20} className="text-primary" />
               <span className="type-ui text-primary">Sign out</span>
-            </button>
+            </SubmitBtn>
           </form>
         </div>
       </Body>

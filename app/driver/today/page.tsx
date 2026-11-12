@@ -5,8 +5,9 @@ import Icon from "@/components/admin/Icon";
 import { AutoRefresh, AvailableSwitch, CancelAlert, OfferSheet } from "@/components/driver/Today";
 import { bookingRef } from "@/components/admin/BookingFormat";
 import { carLine, dayChip, docShort, expiredDoc, fmtLong, fmtTime, firstName, greeting, inr, when } from "@/components/driver/format";
-import { Art, Banner, Body, btnClass, LinkBtn, Route, Screen, Spacer, Tag } from "@/components/driver/ui";
+import { Art, Banner, Body, LinkBtn, Route, Screen, Spacer, Tag } from "@/components/driver/ui";
 import { closeCancelled } from "@/app/driver/actions";
+import { CardSkeleton, StatsSkeleton } from "@/components/driver/Skeleton";
 import {
   getPrefs,
   isActive,
@@ -24,6 +25,7 @@ import {
 import { listEntriesForVendor } from "@/lib/journal";
 import { istDate, tripKey, type Booking } from "@/lib/bookingTypes";
 import type { Vendor } from "@/lib/vendorTypes";
+import { SubmitBtn } from "@/components/driver/SubmitBtn";
 
 export const metadata: Metadata = { title: "Today" };
 
@@ -183,24 +185,10 @@ function NextTrip({ b }: { b: Booking }) {
 
 // 10.16 Today · loading — cards fill in; no spinner.
 function Loading() {
-  const bar = "rounded-full bg-gray-100";
   return (
     <>
-      <div className="flex gap-[8px]">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="flex flex-1 flex-col gap-[8px] rounded-md border border-gray-200 bg-layer px-[12px] py-[14px]">
-            <div className={`h-[16px] w-[48px] ${bar}`} />
-            <div className={`h-[10px] w-[72px] max-w-full ${bar}`} />
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-col gap-[14px] rounded-md border border-gray-200 bg-layer p-[20px]">
-        <div className={`h-[12px] w-[80px] ${bar}`} />
-        <div className={`h-[22px] w-[220px] max-w-full ${bar}`} />
-        <div className={`h-[12px] w-[260px] max-w-full ${bar}`} />
-        <div className={`h-[12px] w-[200px] max-w-full ${bar}`} />
-        <div className={`h-[48px] w-full ${bar}`} />
-      </div>
+      <StatsSkeleton />
+      <CardSkeleton />
       <p className="type-body-sm text-secondary">Getting your trips…</p>
     </>
   );
@@ -260,9 +248,7 @@ function Cancelled({ b }: { b: Booking }) {
         </div>
         <Spacer />
         <form action={close}>
-          <button type="submit" className={btnClass("primary")}>
-            Back to Today
-          </button>
+          <SubmitBtn busy="Opening…">Back to Today</SubmitBtn>
         </form>
       </Body>
       <CancelAlert id={b.id} />

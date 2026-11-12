@@ -25,6 +25,7 @@ import { FREE_WAIT_MINUTES, getMyBooking, listMyBookings, officeContact, require
 import { getEntry } from "@/lib/journal";
 import { phoneDigits, type Booking } from "@/lib/bookingTypes";
 import { driverChecklist, site } from "@/lib/site";
+import { SubmitBtn } from "@/components/driver/SubmitBtn";
 
 export const metadata: Metadata = { title: "Trip" };
 
@@ -145,9 +146,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
           </LinkBtn>
           <Spacer />
           <form action={go}>
-            <button type="submit" className={btnClass("primary")}>
-              I have arrived
-            </button>
+            <SubmitBtn>I have arrived</SubmitBtn>
           </form>
         </Body>
       </Screen>
@@ -175,9 +174,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
           <Spacer />
           <NotComing id={id} since={since} customer={customer} tel={tel} />
           <form action={board}>
-            <button type="submit" className={btnClass("primary")}>
-              Customer is on board
-            </button>
+            <SubmitBtn>Customer is on board</SubmitBtn>
           </form>
         </Body>
         <LocationPing id={id} />

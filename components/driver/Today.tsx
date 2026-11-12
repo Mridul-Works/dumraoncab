@@ -7,7 +7,7 @@ import { acceptTrip, declineTrip, setAvailable, type ActionState } from "@/app/d
 import { RadioRow } from "./fields";
 import { declineReasons } from "./rules";
 import { Sheet } from "./Sheet";
-import { btnClass, Facts, Route, Tag } from "./ui";
+import { Busy, btnClass, Facts, Route, Tag } from "./ui";
 
 // Figma 10.17 / 10.21 / 10.47: the Available switch card.
 export function AvailableSwitch({ on, paused, pausedNote }: { on: boolean; paused?: boolean; pausedNote?: string }) {
@@ -178,7 +178,7 @@ export function OfferSheet({ offer }: { offer: OfferView }) {
           <p className="type-body-sm text-secondary">The office gets your answer and gives the trip to another driver.</p>
           {state?.error && <p className="type-body-sm text-negative">{state.error}</p>}
           <button type="submit" disabled={declining} className={btnClass("primary")}>
-            Send to office
+            <Busy on={declining} text="Sending…">Send to office</Busy>
           </button>
         </form>
       </Sheet>
@@ -205,8 +205,10 @@ export function OfferSheet({ offer }: { offer: OfferView }) {
             addMark(`answered:${request}`);
             start(() => acceptTrip(offer.id));
           }} className={btnClass("primary")}>
-          <Icon name="check" size={16} />
-          Take this trip
+          <Busy on={accepting} text="Taking the trip…">
+            <Icon name="check" size={16} />
+            Take this trip
+          </Busy>
         </button>
         <button type="button" disabled={accepting} onClick={() => setStep("decline")} className={btnClass("ghost")}>
           I can’t take it

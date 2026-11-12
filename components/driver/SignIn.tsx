@@ -5,7 +5,7 @@ import Link from "next/link";
 import Icon from "@/components/admin/Icon";
 import { confirmCode, requestCode, resendCode, type ActionState } from "@/app/driver/actions";
 import { Field } from "./fields";
-import { btnClass, Spacer } from "./ui";
+import { Busy, btnClass, Spacer } from "./ui";
 
 // Figma 10.2 Sign in
 export function SignInForm() {
@@ -31,7 +31,7 @@ export function SignInForm() {
       )}
       <Spacer />
       <button type="submit" disabled={pending} className={btnClass("primary")}>
-        {pending ? "Sending…" : "Send code"}
+        <Busy on={pending} text="Sending…">Send code</Busy>
       </button>
       <p className="text-center type-body-sm text-secondary">New here? You set up your profile right after the code.</p>
     </form>
@@ -195,7 +195,7 @@ export function CodeForm({ mobile, resendIn, devCode }: { mobile: string; resend
       )}
       <Spacer />
       <button type="submit" disabled={pending || code.length !== LEN || used} className={btnClass("primary")}>
-        {pending ? "Checking…" : "Verify"}
+        <Busy on={pending} text="Checking…">Verify</Busy>
       </button>
     </form>
   );

@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { saveCar, saveDetails, setCarCount, submitForChecking, type ActionState } from "@/app/driver/actions";
 import { CheckRow, Field, RadioRow } from "./fields";
-import { btnClass, Spacer } from "./ui";
+import { Busy, btnClass, Spacer } from "./ui";
 
 const ErrorLine = ({ state }: { state: ActionState }) =>
   state?.error ? (
@@ -28,7 +28,7 @@ export function DetailsForm({ draft }: { draft: { name: string; carChoice: "own"
       <ErrorLine state={state} />
       <Spacer />
       <button type="submit" disabled={pending} className={btnClass("primary")}>
-        Next: documents
+        <Busy on={pending}>Next: documents</Busy>
       </button>
     </form>
   );
@@ -99,7 +99,7 @@ export function CarDetailsForm({ car }: { car: { id: string; model: string; numb
       </div>
       <ErrorLine state={state} />
       <button type="submit" disabled={pending} className={btnClass("secondary")}>
-        Save car details
+        <Busy on={pending}>Save car details</Busy>
       </button>
     </form>
   );
@@ -115,7 +115,7 @@ export function SubmitForm() {
       <ErrorLine state={state} />
       <Spacer />
       <button type="submit" disabled={pending || !agree} className={btnClass("primary")}>
-        {pending ? "Sending…" : "Submit for checking"}
+        <Busy on={pending} text="Sending…">Submit for checking</Busy>
       </button>
     </form>
   );

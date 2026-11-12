@@ -106,28 +106,30 @@ export function LinkBtn({
   );
 }
 
-export function SubmitBtn({
-  children,
-  variant = "primary",
-  icon,
-  disabled,
-  name,
-  value,
-}: {
-  children: React.ReactNode;
-  variant?: BtnVariant;
-  icon?: string;
-  disabled?: boolean;
-  name?: string;
-  value?: string;
-}) {
+// Small spinning ring for busy buttons (takes the text colour).
+export function Spinner({ size = 16 }: { size?: number }) {
   return (
-    <button type="submit" disabled={disabled} name={name} value={value} className={btnClass(variant)}>
-      {icon && <Icon name={icon} size={16} />}
-      {children}
-    </button>
+    <span
+      aria-hidden
+      style={{ width: size, height: size }}
+      className="inline-block shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+    />
   );
 }
+
+// Button content that swaps to spinner + busy text while saving.
+export function Busy({ on, text = "Saving…", children }: { on: boolean; text?: string; children: React.ReactNode }) {
+  return on ? (
+    <>
+      <Spinner />
+      {text}
+    </>
+  ) : (
+    <>{children}</>
+  );
+}
+
+// The form submit button with a busy state lives in ./SubmitBtn (client).
 
 /* ---------------------------------- bits ---------------------------------- */
 

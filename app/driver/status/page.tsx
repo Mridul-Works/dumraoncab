@@ -6,6 +6,7 @@ import { Art, Body, btnClass, CheckLine, LinkBtn, Notice, Screen, Spacer, Tag, T
 import { uploadDoc, signOut } from "@/app/driver/actions";
 import { officeContact, requireVendor } from "@/lib/driverTrips";
 import { DOC_LABELS } from "@/lib/vendorTypes";
+import { SubmitBtn } from "@/components/driver/SubmitBtn";
 
 export const metadata: Metadata = { title: "Waiting for checking" };
 
@@ -47,9 +48,9 @@ export default async function StatusPage() {
             Call the office
           </LinkBtn>
           <form action={signOut}>
-            <button type="submit" className={btnClass("ghost")}>
+            <SubmitBtn variant="ghost" busy="Signing out…">
               Sign out
-            </button>
+            </SubmitBtn>
           </form>
         </Body>
       </Screen>
