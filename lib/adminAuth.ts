@@ -25,7 +25,21 @@ export const ADMIN_COOKIE = "dc_admin";
 const SESSION_DAYS = 7; // "Keep me signed in"
 const SHORT_SESSION_HOURS = 12; // unticked: cookie ends with the browser, token after 12 h
 
-export type AdminSession = { email: string };
+// exp = when the session ends (ms); iat = when it started (ms, 0 on older tokens).
+// The panel uses both to show Figma 1.6 "You were signed out" the moment it ends.
+export type AdminSession = { email: string; exp: number; iat: number };
+
+// What the sign-in form gets back (Figma 1.2 wrong password · 1.8 paused).
+export type LoginState = { error?: string; email?: string; lockedUntil?: number } | undefined;
+
+// "?next=" after sign-in (Figma 1.7): only an admin page on this site, never the
+// login screen itself or another host ("//evil.com", "/\evil.com").
+export function safeNext(next: unknown): string {
+  if (typeof next !== "string" || next.length > 300) return "";
+  if (!/^\/admin(?:[/?#]|$)/.test(next) || /^\/admin\/login(?:[/?#]|$)/.test(next)) return "";
+  if (/[\\\s]/.test(next)) return "";
+  return next;
+}
 
 // Constant-time compare for strings of any length.
 function safeEqual(a: string, b: string): boolean {
@@ -63,8 +77,9 @@ function sign(key: Buffer, payload: string): string {
 }
 
 function sessionToken(email: string, password: string, remember: boolean): string {
-  const exp = Date.now() + (remember ? SESSION_DAYS * 24 : SHORT_SESSION_HOURS) * 60 * 60 * 1000;
-  const payload = Buffer.from(JSON.stringify({ email, exp })).toString("base64url");
+  const iat = Date.now();
+  const exp = iat + (remember ? SESSION_DAYS * 24 : SHORT_SESSION_HOURS) * 60 * 60 * 1000;
+  const payload = Buffer.from(JSON.stringify({ email, exp, iat })).toString("base64url");
   const key = serverKey();
   if (key) return `${payload}.${sign(key, payload)}`;
   const derived = scryptSync(password, `session:${BUILTIN_SALT}`, 32, SCRYPT);
@@ -106,11 +121,18 @@ function current(key: string) {
   return a;
 }
 
-// Minutes until this address may try again, or 0 when it isn't locked.
-export async function lockedForMinutes(): Promise<number> {
+// When this address may try again (ms timestamp), or 0 when it isn't locked.
+// Figma 1.8: the button reads "Try again at 10:05 AM".
+export async function lockedUntil(): Promise<number> {
   const a = current(await clientKey());
   if (!a || a.fails < MAX_TRIES) return 0;
-  return Math.max(1, Math.ceil((a.first + LOCK_MS - Date.now()) / 60000));
+  return a.first + LOCK_MS;
+}
+
+// Figma 1.8 inline error: "Too many wrong tries. Paused for 15 minutes."
+export function pausedMessage(until: number): string {
+  const min = Math.max(1, Math.ceil((until - Date.now()) / 60000));
+  return `Too many wrong tries. Paused for ${min} ${min === 1 ? "minute" : "minutes"}.`;
 }
 
 // Record a wrong password; returns how many tries are left.
@@ -151,7 +173,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof data?.exp !== "number" || data.exp < Date.now() || data.email !== EMAIL) return null;
-    return { email: data.email };
+    return { email: data.email, exp: data.exp, iat: typeof data.iat === "number" ? data.iat : 0 };
   } catch {
     return null;
   }

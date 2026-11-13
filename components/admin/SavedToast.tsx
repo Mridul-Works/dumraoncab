@@ -5,8 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Icon from "@/components/admin/Icon";
 
 // "Booking saved" toast (Figma 44:2100). Shown after the New booking form
-// redirects with ?saved=<id>&n=<customer name>&wa=1 (wa = WhatsApp message was
-// opened). Closing it — or 8 seconds passing — strips those params.
+// goes on with ?saved=<id>&n=<customer name>&wa=1 (wa: 1 = WhatsApp message was
+// opened, fail = the tab was blocked, 3B.18). Closing it — or 8 seconds passing — strips those params.
 // Must sit inside a <Suspense> boundary (it reads search params).
 export default function SavedToast() {
   const params = useSearchParams();
@@ -14,7 +14,7 @@ export default function SavedToast() {
   const pathname = usePathname();
   const saved = params.get("saved");
   const name = params.get("n") ?? "";
-  const wa = params.get("wa") === "1";
+  const wa = params.get("wa"); // "1" opened, "fail" couldn't open (3B.18)
 
   const close = () => {
     const next = new URLSearchParams(params.toString());
@@ -41,7 +41,7 @@ export default function SavedToast() {
       </span>
       <p className="min-w-0 flex-1 type-ui text-primary">
         Booking saved{name ? ` for ${name}` : ""}
-        {wa ? " · confirmation opened in WhatsApp" : ""}
+        {wa === "1" ? " · confirmation opened in WhatsApp" : wa === "fail" ? " · WhatsApp didn’t open, share it from Bookings" : ""}
       </p>
       <span className="h-5 w-px bg-gray-200" aria-hidden="true" />
       <button type="button" onClick={close} aria-label="Dismiss" className="grid place-items-center rounded-full p-0.5 text-[var(--icon-secondary)] hover:text-primary">

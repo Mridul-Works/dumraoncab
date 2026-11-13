@@ -3,18 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/admin/Icon";
-import { navItemCls } from "@/components/admin/navStyles";
-
-export const NAV_ITEMS = [
-  { href: "/admin", label: "Dashboard", icon: "squares-four" },
-  { href: "/admin/bookings", label: "Bookings", icon: "calendar-check" },
-  { href: "/admin/fleet", label: "Fleet", icon: "car-simple-18" },
-  { href: "/admin/vendors", label: "Vendors", icon: "storefront" },
-  { href: "/admin/journal", label: "Trip log", icon: "notebook-18" },
-  { href: "/admin/fares", label: "Fares", icon: "currency-inr" },
-  { href: "/admin/analytics", label: "Analytics", icon: "chart-bar" },
-];
-
+import { NAV_ITEMS, navItemCls } from "@/components/admin/navStyles";
 
 export default function AdminNav({ newCount }: { newCount: number }) {
   const pathname = usePathname();

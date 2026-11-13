@@ -4,17 +4,32 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { BOOKING_STATUSES, phoneDigits, type BookingStatus } from "@/lib/bookingTypes";
 import { getCar } from "@/lib/fleet";
-import { addEntry, approveEntry, askToFix, deleteEntry, getEntry, unapproveEntry, updateEntry, type FixReason } from "@/lib/journal";
+import {
+  SERVICE_ITEMS,
+  addEntry,
+  approveEntry,
+  askToFix,
+  deleteEntry,
+  getEntry,
+  restoreEntry,
+  setServiceItems,
+  unapproveEntry,
+  unaskToFix,
+  updateEntry,
+  type EntryExpense,
+  type EntryPayment,
+  type FixReason,
+} from "@/lib/journal";
 import { getBooking, updateBooking } from "@/lib/store";
 import { field, isDate, money, refreshAdmin, type FormState } from "./form";
 
-// Only ever send people back into the journal (no open redirects).
+// Only ever send people back into the Daily Diary (no open redirects).
 const safeReturn = (to: string) => (/^\/admin\/journal(\?[\w=&%.-]*)?$/.test(to) ? to : "/admin/journal");
 
 // returnTo with extra query params (drops any stale toast params first).
 function withParams(to: string, params: Record<string, string>) {
   const url = new URL(safeReturn(to), "http://x");
-  for (const k of ["saved", "added", "was", "new", "entry", "booking", "date", "check", "approved", "fixed"]) url.searchParams.delete(k);
+  for (const k of ["saved", "added", "was", "new", "entry", "booking", "date", "check", "approved", "fixed", "deleted", "pick", "range"]) url.searchParams.delete(k);
   for (const [k, v] of Object.entries(params)) if (v) url.searchParams.set(k, v);
   return `${url.pathname}${url.search}`;
 }
@@ -32,6 +47,21 @@ export async function saveEntry(_prev: FormState, formData: FormData): Promise<F
   if (!(await getCar(carId))) return { error: "That car is no longer in the fleet." };
   const booking = bookingId ? await getBooking(bookingId) : undefined;
 
+  // Tolls and parking go on the customer's bill, like a driver's expenses
+  // (they don't come off the net). "Paid by": upi | cash | later | "" (not set).
+  const fare = money(formData, "fare");
+  const expenses: EntryExpense[] = [];
+  const tolls = money(formData, "tolls");
+  const parking = money(formData, "parking");
+  if (tolls) expenses.push({ kind: "Toll", amount: tolls });
+  if (parking) expenses.push({ kind: "Parking", amount: parking });
+  const paidBy = field(formData, "paidBy", 10);
+  const payment: EntryPayment | undefined =
+    paidBy === "upi" || paidBy === "cash" || paidBy === "later"
+      ? { method: paidBy === "upi" ? "upi" : "cash", amount: fare + tolls + parking, received: paidBy !== "later" }
+      : undefined;
+  const time = field(formData, "time", 5);
+
   const input = {
     date,
     carId,
@@ -42,10 +72,14 @@ export async function saveEntry(_prev: FormState, formData: FormData): Promise<F
     to: field(formData, "to"),
     roundTrip: field(formData, "roundTrip", 1) === "1" || undefined,
     km: field(formData, "km", 12) === "" ? undefined : money(formData, "km", 5000),
-    fare: money(formData, "fare"),
+    fare,
     fuel: money(formData, "fuel"),
     driverCut: money(formData, "driverCut"),
     note: field(formData, "note", 500),
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : undefined,
+    driver: field(formData, "driver", 80) || undefined,
+    expenses: expenses.length ? expenses : undefined,
+    payment,
   };
   if (!input.from && !input.customer && !input.note) return { error: "Add the customer, the route or a note." };
 
@@ -65,11 +99,20 @@ export async function saveEntry(_prev: FormState, formData: FormData): Promise<F
   redirect(withParams(field(formData, "returnTo", 300), { saved: savedId, added: id ? "" : "1", was: id ? "" : was }));
 }
 
+// Delete (Figma 4C.10). The toast offers Undo for a few seconds.
 export async function removeEntry(id: string, returnTo: string) {
   await requireAdmin();
-  await deleteEntry(id);
+  const done = await deleteEntry(String(id));
   refreshAdmin();
-  redirect(withParams(String(returnTo), {}));
+  redirect(withParams(String(returnTo), { deleted: done ? String(id) : "" }));
+}
+
+// "Undo" on the "Entry deleted" toast.
+export async function undoDelete(id: string, returnTo: string) {
+  await requireAdmin();
+  const entry = await restoreEntry(String(id));
+  refreshAdmin();
+  redirect(withParams(String(returnTo), { saved: entry ? entry.id : "" }));
 }
 
 // Undo a just-saved new entry: delete it and put its booking back the way it was.
@@ -84,7 +127,7 @@ export async function undoEntry(id: string, returnTo: string, bookingId?: string
   redirect(withParams(String(returnTo), {}));
 }
 
-/* ------------------------ driver entries (Figma 4B.5–4B.7) ------------------------ */
+/* ------------------------ driver entries (Figma 4B.5–4B.7, 4B.12) ------------------------ */
 
 // Approve a driver's entry with the money as checked by the office. The
 // trip's booking is closed out and marked as checked for the driver app.
@@ -117,9 +160,10 @@ export async function askDriverToFix(_prev: FormState, formData: FormData): Prom
   const id = field(formData, "id", 64);
   const reason = field(formData, "reason", 10) as FixReason;
   const note = field(formData, "note", 500);
+  const item = field(formData, "item", 40).toLowerCase();
   if (!FIX_REASONS.includes(reason)) return { error: "Pick what needs fixing." };
   if (!note) return { error: "Write a short message for the driver." };
-  const entry = await askToFix(id, reason, note);
+  const entry = await askToFix(id, reason, note, item);
   if (!entry) return { error: "This entry was deleted." };
   const booking = entry.bookingId ? await getBooking(entry.bookingId) : undefined;
   if (booking?.trip) await updateBooking(booking.id, { trip: { ...booking.trip, approved: false, officeNote: note } });
@@ -142,4 +186,27 @@ export async function undoApprove(id: string, returnTo: string, was?: string) {
   }
   refreshAdmin();
   redirect(withParams(String(returnTo), {}));
+}
+
+// Toast "Undo" after "Ask to fix" (Figma 4B.12): the entry goes back to
+// waiting for a check and the note is taken off the driver's trip.
+export async function undoFix(id: string, returnTo: string) {
+  await requireAdmin();
+  const entry = await unaskToFix(String(id));
+  const booking = entry?.bookingId ? await getBooking(entry.bookingId) : undefined;
+  if (booking?.trip) await updateBooking(booking.id, { trip: { ...booking.trip, officeNote: undefined } });
+  refreshAdmin();
+  redirect(withParams(String(returnTo), {}));
+}
+
+/* ------------------------- service checklist (Figma 4B.3) ------------------------- */
+
+// "Due at this service" chips on the one-car view.
+export async function saveServiceItems(carId: string, items: string[]): Promise<FormState> {
+  await requireAdmin();
+  if (!(await getCar(String(carId)))) return { error: "That car is no longer in the fleet." };
+  const picked = SERVICE_ITEMS.filter((x) => Array.isArray(items) && items.includes(x));
+  await setServiceItems(String(carId), picked);
+  refreshAdmin();
+  return { ok: true };
 }

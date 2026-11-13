@@ -28,7 +28,7 @@ function Fact({ icon, label, title, line }: { icon: string; label: string; title
   );
 }
 
-// Figma 6.5 Vendor added — shown right after "Save vendor".
+// Figma 6.9 Vendor added — shown right after "Save vendor".
 export default async function VendorAddedPage({ params }: Props) {
   await requireAdmin();
   const v = await getVendor((await params).id);

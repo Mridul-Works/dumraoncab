@@ -12,7 +12,7 @@ import { Card } from "./parts";
 import { firstName, joinWords, vendorWa } from "./format";
 import VendorToast, { type ToastMsg } from "./VendorToast";
 
-// Figma 6.3 Add vendor · 6.4 missing info · 6.18 Add place. Also the Edit form.
+// Figma 6.6 Add vendor · 6.7 Add place · 6.8 missing info. Also the Edit form.
 
 type DocMap = Partial<Record<VendorDoc["kind"], VendorFormDoc>>;
 type CarState = { id: string; model: string; number: string; type: string; fuel: string; seats: string; year: string; docs: DocMap };
@@ -178,7 +178,7 @@ export default function VendorForm({ vendor, addCar = false, added }: { vendor?:
     { title: "Payout", text: err("upi") ? "Add a UPI ID" : upi ? `UPI ${upi}` : "Add a UPI ID", tone: err("upi") ? "bad" : UPI.test(upi.trim()) ? "ok" : "warn" },
   ];
 
-  // ---- Error banner (6.4) ----
+  // ---- Error banner (6.8) ----
   const phrases: string[] = [];
   if (err("name")) phrases.push("full name is missing");
   if (err("mobile")) phrases.push(digits10(mobile) ? (err("mobile")!.includes("already") ? "the mobile number is already used" : "mobile number is short") : "mobile number is missing");

@@ -14,6 +14,8 @@ const shift = (d: string, days: number) => {
 };
 // Figma "Filters": segmented date presets, the range pill (opens a custom
 // range), the car pill (opens that car's view), and the attention count.
+// `startCustom` opens the custom range straight away ("Pick another range",
+// Figma 4B.9). The one-car view shows the range pill only for a custom range.
 export default function JournalToolbar({
   from,
   to,
@@ -22,6 +24,7 @@ export default function JournalToolbar({
   carName,
   cars,
   attention,
+  startCustom,
 }: {
   from: string;
   to: string;
@@ -30,6 +33,7 @@ export default function JournalToolbar({
   carName?: string;
   cars: { id: string; label: string }[];
   attention?: number;
+  startCustom?: boolean;
 }) {
   const router = useRouter();
   const go = (next: { from?: string; to?: string; car?: string | null }) => {
@@ -38,7 +42,7 @@ export default function JournalToolbar({
     q.set("to", next.to ?? to);
     const car = next.car === null ? "" : (next.car ?? carId);
     if (car) q.set("car", car);
-    router.push(`/admin/journal?${q}`);
+    router.push(`/admin/journal?${q}`, { scroll: false });
   };
 
   const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
@@ -55,7 +59,7 @@ export default function JournalToolbar({
         { label: "This month", from: monthStart, to: today },
       ];
   const presetOn = presets.some((p) => p.from === from && p.to === to);
-  const [custom, setCustom] = useState(false);
+  const [custom, setCustom] = useState(Boolean(startCustom));
   const customOn = custom || !presetOn;
 
   const seg = (on: boolean) =>
@@ -91,7 +95,7 @@ export default function JournalToolbar({
         )}
       </div>
 
-      {!carId && (
+      {(!carId || customOn) && (
         <div className="relative">
           <button type="button" aria-expanded={custom} onClick={() => setCustom((c) => !c)} className={`${pillCls} hover:bg-layer-hover`}>
             <Icon name="calendar-blank" size={18} className="text-[var(--icon-secondary)]" />

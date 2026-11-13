@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { saveCompanyProfile, uploadCompanyLogo } from "@/app/admin/company-actions";
 import { ToggleArt } from "@/components/admin/FleetCard";
 import Icon from "@/components/admin/Icon";
-import { FormError, btnGhost, btnPrimary, cardCls, inputCls, labelCls } from "@/components/admin/ui";
+import { btnDanger, btnGhost, btnPrimary, cardCls, inputCls, labelCls } from "@/components/admin/ui";
 import type { Company } from "@/lib/company";
 import {
   BIHAR_DISTRICTS,
@@ -19,9 +20,10 @@ import {
   type CompanyDraft,
   type DraftKey,
 } from "./profileFields";
+import ProfileDialog from "./ProfileDialog";
 
 // Company profile (Figma 8.1 profile · 8.2 unsaved changes · 8.3 missing info
-// · 8.4 saved). Left: the form in six cards, changed fields get a green edge.
+// · 8.4 saved · 8.5 couldn't save · 8.6 leave without saving). Left: the form in six cards, changed fields get a green edge.
 // Right: "Profile complete" checklist and a live "Where this shows" preview.
 
 const savedLine = (at?: string, by?: string) => {
@@ -32,6 +34,13 @@ const savedLine = (at?: string, by?: string) => {
 
 // "+91 94311 00700 · GSTIN 10ABCDE1234F1Z5"
 const pdfContactLine = (d: CompanyDraft) => [showMobile(d.phone), d.showGstin && d.gstin.trim() ? `GSTIN ${d.gstin.trim().toUpperCase()}` : ""].filter(Boolean).join(" · ");
+
+// "Tagline" → "tagline", but keep "GSTIN", "UPI ID", "PIN code", "WhatsApp".
+const lower = (s: string) => (/^[A-Z][a-z]/.test(s) && s !== "WhatsApp" && !s.startsWith("WhatsApp ") ? s[0].toLowerCase() + s.slice(1) : s);
+// ["tagline", "phone", "email"] → "tagline, phone and email"
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+const NETWORK_FAIL = "Check the internet and try again.";
 
 const initials = (d: CompanyDraft) =>
   (d.shortName || d.name)
@@ -47,7 +56,11 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
   const [draft, setDraft] = useState<CompanyDraft>(saved);
   const [showErrors, setShowErrors] = useState(false);
   const [serverErrors, setServerErrors] = useState<Partial<Record<DraftKey, string>>>({});
-  const [error, setError] = useState("");
+  // 8.5 — set when Save fails for a reason other than a field problem.
+  const [saveFailed, setSaveFailed] = useState<string | null>(null);
+  // 8.6 — where staff were heading when they clicked away with unsaved edits.
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const router = useRouter();
   const [justSaved, setJustSaved] = useState(false);
   const [toast, setToast] = useState(false);
   const [pending, startSave] = useTransition();
@@ -91,6 +104,24 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  // In-app links (sidebar etc.) ask first while there are unsaved edits (8.6).
+  // Capture phase on document runs before Next's <Link> handler.
+  useEffect(() => {
+    if (!dirty) return;
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (!(a instanceof HTMLAnchorElement) || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || (url.pathname === location.pathname && url.search === location.search)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setLeaveTo(url.pathname + url.search + url.hash);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [dirty]);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(false), 8000);
@@ -101,13 +132,13 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
     setDraft(saved);
     setShowErrors(false);
     setServerErrors({});
-    setError("");
+    setSaveFailed(null);
   }
 
   function save() {
-    setError("");
     if (errorList.length) {
       setShowErrors(true);
+      setSaveFailed(null);
       // Take staff to the first field to fix.
       requestAnimationFrame(() => {
         const el = document.getElementById(`co-${errorList[0]}`);
@@ -117,18 +148,20 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
       return;
     }
     startSave(async () => {
-      const res = await saveCompanyProfile(draft).catch(() => ({ error: "Couldn’t save — check your connection and try again." }) as const);
+      const res = await saveCompanyProfile(draft).catch(() => ({ error: NETWORK_FAIL }) as const);
       if ("errors" in res && res.errors) {
         setServerErrors(res.errors);
         setShowErrors(true);
+        setSaveFailed(null);
         return;
       }
       if (!("ok" in res) || !res.ok) {
-        setError(("error" in res && res.error) || "Couldn’t save — try again.");
+        setSaveFailed(("error" in res && res.error) || NETWORK_FAIL);
         return;
       }
       setBase({ ...fromDraft(draft, base), updatedAt: res.updatedAt, updatedBy: res.updatedBy });
       setShowErrors(false);
+      setSaveFailed(null);
       setJustSaved(true);
       setToast(true);
     });
@@ -408,7 +441,7 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
       </div>
 
       {/* 8.2 — floating unsaved-changes bar */}
-      {(dirty || error) && !toast && (
+      {dirty && !toast && (
         <div
           role="status"
           className="fixed inset-x-4 bottom-4 z-30 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-gray-100 bg-layer py-3 pl-5 pr-3 shadow-[0_16px_48px_0_var(--shadow-md)] sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-max sm:max-w-[calc(100%-3rem)] sm:-translate-x-1/2 sm:flex-nowrap md:left-[calc(50%+124px)]"
@@ -417,13 +450,9 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
             <p className="type-ui text-primary">
               {changes.length} unsaved change{changes.length === 1 ? "" : "s"}
             </p>
-            {error ? (
-              <FormError error={error} />
-            ) : (
-              <p className="type-body-sm text-secondary">
-                {changes.map((c, i) => (i === 0 ? c : c.toLowerCase())).join(", ")}. New PDFs use these after you save.
-              </p>
-            )}
+            <p className="type-body-sm text-secondary">
+              {changes.map((c, i) => (i === 0 ? c : lower(c))).join(", ")}. New PDFs use these after you save.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={discard} disabled={pending} className={btnGhost}>
@@ -434,6 +463,49 @@ export default function CompanyForm({ company, latestBookingId }: { company: Com
             </button>
           </div>
         </div>
+      )}
+
+      {/* 8.5 — couldn't save */}
+      {saveFailed !== null && (
+        <ProfileDialog
+          art="publish-failed"
+          title="Couldn’t save the profile"
+          body={`Your ${changes.length === 1 ? "change is" : `${changes.length} changes are`} still here. PDFs and WhatsApp messages keep the old details until this saves. ${saveFailed}`}
+          onCancel={() => setSaveFailed(null)}
+        >
+          <button type="button" onClick={() => setSaveFailed(null)} disabled={pending} className={btnGhost}>
+            Keep editing
+          </button>
+          <button type="button" onClick={save} disabled={pending} className={btnPrimary}>
+            {pending ? "Saving…" : "Try again"}
+          </button>
+        </ProfileDialog>
+      )}
+
+      {/* 8.6 — leave without saving */}
+      {leaveTo !== null && (
+        <ProfileDialog
+          art="unsaved-changes"
+          title="Leave without saving?"
+          body={`Your ${changes.length === 1 ? "change" : "changes"} to the ${andList(changes.map(lower))} ${changes.length === 1 ? "is" : "are"} not saved. If you leave now ${changes.length === 1 ? "it is" : "they are"} lost.`}
+          onCancel={() => setLeaveTo(null)}
+        >
+          <button type="button" onClick={() => setLeaveTo(null)} className={btnGhost}>
+            Keep editing
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const to = leaveTo;
+              setLeaveTo(null);
+              discard();
+              router.push(to);
+            }}
+            className={btnDanger}
+          >
+            Leave and discard
+          </button>
+        </ProfileDialog>
       )}
 
       {/* 8.4 — saved toast */}

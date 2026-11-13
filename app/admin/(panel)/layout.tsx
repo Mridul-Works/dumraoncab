@@ -3,6 +3,8 @@ import AdminNav, { SideLink } from "@/components/admin/AdminNav";
 import { navItemCls } from "@/components/admin/navStyles";
 import CommandPalette from "@/components/admin/CommandPalette";
 import Icon from "@/components/admin/Icon";
+import SignedOutModal from "@/components/admin/shell/SignedOutModal";
+import ConnectionBanner from "@/components/admin/dashboard/ConnectionBanner";
 import { logout } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/adminAuth";
 import { listBookings } from "@/lib/store";
@@ -67,8 +69,14 @@ export default async function PanelLayout({ children }: { children: React.ReactN
       {/* Owns ⌘K and the search dialog; page headers render triggers. */}
       <CommandPalette variant="listener" />
       <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8">
-        <div className="mx-auto max-w-[1200px]">{children}</div>
+        <div className="mx-auto max-w-[1200px]">
+          {/* Figma 2.10 / 2.12: offline and back-online notice on every admin page. */}
+          <ConnectionBanner />
+          {children}
+        </div>
       </main>
+      {/* Figma 1.6: covers the page when the session ends, keeping drafts. */}
+      <SignedOutModal exp={session.exp} iat={session.iat} />
     </div>
   );
 }

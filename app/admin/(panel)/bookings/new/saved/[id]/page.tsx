@@ -17,6 +17,7 @@ import { getBooking } from "@/lib/store";
 
 // Figma 3B.4 "Booking saved": where "Save booking" lands. The trip at a glance,
 // then Go to bookings / New booking / Download PDF / Share on WhatsApp.
+// ?wa=1: the WhatsApp message was opened; ?wa=fail: it couldn't be (3B.18).
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ wa?: string }> };
 
@@ -63,6 +64,18 @@ export default async function BookingSavedPage({ params, searchParams }: Props) 
           <p className="type-body-md text-secondary">
             {confirmed ? `${who} is booked for ${when.join(" at ")}.` : `${who}'s request is saved for ${when.join(" at ")}. Call back to confirm.`}
           </p>
+          {wa === "fail" && digits && (
+            <div role="alert" className="mt-1 flex w-full items-start gap-2.5 rounded-md bg-tag-amber px-5.5 py-3.5 text-left">
+              <Icon name="warning-circle" size={18} className="mt-px shrink-0 text-tag-amber" />
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="type-body-sm text-tag-amber">WhatsApp didn’t send</p>
+                <p className="type-ui text-primary">
+                  The booking is saved. The message to {b.phone} failed, maybe a weak connection. Tap Share on WhatsApp to try again
+                  {b.name ? `, or call ${b.name.split(" ")[0]}` : ", or call the customer"}.
+                </p>
+              </div>
+            </div>
+          )}
           {wa === "1" && digits && (
             <p className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-gray-100 bg-layer py-2 pl-3.5 pr-4">
               <Icon name="whatsapp-logo" size={18} className="text-brand" />
@@ -96,7 +109,7 @@ export default async function BookingSavedPage({ params, searchParams }: Props) 
               </div>
               <Stop label={`Drop${eta ? ` · about ${clock(eta)}` : ""}`} place={b.to || "Local, by the hour"} />
               {(route || x.flight) && (
-                <div className="flex flex-wrap gap-2 pt-5">
+                <div className="flex flex-col items-start gap-2 pt-5">
                   {route && (
                     <Fact icon="path">
                       {km} km · about {hoursWords(mins * (x.round ? 2 : 1))}
@@ -140,7 +153,7 @@ export default async function BookingSavedPage({ params, searchParams }: Props) 
         {/* Actions */}
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <Link href={`/admin/bookings?saved=${b.id}`} className={btnPrimary}>
+            <Link href={`/admin/bookings?new=${b.id}`} className={btnPrimary}>
               <Icon name="arrow-right" size={16} />
               Go to bookings
             </Link>

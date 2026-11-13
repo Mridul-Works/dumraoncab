@@ -9,7 +9,7 @@ import { listBookings } from "@/lib/store";
 import { listVendors } from "@/lib/vendors";
 import { bookingRef, fmtTime } from "@/components/admin/BookingFormat";
 
-export type SearchGroup = "Bookings" | "Drivers and cars" | "Trip log";
+export type SearchGroup = "Bookings" | "Drivers and cars" | "Daily Diary";
 
 export type SearchItem = {
   group: SearchGroup;
@@ -35,7 +35,7 @@ function day(d: string, withWeekday = false) {
 const lower = (...parts: (string | number | undefined)[]) => parts.filter(Boolean).join(" ").toLowerCase();
 
 // Quick search (Figma 2.4): a compact index loaded when the search opens and
-// filtered in the browser — bookings, drivers and cars, and the Trip log.
+// filtered in the browser — bookings, drivers and cars, and the Daily Diary.
 export async function getSearchIndex(): Promise<SearchItem[]> {
   await requireAdmin();
   const [bookings, cars, vendors, entries] = await Promise.all([listBookings(), listCars(), listVendors(), listEntries()]);
@@ -75,7 +75,7 @@ export async function getSearchIndex(): Promise<SearchItem[]> {
       haystack: lower(c.name, c.number, c.number.replace(/\s/g, ""), c.type),
     })),
     ...entries.slice(0, 500).map((e) => ({
-      group: "Trip log" as const,
+      group: "Daily Diary" as const,
       icon: "notebook-18",
       title: [e.customer || "Trip", e.to ? `${e.to} drop` : ""].filter(Boolean).join(" · "),
       detail: `Trip entry · ${day(e.date)} · net ${inr(entryNet(e))}`,

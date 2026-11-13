@@ -8,15 +8,15 @@ import { StatusBadge } from "@/components/admin/ui";
 
 type Result = Pick<SearchItem, "title" | "href" | "status"> & { group: string; detail?: string; icon?: string };
 
-// Pages and actions are always available; bookings, drivers, cars and the Trip
-// log load when the search opens.
+// Pages and actions are always available; bookings, drivers, cars and the Daily
+// Diary load when the search opens.
 const COMMANDS: (Result & { keywords: string })[] = [
   { group: "Go to", title: "Dashboard", href: "/admin", keywords: "home overview" },
   { group: "Go to", title: "Bookings", href: "/admin/bookings", keywords: "requests trips list" },
   { group: "Go to", title: "Website requests", detail: "New bookings from the site", href: "/admin/bookings?source=website&status=new", keywords: "web widget form new" },
   { group: "Go to", title: "Fleet", href: "/admin/fleet", keywords: "cars vehicles" },
   { group: "Go to", title: "Vendors", href: "/admin/vendors", keywords: "owners drivers partners approve" },
-  { group: "Go to", title: "Trip log", href: "/admin/journal", keywords: "journal earnings fuel driver net" },
+  { group: "Go to", title: "Daily Diary", href: "/admin/journal", keywords: "trip log journal earnings fuel driver net" },
   { group: "Go to", title: "Fares", href: "/admin/fares", keywords: "prices rates" },
   { group: "Go to", title: "Analytics", href: "/admin/analytics", keywords: "revenue report stats charts" },
   { group: "Go to", title: "Company profile", href: "/admin/company", keywords: "business details logo terms gst" },
@@ -26,11 +26,12 @@ const COMMANDS: (Result & { keywords: string })[] = [
   { group: "Actions", title: "Add vendor", href: "/admin/vendors/new", keywords: "new owner driver partner" },
   { group: "Actions", title: "Edit fares", href: "/admin/fares?edit=1", keywords: "change prices" },
 ];
+const NO_MATCH = "No matches";
 const commandIcon = (r: Result) => r.icon ?? (r.group === "Actions" ? "plus" : "arrow-up-right");
 
 const words = (q: string) => q.toLowerCase().split(/\s+/).filter(Boolean);
 
-// Figma 2.4: data groups first (Bookings · Drivers and cars · Trip log), then
+// Figma 2.4: data groups first (Bookings · Drivers and cars · Daily Diary), then
 // matching pages and actions. An empty query lists the pages and actions.
 function useResults(query: string, index: SearchItem[] | null): Result[] {
   return useMemo(() => {
@@ -38,8 +39,15 @@ function useResults(query: string, index: SearchItem[] | null): Result[] {
     const cmds = COMMANDS.filter((c) => q.every((w) => `${c.title} ${c.keywords}`.toLowerCase().includes(w)));
     if (q.length === 0) return cmds;
     const data = (index ?? []).filter((i) => q.every((w) => i.haystack.includes(w)));
+    // Figma 2.9: nothing matched — say so and offer a phone booking for that name or number.
+    if (index && data.length === 0) {
+      const text = query.trim();
+      const digits = text.replace(/[\s+-]/g, "");
+      const field = /^\d{5,}$/.test(digits) ? `phone=${encodeURIComponent(digits.slice(-10))}` : `name=${encodeURIComponent(text)}`;
+      return [{ group: NO_MATCH, title: `Add a phone booking for ${text}`, href: `/admin/bookings/new?${field}` }, ...cmds];
+    }
     const take = (group: SearchItem["group"], n: number) => data.filter((d) => d.group === group).slice(0, n);
-    return [...take("Bookings", 6), ...take("Drivers and cars", 5), ...take("Trip log", 4), ...cmds];
+    return [...take("Bookings", 6), ...take("Drivers and cars", 5), ...take("Daily Diary", 4), ...cmds];
   }, [query, index]);
 }
 
@@ -95,6 +103,28 @@ function ResultList({
       )}
       {results.map((r, i) => {
         const header = r.group !== results[i - 1]?.group ? r.group : null;
+        if (r.group === NO_MATCH)
+          return (
+            <li key="no-match" role="presentation" className="px-4 pb-2 pt-2">
+              <p className="type-body-sm text-secondary">No matches for “{query.trim()}”</p>
+              <p className="mt-1 type-body-sm text-primary">Check the spelling, or try a phone number or place.</p>
+              <button
+                type="button"
+                id={`${id}-${i}`}
+                data-i={i}
+                role="option"
+                aria-selected={i === active}
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseMove={() => setActive(i)}
+                onClick={() => go(r)}
+                className={`mt-3 rounded-sm type-ui text-link hover:text-link-hover ${i === active ? "underline underline-offset-4" : ""}`}
+              >
+                {r.title}
+              </button>
+              {results.length > 1 && <span className="mt-2 block h-px bg-gray-100" />}
+            </li>
+          );
         return (
           <li key={`${r.href}-${i}`} role="presentation">
             {header && <p className="px-4 pb-1 pt-2 type-body-sm text-secondary">{header}</p>}
@@ -209,7 +239,7 @@ function InlineSearch({ label }: { label: string }) {
           }}
           onKeyDown={s.onKeyDown}
           placeholder={label}
-          aria-label="Search bookings, drivers, cars and Trip log"
+          aria-label="Search bookings, drivers, cars and Daily Diary"
           role="combobox"
           aria-expanded={showList}
           aria-controls="dashboard-search-results"
@@ -295,7 +325,7 @@ function SearchDialog() {
             onChange={(e) => s.setQuery(e.target.value)}
             onKeyDown={s.onKeyDown}
             placeholder="Search name, phone or place"
-            aria-label="Search bookings, drivers, cars and Trip log"
+            aria-label="Search bookings, drivers, cars and Daily Diary"
             role="combobox"
             aria-expanded="true"
             aria-controls="palette-results"

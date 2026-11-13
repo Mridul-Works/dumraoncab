@@ -10,8 +10,8 @@ import { docBadge, type Vendor } from "@/lib/vendorTypes";
 import { DocTag } from "./parts";
 import { dayTime, docPhrase, docUrl, firstName, maskAadhaar, type DocItem, vendorWa } from "./format";
 
-// Figma 6.6 Document review: the file, a "match with the profile" checklist,
-// a staff note, then Mark verified or Ask to re-upload (6.17).
+// Figma 6.11 Document review: the file, a "match with the profile" checklist,
+// a staff note, then Mark verified or Ask to re-upload (6.12).
 
 type Check = { id: string; label: string; value: string; hint: [string, string]; field?: "number" | "validTill" };
 

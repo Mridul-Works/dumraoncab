@@ -7,6 +7,9 @@ import Icon from "@/components/admin/Icon";
 import JournalToast from "@/components/admin/JournalToast";
 import { rangeLabel, time12 } from "@/components/admin/JournalFormat";
 import JournalToolbar from "@/components/admin/JournalToolbar";
+import DiaryEmpty from "@/components/admin/journal/DiaryEmpty";
+import ExportMenu from "@/components/admin/journal/ExportMenu";
+import ServiceChecklist from "@/components/admin/journal/ServiceChecklist";
 import {
   AttentionList,
   BarRow,
@@ -35,12 +38,12 @@ import { requireAdmin } from "@/lib/adminAuth";
 import { istDate } from "@/lib/bookingTypes";
 import { carLabel, daysBetween, entryNet, inr, serviceState, shortDate, weekday } from "@/lib/catalogTypes";
 import { listCars } from "@/lib/fleet";
-import { counts, listAllEntries, needsCheck, type JournalRecord } from "@/lib/journal";
+import { counts, getDeletedEntry, getServiceItems, listAllEntries, needsCheck, type JournalRecord } from "@/lib/journal";
 import { site } from "@/lib/site";
 import { listBookings } from "@/lib/store";
 import { listVendors } from "@/lib/vendors";
 
-export const metadata: Metadata = { title: "Trip log" };
+export const metadata: Metadata = { title: "Daily Diary" };
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
@@ -71,6 +74,9 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   const [allEntries, cars, bookings, vendors] = await Promise.all([listAllEntries(), listCars(), listBookings(), listVendors()]);
   // Driver entries count once the office approves them (Figma 4B.5–4B.7).
   const entries = allEntries.filter(counts);
+  // The table also lists driver entries sent back with "Ask to fix", tagged
+  // "Waiting for driver" (4B.12); they stay out of the totals.
+  const listed = allEntries.filter((e) => counts(e) || (e.source === "driver" && e.status === "fix"));
   const today = istDate();
   const yesterday = istDate(-1);
 
@@ -102,6 +108,8 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   const editOf = (e: JournalRecord) => plus(e.source === "driver" ? `check=${e.id}` : `entry=${e.id}`);
 
   const inRange = entries.filter((e) => e.date >= from && e.date <= to);
+  const listedInRange = listed.filter((e) => e.date >= from && e.date <= to);
+  const startCustom = one(sp.range) === "custom";
   const journaledIds = new Set(allEntries.map((e) => e.bookingId).filter(Boolean));
   const gaps = odometerGaps(entries);
 
@@ -128,7 +136,23 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       to: b.to,
       carId: b.carId ?? "",
       quote: b.quote ?? 0,
+      driver: b.driverName,
     }));
+  // "Driver" in the entry panel: who last drove each car (newest first), and
+  // every name we know for the suggestions.
+  const driverByCar: Record<string, string> = {};
+  for (const e of entries) if (e.driver && !driverByCar[e.carId]) driverByCar[e.carId] = e.driver;
+  for (const b of [...bookings].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)))
+    if (b.carId && b.driverName && !driverByCar[b.carId]) driverByCar[b.carId] = b.driverName;
+  const driverNames = [
+    ...new Set([
+      ...entries.map((e) => e.driver ?? ""),
+      ...bookings.map((b) => b.driverName ?? ""),
+      ...vendors.filter((v) => v.kind === "driver" && v.status === "approved").map((v) => v.name),
+    ]),
+  ]
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
   const busy: BusyCar[] = bookings
     .filter((b) => b.carId && b.date && (b.status === "contacted" || b.status === "confirmed") && b.id !== editing?.bookingId && b.id !== one(sp.booking))
     .map((b) => ({ carId: b.carId as string, date: b.date, label: `On trip${b.time ? ` · ${time12(b.time)}` : ""}` }));
@@ -158,6 +182,8 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       returnTo={returnTo}
       defaultCarId={car?.id}
       startPicking={one(sp.pick) === "1"}
+      driverByCar={driverByCar}
+      driverNames={driverNames}
     />
   ) : null;
 
@@ -167,7 +193,8 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   const fresh = saved && !saved.updatedAt && one(sp.added) === "1";
   // Figma 4B.7: "DC-1083 approved. ₹640 added to Rakesh's Monday payout."
   const approved = one(sp.approved) ? allEntries.find((e) => e.id === one(sp.approved) && e.status === "approved") : undefined;
-  const fixed = one(sp.fixed) ? allEntries.find((e) => e.id === one(sp.fixed)) : undefined;
+  const fixed = one(sp.fixed) ? allEntries.find((e) => e.id === one(sp.fixed) && e.status === "fix") : undefined;
+  const deleted = one(sp.deleted) ? await getDeletedEntry(one(sp.deleted)) : undefined;
   const refOf = (e: JournalRecord) => {
     const b = e.bookingId ? bookingById.get(e.bookingId) : undefined;
     return b ? bookingRef(b) : "Trip";
@@ -189,13 +216,31 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       closeHref={returnTo}
     />
   ) : fixed ? (
-    <JournalToast center message={`Sent to ${firstName(driverOf(fixed))}. ${refOf(fixed)} stays on hold.`} closeHref={returnTo} />
+    // Figma 4B.12: "Asked Rakesh to fix the toll receipt. DC-1083 waits for his reply. Undo"
+    <JournalToast
+      center
+      message={`Asked ${firstName(driverOf(fixed))} to fix ${fixed.fixItem ? `the ${fixed.fixItem}` : "the entry"}. ${refOf(fixed)} waits for ${
+        fixed.vendorId ? "the reply" : "a reply"
+      }.`}
+      fixedId={fixed.id}
+      closeHref={returnTo}
+    />
+  ) : deleted ? (
+    // Figma 4C.10: "You can undo for 10 seconds after."
+    <JournalToast
+      message={`Entry deleted · ${carInfo(deleted.carId)?.name ?? "Removed car"} · ${shortDate(deleted.date)}`}
+      deletedId={deleted.id}
+      closeHref={returnTo}
+      autoCloseMs={10_000}
+    />
   ) : null;
 
   /* ================================ One car ================================ */
   if (car) {
     const mine = inRange.filter((e) => e.carId === car.id);
+    const mineListed = listedInRange.filter((e) => e.carId === car.id);
     const t = totals(mine);
+    const serviceItems = await getServiceItems(car.id);
     const days = daysBetween(from, to);
     const kmByDay = new Map<string, number>();
     for (const e of mine) kmByDay.set(e.date, (kmByDay.get(e.date) ?? 0) + (e.km ?? 0));
@@ -217,7 +262,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
     // Trips, newest first, with any odometer gap under the trip that closed it.
     type Row = { kind: "trip"; e: JournalRecord } | { kind: "gap"; g: OdoGap };
     const rows: Row[] = [];
-    for (const e of mine) {
+    for (const e of mineListed) {
       rows.push({ kind: "trip", e });
       const g = gapBefore.get(e.id);
       if (g) rows.push({ kind: "gap", g });
@@ -237,7 +282,59 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
               ? `in ${daysToService} days`
               : `about ${Math.round(daysToService / 7)} weeks`;
 
-    return (
+    const serviceCard = (
+      <section className={`flex w-full shrink-0 flex-col gap-4 px-5 py-4 lg:w-[340px] ${cardCls}`}>
+        <div className="flex items-center gap-2">
+          <Icon name="wrench" size={18} className="text-[var(--icon-primary)]" />
+          <h2 className="flex-1 type-h4 text-primary">Next service</h2>
+          {serviceWhen && (
+            <span className="flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-[3px] type-body-sm text-secondary">
+              <Icon name="calendar-blank" size={14} />
+              {serviceWhen}
+            </span>
+          )}
+        </div>
+        {gauge ? (
+          <>
+            <div className="flex justify-center">
+              <ServiceGauge start={car.odometerKm as number} now={service.kmNow as number} due={car.nextServiceKm as number} />
+            </div>
+            <div className="flex items-start gap-2">
+              <div>
+                <p className="type-mono-sm text-primary">{(car.odometerKm as number).toLocaleString("en-IN")}</p>
+                <p className="type-body-sm text-secondary">Last{car.odometerDate ? ` · ${shortDate(car.odometerDate)}` : ""}</p>
+              </div>
+              <span className="flex-1" />
+              <div className="text-center">
+                <p className="type-mono-sm text-brand">{(service.kmNow as number).toLocaleString("en-IN")}</p>
+                <p className="type-body-sm text-secondary">Now</p>
+              </div>
+              <span className="flex-1" />
+              <div className="text-right">
+                <p className="type-mono-sm text-primary">{(car.nextServiceKm as number).toLocaleString("en-IN")}</p>
+                <p className="type-body-sm text-secondary">Due</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="type-body-sm text-secondary">
+            {service.level === "unset" ? "No service set yet. Add the odometer reading and when the next service is due." : service.label}
+          </p>
+        )}
+        <div className="h-px bg-gray-100" />
+        <ServiceChecklist carId={car.id} items={serviceItems} />
+        <div className="h-px bg-gray-100" />
+        <details open={!gauge && service.level === "unset"} className="group -mx-5 -mb-4">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 pb-4 type-ui text-primary [&::-webkit-details-marker]:hidden">
+            <Icon name="caret-right" size={16} className="text-[var(--icon-secondary)] transition-transform group-open:rotate-90" />
+            Update reading and service
+          </summary>
+          <ServiceForm car={car} state={service} today={today} />
+        </details>
+      </section>
+    );
+
+    const header = (
       <>
         <div className="flex flex-wrap items-center gap-4">
           <span className="hidden size-14 shrink-0 place-items-center rounded-full border border-gray-200 bg-layer text-[var(--icon-primary)] sm:grid">
@@ -246,7 +343,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
           <div className="min-w-0 flex-1">
             <Link href={rangeQs()} className="inline-flex items-center gap-1.5 type-ui text-link hover:text-link-hover">
               <Icon name="arrow-left" size={14} />
-              Trip log
+              Daily Diary
             </Link>
             <p className="flex flex-wrap items-baseline gap-x-3">
               <span className="type-h2 text-primary">{car.name}</span>
@@ -265,8 +362,45 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
         </div>
 
         <div className="mt-5">
-          <JournalToolbar from={from} to={to} today={today} carId={car.id} carName={car.name} cars={[]} />
+          <JournalToolbar key={startCustom ? "custom" : "range"} from={from} to={to} today={today} carId={car.id} carName={car.name} cars={[]} startCustom={startCustom} />
         </div>
+      </>
+    );
+
+    // Figma 4B.9: nothing written for this car in the range.
+    if (rows.length === 0) {
+      return (
+        <>
+          {header}
+          <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-start">
+            <DiaryEmpty
+              art="diary"
+              title="No trips in this range"
+              className="min-w-0 flex-1"
+              actions={
+                <>
+                  <Link href={rangeQs()} className={btnPrimary}>
+                    Show all cars
+                  </Link>
+                  <Link href={rangeQs({ car: car.id, range: "custom" })} scroll={false} className={btnGhost}>
+                    Pick another range
+                  </Link>
+                </>
+              }
+            >
+              Nothing written for {car.name} {gapWhen({ fromDate: from, toDate: to })}. Try another range, or show all cars.
+            </DiaryEmpty>
+            {serviceCard}
+          </div>
+          {panel}
+          {toast}
+        </>
+      );
+    }
+
+    return (
+      <>
+        {header}
 
         <div className="mt-5">
           <Totals
@@ -306,73 +440,23 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-stretch">
           <KmChart days={days.slice(-62)} kmByDay={kmByDay} gapByDay={gapByDay} today={today} label={monthName ?? rangeLabel(from, to)} />
 
-          <section className={`flex w-full shrink-0 flex-col gap-4 px-5 py-4 lg:w-[340px] ${cardCls}`}>
-            <div className="flex items-center gap-2">
-              <Icon name="wrench" size={18} className="text-[var(--icon-primary)]" />
-              <h2 className="flex-1 type-h4 text-primary">Next service</h2>
-              {serviceWhen && (
-                <span className="flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-[3px] type-body-sm text-secondary">
-                  <Icon name="calendar-blank" size={14} />
-                  {serviceWhen}
-                </span>
-              )}
-            </div>
-            {gauge ? (
-              <>
-                <div className="flex justify-center">
-                  <ServiceGauge start={car.odometerKm as number} now={service.kmNow as number} due={car.nextServiceKm as number} />
-                </div>
-                <div className="flex items-start gap-2">
-                  <div>
-                    <p className="type-mono-sm text-primary">{(car.odometerKm as number).toLocaleString("en-IN")}</p>
-                    <p className="type-body-sm text-secondary">Last{car.odometerDate ? ` · ${shortDate(car.odometerDate)}` : ""}</p>
-                  </div>
-                  <span className="flex-1" />
-                  <div className="text-center">
-                    <p className="type-mono-sm text-brand">{(service.kmNow as number).toLocaleString("en-IN")}</p>
-                    <p className="type-body-sm text-secondary">Now</p>
-                  </div>
-                  <span className="flex-1" />
-                  <div className="text-right">
-                    <p className="type-mono-sm text-primary">{(car.nextServiceKm as number).toLocaleString("en-IN")}</p>
-                    <p className="type-body-sm text-secondary">Due</p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p className="type-body-sm text-secondary">
-                {service.level === "unset" ? "No service set yet. Add the odometer reading and when the next service is due." : service.label}
-              </p>
-            )}
-            <div className="h-px bg-gray-100" />
-            <details open={!gauge && service.level === "unset"} className="group -mx-5 -mb-4">
-              <summary className="flex cursor-pointer list-none items-center gap-2 px-5 pb-4 type-ui text-primary [&::-webkit-details-marker]:hidden">
-                <Icon name="caret-right" size={16} className="text-[var(--icon-secondary)] transition-transform group-open:rotate-90" />
-                Update reading and service
-              </summary>
-              <ServiceForm car={car} state={service} today={today} />
-            </details>
-          </section>
+          {serviceCard}
         </div>
 
         <section className={`mt-5 overflow-hidden ${cardCls}`}>
           <TableHead first="Date" firstWidth="w-[110px]" />
-          {rows.length === 0 ? (
-            <EmptyState title="Nothing logged in this range yet">Use &ldquo;New entry for {car.name}&rdquo; after each trip.</EmptyState>
-          ) : (
-            rows.map((r) =>
-              r.kind === "trip" ? (
-                <EntryRow
-                  key={r.e.id}
-                  e={r.e}
-                  lead={<DateLead date={r.e.date} weekday={weekday(r.e.date)} />}
-                  editHref={editOf(r.e)}
-                  highlight={r.e.id === saved?.id}
-                />
-              ) : (
-                <GapRow key={`gap-${r.g.beforeId}`} gap={r.g} addHref={plus(`new=1&date=${r.g.toDate}`)} />
-              ),
-            )
+          {rows.map((r) =>
+            r.kind === "trip" ? (
+              <EntryRow
+                key={r.e.id}
+                e={r.e}
+                lead={<DateLead date={r.e.date} weekday={weekday(r.e.date)} />}
+                editHref={editOf(r.e)}
+                highlight={r.e.id === saved?.id}
+              />
+            ) : (
+              <GapRow key={`gap-${r.g.beforeId}`} gap={r.g} addHref={plus(`new=1&date=${r.g.toDate}`)} />
+            ),
           )}
         </section>
         {panel}
@@ -421,7 +505,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   for (const b of bookings) {
     if (journaledIds.has(b.id) || !b.date || b.date > today || b.date < istDate(-45)) continue;
     if (b.status === "completed")
-      attention.push({ key: `b-${b.id}`, title: "Trip not in the Trip log", detail: `${b.name || "Unnamed"} · ${shortDate(b.date)} · ${b.from} → ${b.to || "—"}`, href: plus(`new=1&booking=${b.id}`) });
+      attention.push({ key: `b-${b.id}`, title: "Trip not in the Daily Diary", detail: `${b.name || "Unnamed"} · ${shortDate(b.date)} · ${b.from} → ${b.to || "—"}`, href: plus(`new=1&booking=${b.id}`) });
     else if (b.status === "confirmed" && b.date < today)
       attention.push({ key: `c-${b.id}`, title: "Still marked confirmed", detail: `${b.name || "Unnamed"} · was due ${shortDate(b.date)}`, href: `/admin/bookings?id=${b.id}` });
   }
@@ -466,19 +550,17 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
 
   // Entries by day (newest first), capped unless "Show earlier days"
   const byDay = new Map<string, JournalRecord[]>();
-  for (const e of inRange) byDay.set(e.date, [...(byDay.get(e.date) ?? []), e]);
+  for (const e of listedInRange) byDay.set(e.date, [...(byDay.get(e.date) ?? []), e]);
   const dayList = [...byDay.entries()];
   const showAll = one(sp.all) === "1";
   const shownDays = showAll ? dayList : dayList.slice(0, DAYS_SHOWN);
   const dayFmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "");
 
-  const exportHref = `/admin/journal/export?from=${from}&to=${to}`;
-
+  // Export (Figma 4B.10): CSV and PDF summary for the range on screen.
+  const exportQs = `from=${from}&to=${to}`;
   const header = (
-    <PageHeader title="Trip log" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
-      <a href={exportHref} className={btnGhost}>
-        Export
-      </a>
+    <PageHeader title="Daily Diary" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
+      <ExportMenu csvHref={`/admin/journal/export?${exportQs}`} pdfHref={`/admin/journal-report?${exportQs}&print=1`} scope={`${rangeLabel(from, to)} · all cars`} />
       <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
         <Icon name="plus" size={16} />
         New entry
@@ -491,14 +573,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
     return (
       <>
         {header}
-        <section className={`mt-5 flex flex-col items-center py-[72px] ${cardCls}`}>
-          <div className="flex w-full max-w-[520px] flex-col items-center gap-2 px-6 py-10 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static design illustration */}
-            <img src="/admin-illustrations/no-trips.svg" alt="" width={240} height={160} />
-            <span aria-hidden="true" className="h-3" />
-            <h2 className="type-h3 text-primary">No entries yet</h2>
-            <p className="type-body-md text-secondary">Write down each trip with its fare, fuel and toll. Totals for each car fill in on their own.</p>
-            <div className="flex flex-wrap justify-center gap-3 pt-4">
+        <DiaryEmpty
+          art="diary"
+          title="No entries yet"
+          className="mt-5"
+          actions={
+            <>
               <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
                 <Icon name="plus" size={16} />
                 New entry
@@ -506,9 +586,50 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
               <Link href={plus("new=1&pick=1")} scroll={false} className={btnGhost}>
                 Pick from a booking
               </Link>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        >
+          Write down each trip with its fare, fuel and toll. Totals for each car fill in on their own.
+        </DiaryEmpty>
+        {panel}
+        {toast}
+      </>
+    );
+  }
+
+  const toolbar = (
+    <div className="mt-5">
+      <JournalToolbar
+        key={startCustom ? "custom" : "range"}
+        from={from}
+        to={to}
+        today={today}
+        carId=""
+        cars={cars.map((c) => ({ id: c.id, label: carLabel(c) }))}
+        attention={attention.length}
+        startCustom={startCustom}
+      />
+    </div>
+  );
+
+  // Nothing written in this range (Figma 4B.9).
+  if (listedInRange.length === 0) {
+    return (
+      <>
+        {header}
+        {toolbar}
+        <DiaryEmpty
+          bare
+          art="diary"
+          title="No trips in this range"
+          actions={
+            <Link href={rangeQs({ range: "custom" })} scroll={false} className={btnPrimary}>
+              Pick another range
+            </Link>
+          }
+        >
+          Nothing written {gapWhen({ fromDate: from, toDate: to })}. Try another range.
+        </DiaryEmpty>
         {panel}
         {toast}
       </>
@@ -518,10 +639,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   return (
     <>
       {header}
-
-      <div className="mt-5">
-        <JournalToolbar from={from} to={to} today={today} carId="" cars={cars.map((c) => ({ id: c.id, label: carLabel(c) }))} attention={attention.length} />
-      </div>
+      {toolbar}
 
       <div className="mt-5">
         <Totals
@@ -598,7 +716,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
         ) : (
           <>
             {shownDays.map(([day, list]) => {
-              const dt = totals(list);
+              const dt = totals(list.filter(counts));
               const named = day === today ? "Today" : day === yesterday ? "Yesterday" : null;
               return (
                 <div key={day}>

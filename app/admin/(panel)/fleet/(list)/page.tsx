@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import FleetGrid from "@/components/admin/FleetGrid";
 import FleetToast from "@/components/admin/FleetToast";
+import FleetLoadError from "@/components/admin/fleet/FleetLoadError";
 import Icon from "@/components/admin/Icon";
 import { PageHeader, btnPrimary } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -18,7 +19,28 @@ type Props = { searchParams: Promise<{ saved?: string; deleted?: string }> };
 
 export default async function FleetPage({ searchParams }: Props) {
   await requireAdmin();
-  const [cars, fares, entries, bookings, query] = await Promise.all([listCars(), getFares(), listEntries(), listBookings(), searchParams]);
+  const query = await searchParams;
+  const data = await Promise.all([listCars(), getFares(), listEntries(), listBookings()]).catch(() => null);
+  const addCar = (
+    <Link href="/admin/fleet/new" className={btnPrimary}>
+      <Icon name="plus" size={16} />
+      Add car
+    </Link>
+  );
+
+  // Figma 4.7 "Fleet · couldn't load": storage unreachable.
+  if (!data) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title="Fleet" intro="Changes go live on /fleet, the home page and the booking form.">
+          {addCar}
+        </PageHeader>
+        <FleetLoadError />
+      </div>
+    );
+  }
+
+  const [cars, fares, entries, bookings] = data;
   const today = istDate();
   const outToday = new Set([
     ...bookings.filter((b) => b.date === today && b.carId && (b.status === "new" || b.status === "contacted" || b.status === "confirmed")).map((b) => b.carId as string),
@@ -36,10 +58,7 @@ export default async function FleetPage({ searchParams }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Fleet" intro={`${cars.length} ${cars.length === 1 ? "car" : "cars"}. Changes go live on /fleet, the home page and the booking form.`}>
-        <Link href="/admin/fleet/new" className={btnPrimary}>
-          <Icon name="plus" size={16} />
-          Add car
-        </Link>
+        {addCar}
       </PageHeader>
       <FleetGrid
         cars={cars.map((c) => ({

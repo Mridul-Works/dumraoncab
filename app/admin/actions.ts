@@ -5,43 +5,48 @@ import {
   clearFailedSignIns,
   credentialsMatch,
   endSession,
-  lockedForMinutes,
+  lockedUntil,
+  pausedMessage,
   recordFailedSignIn,
   requireAdmin,
+  safeNext,
   startSession,
+  type LoginState,
 } from "@/lib/adminAuth";
 import { BOOKING_STATUSES, type BookingStatus } from "@/lib/bookingTypes";
 import { getCar } from "@/lib/fleet";
-import { addBooking, deleteBooking, getBooking, updateBooking } from "@/lib/store";
+import { addBooking, deleteBooking, getBooking, listBookings, updateBooking } from "@/lib/store";
 import { getVendor } from "@/lib/vendors";
-import { field, money, refreshAdmin, type FormState } from "./form";
+import { field, money, refreshAdmin } from "./form";
+import { findCarBusy, findRepeat, type NewBookingResult } from "@/components/admin/newbooking/save";
 
 /* ---------------------------------- session ---------------------------------- */
 
-export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = field(formData, "email", 120);
   const password = typeof formData.get("password") === "string" ? (formData.get("password") as string) : "";
   if (!email || !password) return { error: "Enter your email and password.", email };
 
-  // Figma 1.2: five wrong tries lock sign-in from this address for 15 minutes.
-  const locked = await lockedForMinutes();
-  if (locked) return { error: `Too many wrong tries. Try again in ${locked} min, or ask the owner to reset it.`, email };
+  // Figma 1.8: five wrong tries pause sign-in from this address for 15 minutes.
+  const until = await lockedUntil();
+  if (until) return { error: pausedMessage(until), email, lockedUntil: until };
 
   if (!credentialsMatch(email, password)) {
     // Slow down guessing.
     await new Promise((r) => setTimeout(r, 800));
     const left = await recordFailedSignIn();
-    return {
-      error: left
-        ? `Incorrect email or password. ${left} ${left === 1 ? "try" : "tries"} left.`
-        : "Incorrect email or password. Sign-in is locked for 15 min.",
-      email,
-    };
+    if (!left) {
+      const paused = await lockedUntil();
+      return { error: pausedMessage(paused), email, lockedUntil: paused };
+    }
+    // Figma 1.2
+    return { error: `Incorrect email or password. ${left} ${left === 1 ? "try" : "tries"} left.`, email };
   }
 
   await clearFailedSignIns();
   await startSession(email, password, formData.get("remember") === "on");
-  redirect("/admin");
+  // Figma 1.7: back to the page the session ended on.
+  redirect(safeNext(formData.get("next")) || "/admin");
 }
 
 export async function logout() {
@@ -61,7 +66,11 @@ export async function setBookingStatus(id: string, status: BookingStatus) {
 // Booking drawer: quote, car sent, people and internal note in one save. The
 // status buttons (step control, "Mark contacted", "Mark confirmed"…) submit the
 // same form with a "setStatus" value, so edits made before the click are kept.
-export async function saveBookingDetails(_prev: FormState, formData: FormData): Promise<FormState> {
+// Figma 3.11: someone else saved the booking after this drawer opened. The
+// save is held back and the drawer asks "Save mine over it" or "Load the latest".
+export type BookingSaveState = { error?: string; ok?: boolean; conflict?: { status: BookingStatus; at: string } } | undefined;
+
+export async function saveBookingDetails(_prev: BookingSaveState, formData: FormData): Promise<BookingSaveState> {
   await requireAdmin();
   const id = field(formData, "id", 64);
   const carId = field(formData, "carId", 64);
@@ -70,6 +79,11 @@ export async function saveBookingDetails(_prev: FormState, formData: FormData): 
   const status = field(formData, "setStatus", 20) as BookingStatus;
   // Picking one of our cars in "Car sent" replaces a vendor assignment.
   const before = await getBooking(id);
+  if (!before) return { error: "This booking was deleted." };
+  // "seen" = the updatedAt the drawer was opened with; "force" = save over a newer change.
+  if (formData.has("seen") && field(formData, "force", 1) !== "1" && (before.updatedAt ?? "") !== field(formData, "seen", 40)) {
+    return { conflict: { status: before.status, at: before.updatedAt ?? "" } };
+  }
   const swapsVendor = Boolean(carId && before?.vendorId);
 
   const saved = await updateBooking(id, {
@@ -152,8 +166,10 @@ export async function removeBooking(id: string) {
 }
 
 // New booking page: a trip that came in by phone or direct WhatsApp, so every
-// booking lives in one list.
-export async function createBooking(_prev: FormState, formData: FormData): Promise<FormState> {
+// booking lives in one list (Figma Flow 3B). Answers instead of redirecting so the form
+// can show the 3B.15–3B.17 dialogs and open WhatsApp only after a real save;
+// the form then goes to the "Booking saved" page (3B.4) itself.
+export async function createBooking(_prev: NewBookingResult, formData: FormData): Promise<NewBookingResult> {
   await requireAdmin();
   const from = field(formData, "from");
   const service = field(formData, "service", 60);
@@ -177,6 +193,22 @@ export async function createBooking(_prev: FormState, formData: FormData): Promi
   const status = field(formData, "status", 20) as BookingStatus;
   const people = money(formData, "people", 60);
   const bags = money(formData, "bags", 30);
+  const date = field(formData, "date", 20);
+  const time = field(formData, "time", 20);
+  const to = field(formData, "to");
+
+  // Checks before anything is written: a repeat of a trip already saved (3B.17,
+  // unless staff chose "Save anyway"), then the assigned car being out (3B.16).
+  const all = await listBookings();
+  const repeat = field(formData, "allowRepeat", 1) === "1" ? undefined : findRepeat(all, digits, date, time);
+  if (repeat) return { repeat };
+  const assigned = car
+    ? { name: car.name, carId: car.id }
+    : vendor && vendorCar
+      ? { name: vendorCar.model, vendorId: vendor.id, vendorCarId: vendorCar.id }
+      : undefined;
+  const carBusy = assigned ? findCarBusy(all, assigned, date, time, to) : undefined;
+  if (carBusy) return { carBusy };
 
   // Extras the booking record has no field for go into the notes:
   // driver-facing ones into notes, office-only ones into the internal note.
@@ -203,9 +235,9 @@ export async function createBooking(_prev: FormState, formData: FormData): Promi
     name: field(formData, "name", 80),
     phone,
     from,
-    to: field(formData, "to"),
-    date: field(formData, "date", 20),
-    time: field(formData, "time", 20),
+    to,
+    date,
+    time,
     // A specific car, else the class asked for ("SUV / MUV")
     car: car?.name ?? vendorCar?.model ?? field(formData, "carClass", 40),
     carId: car?.id,
@@ -218,9 +250,5 @@ export async function createBooking(_prev: FormState, formData: FormData): Promi
     adminNote: adminNote.slice(0, 1000),
   });
   refreshAdmin();
-
-  // "Booking saved" page (Figma 3B.4), or a fresh form with a toast for "Save and add another".
-  const wa = field(formData, "wa", 1) === "1" ? "1" : "0";
-  const toast = new URLSearchParams({ saved: booking.id, n: booking.name, wa });
-  redirect(field(formData, "then", 20) === "another" ? `/admin/bookings/new?${toast}` : `/admin/bookings/new/saved/${booking.id}?wa=${wa}`);
+  return { saved: booking.id };
 }

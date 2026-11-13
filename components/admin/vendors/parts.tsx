@@ -75,7 +75,7 @@ export function EmptyBlock({ art, title, children, actions }: { art: ArtName; ti
   );
 }
 
-// White status banner with a small illustration (Suspended 6.11, Rejected 6.16).
+// White status banner with a small illustration (Suspended 6.19, Rejected 6.17).
 export function ArtBanner({ art, title, children }: { art: ArtName; title: React.ReactNode; children?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4 rounded-lg border border-gray-100 bg-layer px-5 py-3">

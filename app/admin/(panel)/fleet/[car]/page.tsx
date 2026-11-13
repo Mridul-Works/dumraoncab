@@ -4,7 +4,8 @@ import CarForm from "@/components/admin/CarForm";
 import FleetHeader from "@/components/admin/FleetHeader";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getFares } from "@/lib/fares";
-import { getCar } from "@/lib/fleet";
+import { bookingRef, fmtDay } from "@/components/admin/BookingFormat";
+import { formSnapshot, getCar, upcomingTrips } from "@/lib/fleet";
 
 type Props = { params: Promise<{ car: string }> };
 
@@ -17,7 +18,8 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "n
 
 export default async function EditCarPage({ params }: Props) {
   await requireAdmin();
-  const [car, fares] = await Promise.all([getCar((await params).car), getFares()]);
+  const id = (await params).car;
+  const [car, fares, trips] = await Promise.all([getCar(id), getFares(), upcomingTrips(id)]);
   if (!car) notFound();
 
   const stamp = car.updatedAt ?? car.createdAt;
@@ -27,7 +29,14 @@ export default async function EditCarPage({ params }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <FleetHeader title={`Edit ${car.name}`} intro={intro} />
-      <CarForm car={car} fareClasses={fares.perKm} />
+      {/* Re-keyed on each save so "Load the latest" (Figma 4.10) starts from the stored car. */}
+      <CarForm
+        key={car.updatedAt ?? car.createdAt ?? car.id}
+        car={car}
+        fareClasses={fares.perKm}
+        base={JSON.stringify(formSnapshot(car))}
+        trips={trips.map((b) => ({ id: b.id, label: `${bookingRef(b)} on ${fmtDay(b.date)}` }))}
+      />
     </div>
   );
 }

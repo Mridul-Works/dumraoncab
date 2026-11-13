@@ -12,7 +12,7 @@ import { expensesTotal, meterKm, type FixReason, type JournalRecord } from "@/li
 
 // "Check trip" slide-over for an entry a driver sent from the driver app
 // (Figma 4B.5 Check driver entry, 4B.6 Ask to fix). The office checks the
-// meter, receipts and payment, sets the money for the Trip log and approves —
+// meter, receipts and payment, sets the money for the Daily Diary and approves —
 // or sends it back with a note.
 
 const num = (s: string) => Number(s.replace(/[,\s₹]/g, "")) || 0;
@@ -88,7 +88,7 @@ export default function CheckEntryPanel({
   const [mode, setMode] = useState<"check" | "fix">("check");
   const first = driverName.split(/\s+/)[0] || "the driver";
 
-  // Money for the Trip log (editable before approving)
+  // Money for the Daily Diary (editable before approving)
   const [money, setMoney] = useState({ fare: String(entry.fare), fuel: String(entry.fuel), driverCut: String(entry.driverCut) });
   const net = num(money.fare) - num(money.fuel) - num(money.driverCut);
   const km = entry.km ?? meterKm(entry) ?? 0;
@@ -282,6 +282,7 @@ export default function CheckEntryPanel({
             <input type="hidden" name="id" value={entry.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
             <input type="hidden" name="reason" value={choice.reason} />
+            <input type="hidden" name="item" value={choice.key === "other" ? "" : choice.label} />
             <fieldset className="flex flex-col gap-2.5">
               <legend className="mb-2.5 type-ui text-primary">What should {first} fix?</legend>
               {choices.map((c) => (
@@ -322,7 +323,7 @@ export default function CheckEntryPanel({
           <form id="approve-form" action={approve} className="flex flex-col gap-2.5">
             <input type="hidden" name="id" value={entry.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
-            <p className="type-ui text-primary">For the Trip log</p>
+            <p className="type-ui text-primary">For the Daily Diary</p>
             <div className="flex gap-3">
               {(
                 [

@@ -1,4 +1,4 @@
-// Formatting helpers shared by the Trip log page (server) and its client
+// Formatting helpers shared by the Daily Diary page (server) and its client
 // components. Plain functions only — no "use client", no Node imports.
 
 const fmt = (d: string, o: Intl.DateTimeFormatOptions) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { ...o, timeZone: "UTC" });

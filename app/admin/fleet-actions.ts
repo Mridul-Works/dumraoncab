@@ -3,11 +3,21 @@
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
-import { CAR_TYPES, type CarType } from "@/lib/catalogTypes";
+import { CAR_TYPES, type Car, type CarType } from "@/lib/catalogTypes";
 import { putUpload, removeUpload } from "@/lib/db";
 import { getFares } from "@/lib/fares";
-import { createCar, deleteCar, getCar, updateCar } from "@/lib/fleet";
+import { FORM_FIELDS, createCar, deleteCar, formSnapshot, getCar, updateCar, upcomingTrips, type CarFormSnapshot } from "@/lib/fleet";
 import { field, isDate, money, publishSite, refreshAdmin, type FormState } from "./form";
+
+// Add/edit car form result. `conflict`: the car was changed on another computer
+// since the form opened (Figma 4.10). `saveFailed`: storage write failed (4.8).
+export type CarFormState =
+  | {
+      error?: string;
+      saveFailed?: boolean;
+      conflict?: { changed: (keyof CarFormSnapshot)[]; latest: CarFormSnapshot; at?: string; by?: string };
+    }
+  | undefined;
 
 const PHOTO_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const MAX_PHOTO = 5 * 1024 * 1024;
@@ -15,7 +25,7 @@ const MAX_PHOTO = 5 * 1024 * 1024;
 const validImage = (src: string) => /^\/uploads\/[a-f0-9-]+\.(jpg|png|webp)$/.test(src) || /^https:\/\/\S+$/.test(src);
 
 // Add car + Edit car share one form.
-export async function saveCar(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function saveCar(_prev: CarFormState, formData: FormData): Promise<CarFormState> {
   const { email } = await requireAdmin();
   const id = field(formData, "id", 64);
   const name = field(formData, "name", 60);
@@ -44,13 +54,36 @@ export async function saveCar(_prev: FormState, formData: FormData): Promise<For
   };
 
   let savedId = id;
-  if (id) {
-    if (!(await updateCar(id, input, email))) return { error: "This car was deleted." };
-  } else {
-    savedId = (await createCar(input, email)).id;
+  try {
+    if (id) {
+      const current = await getCar(id);
+      if (!current) return { error: "This car was deleted on another computer." };
+      // Someone else saved this car while the form was open: ask before overwriting.
+      const conflict = formData.get("force") === "1" ? undefined : changedSince(field(formData, "base", 4000), current);
+      if (conflict) return { conflict };
+      if (!(await updateCar(id, input, email))) return { error: "This car was deleted on another computer." };
+    } else {
+      savedId = (await createCar(input, email)).id;
+    }
+  } catch {
+    return { saveFailed: true, error: "Couldn’t save the car. Check the internet connection and try again — your changes are still here." };
   }
   publishSite();
   redirect(`/admin/fleet?saved=${encodeURIComponent(savedId)}`);
+}
+
+// Form fields that differ between the snapshot the form opened with and the
+// stored car. Service/odometer updates don't count.
+function changedSince(baseJson: string, current: Car): NonNullable<CarFormState>["conflict"] {
+  let base: Partial<CarFormSnapshot>;
+  try {
+    base = JSON.parse(baseJson);
+  } catch {
+    return undefined; // no snapshot (old tab): save as before
+  }
+  const latest = formSnapshot(current);
+  const changed = FORM_FIELDS.filter((k) => k in base && base[k] !== latest[k]);
+  return changed.length ? { changed, latest, at: current.updatedAt, by: current.updatedBy } : undefined;
 }
 
 // "Shown on site" switch on the car grid.
@@ -60,8 +93,11 @@ export async function setCarShown(id: string, shown: boolean) {
   publishSite();
 }
 
-export async function removeCar(id: string) {
+export async function removeCar(id: string): Promise<{ error?: string; trips?: number } | void> {
   await requireAdmin();
+  // Figma 4.9: a car with trips coming up can't be deleted.
+  const trips = await upcomingTrips(id);
+  if (trips.length) return { trips: trips.length, error: "This car has trips coming up. Move them to another car first." };
   const car = await deleteCar(id);
   if (car?.image.startsWith("/uploads/")) {
     await removeUpload("uploads", car.image.slice("/uploads/".length));

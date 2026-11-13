@@ -92,7 +92,7 @@ export default async function AnalyticsReportPage({ searchParams }: { searchPara
         </div>
 
         <footer className="mt-auto border-t border-gray-100 pt-3 type-body-sm text-secondary">
-          Generated {generated} from bookings and the Trip log · {company.website}
+          Generated {generated} from bookings and the Daily Diary · {company.website}
         </footer>
       </article>
     </div>

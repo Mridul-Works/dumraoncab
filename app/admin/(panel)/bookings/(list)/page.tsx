@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import BookingsManager from "@/components/admin/BookingsManager";
-import Icon from "@/components/admin/Icon";
-import { PageHeader, btnGhost, btnPrimary } from "@/components/admin/ui";
+import { BookingsHeader } from "@/components/admin/bookings/BookingsChrome";
 import { requireAdmin } from "@/lib/adminAuth";
 import { istDate, istTime } from "@/lib/bookingTypes";
 import { getCompany } from "@/lib/company";
@@ -13,6 +11,9 @@ import { listApprovedVendors } from "@/lib/vendors";
 
 export const metadata: Metadata = { title: "Bookings" };
 
+// Figma 3.1–3.11. Loading (3.8) and couldn't-load (3.9) live in loading.tsx /
+// error.tsx beside this page, in the (list) group so they don't wrap bookings/new.
+
 export default async function BookingsPage() {
   await requireAdmin();
   const [bookings, cars, entries, vendors, company] = await Promise.all([listBookings(), listCars(), listEntries(), listApprovedVendors(), getCompany()]);
@@ -20,17 +21,7 @@ export default async function BookingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Bookings" intro="Requests from the website booking form and hero widget, newest first.">
-        {/* Plain link: a route handler download, not a client navigation. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/api/bookings/export" className={btnGhost}>
-          Export CSV
-        </a>
-        <Link href="/admin/bookings/new" className={btnPrimary}>
-          <Icon name="plus" size={16} />
-          Add phone booking
-        </Link>
-      </PageHeader>
+      <BookingsHeader />
       <BookingsManager
         bookings={bookings}
         cars={cars.map((c) => ({ id: c.id, name: c.name, number: c.number, type: c.type, seats: c.seats }))}

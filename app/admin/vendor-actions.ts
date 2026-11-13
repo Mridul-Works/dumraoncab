@@ -85,7 +85,7 @@ export async function uploadDocFor(formData: FormData): Promise<{ error?: string
   return {};
 }
 
-// ---- Document review (Figma 6.6 / 6.17) ----------------------------------------
+// ---- Document review (Figma 6.11 / 6.12) ----------------------------------------
 
 export async function reviewDoc(
   id: string,
@@ -119,7 +119,19 @@ export async function reviewDoc(
   return {};
 }
 
-// ---- Status changes (Figma 6.7–6.11, 6.16) ---------------------------------------
+// ---- Status changes (Figma 6.13–6.20, 6.22) ---------------------------------------
+
+// What the page showed when staff pressed the button. If another staff member
+// changed the vendor in the meantime, nothing is saved and the dialog shows
+// who acted first (Figma 6.22) — so the vendor never gets a second WhatsApp.
+export type VendorSeen = { status: Vendor["status"]; statusAt?: string };
+export type VendorConflict = { status: Vendor["status"]; was: Vendor["status"]; by?: string; at?: string; until?: string | null };
+export type StatusResult = { error?: string; conflict?: VendorConflict };
+
+function conflictWith(v: Vendor, seen?: VendorSeen): VendorConflict | undefined {
+  if (!seen || (v.status === seen.status && (v.statusAt ?? "") === (seen.statusAt ?? ""))) return;
+  return { status: v.status, was: seen.status, by: v.statusBy, at: v.statusAt, until: v.suspendedUntil };
+}
 
 function remember(v: Vendor) {
   v.lastChange = {
@@ -132,16 +144,20 @@ function remember(v: Vendor) {
   };
 }
 
-export async function approveVendor(id: string): Promise<{ error?: string }> {
+export async function approveVendor(id: string, seen?: VendorSeen): Promise<StatusResult> {
   const session = await requireAdmin();
   const vendor = await getVendor(id);
   if (!vendor) return { error: "This vendor was deleted." };
+  const early = conflictWith(vendor, seen);
+  if (early) return { conflict: early };
   const missing = REQUIRED_PERSON_DOCS.filter((k) => {
     const d = findDoc(vendor.docs, k);
     return !d?.file || d.status === "missing" || d.status === "reupload";
   });
   if (missing.length) return { error: `Upload the ${missing.map((k) => DOC_LABELS[k].toLowerCase()).join(" and ")} first.` };
+  let conflict: VendorConflict | undefined;
   await updateVendor(id, (v) => {
+    if ((conflict = conflictWith(v, seen))) return;
     remember(v);
     v.status = "approved";
     v.statusAt = new Date().toISOString();
@@ -152,15 +168,18 @@ export async function approveVendor(id: string): Promise<{ error?: string }> {
     v.approvedAt ??= v.statusAt;
     (v.history ??= []).push(event(`Approved by ${session.email}`));
   });
+  if (conflict) return { conflict };
   refreshAdmin();
   return {};
 }
 
-export async function rejectVendor(id: string, reason: string, message: string): Promise<{ error?: string }> {
+export async function rejectVendor(id: string, reason: string, message: string, seen?: VendorSeen): Promise<StatusResult> {
   const session = await requireAdmin();
   const label = clean(reason, 80);
   if (!label) return { error: "Pick a reason." };
+  let conflict: VendorConflict | undefined;
   const done = await updateVendor(id, (v) => {
+    if ((conflict = conflictWith(v, seen))) return;
     remember(v);
     v.status = "rejected";
     v.statusAt = new Date().toISOString();
@@ -171,6 +190,7 @@ export async function rejectVendor(id: string, reason: string, message: string):
     (v.history ??= []).push(event(`Rejected by ${session.email} · ${label}`));
   });
   if (!done) return { error: "This vendor was deleted." };
+  if (conflict) return { conflict };
   refreshAdmin();
   return {};
 }
@@ -196,12 +216,16 @@ async function upcomingFor(vendorId: string) {
 export async function suspendVendor(
   id: string,
   input: { reason: string; days: 7 | 30 | null; message: string; move: boolean },
-): Promise<{ error?: string; moved?: number }> {
+  seen?: VendorSeen,
+): Promise<StatusResult & { moved?: number }> {
   const session = await requireAdmin();
   const reason = clean(input.reason, 80);
   if (!reason) return { error: "Pick a reason." };
   const vendor = await getVendor(id);
   if (!vendor) return { error: "This vendor was deleted." };
+  // Checked before any booking is moved.
+  const early = conflictWith(vendor, seen);
+  if (early) return { conflict: early };
   const today = istDate();
   const until = input.days === 7 || input.days === 30 ? addDays(today, input.days) : null;
 
@@ -247,9 +271,11 @@ export async function suspendVendor(
   return { moved: moved.length };
 }
 
-export async function reactivateVendor(id: string): Promise<{ error?: string }> {
+export async function reactivateVendor(id: string, seen?: VendorSeen): Promise<StatusResult> {
   const session = await requireAdmin();
+  let conflict: VendorConflict | undefined;
   const done = await updateVendor(id, (v) => {
+    if ((conflict = conflictWith(v, seen))) return;
     remember(v);
     v.status = "approved";
     v.statusAt = new Date().toISOString();
@@ -260,6 +286,7 @@ export async function reactivateVendor(id: string): Promise<{ error?: string }> 
     (v.history ??= []).push(event(`Reactivated by ${session.email}`));
   });
   if (!done) return { error: "This vendor was deleted." };
+  if (conflict) return { conflict };
   refreshAdmin();
   return {};
 }
@@ -290,7 +317,7 @@ export async function undoVendorChange(id: string): Promise<{ error?: string }> 
   return {};
 }
 
-// ---- Add / edit vendor (Figma 6.3–6.5, 6.18) ---------------------------------------
+// ---- Add / edit vendor (Figma 6.6–6.9) ---------------------------------------
 
 export type VendorFormDoc = { kind: VendorDoc["kind"]; file?: string; fileName?: string; sizeKb?: number; fileBack?: string; fileBackName?: string; validTill?: string };
 

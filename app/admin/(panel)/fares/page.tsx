@@ -1,28 +1,34 @@
 import type { Metadata } from "next";
 import FaresEditor from "@/components/admin/FaresEditor";
+import FaresLoadFailed from "@/components/admin/fares/FaresLoadFailed";
 import { requireAdmin } from "@/lib/adminAuth";
-import { getFares } from "@/lib/fares";
+import { getFaresDoc, type FaresDoc } from "@/lib/fares";
 import { listCars } from "@/lib/fleet";
-import { routes, services } from "@/lib/site";
+import type { Car } from "@/lib/catalogTypes";
+import { services } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Fares" };
 
 export default async function FaresPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   await requireAdmin();
-  const [fares, cars, sp] = await Promise.all([getFares(), listCars(), searchParams]);
+  const sp = await searchParams;
 
-  const carsByClass: Record<string, string[]> = {};
-  for (const c of cars) {
-    if (!c.fareClass) continue;
-    const list = (carsByClass[c.fareClass] ??= []);
-    if (!list.includes(c.name)) list.push(c.name);
+  // 5.11 — if the store can't be read, say so instead of showing an error page.
+  let doc: FaresDoc;
+  let cars: Car[];
+  try {
+    [doc, cars] = await Promise.all([getFaresDoc(), listCars()]);
+  } catch (err) {
+    console.error("Fares didn't load", err);
+    return <FaresLoadFailed />;
   }
 
   return (
     <FaresEditor
-      fares={fares}
-      carsByClass={carsByClass}
-      routes={routes.map((r) => ({ slug: r.slug, from: r.from, to: r.to, distance: `${r.distance} · ${r.duration}` }))}
+      fares={doc.fares}
+      routes={doc.routes}
+      extras={doc.extras}
+      cars={cars.map((c) => ({ id: c.id, name: c.name, number: c.number, type: c.type, fareClass: c.fareClass }))}
       servicePages={services.length}
       startInEdit={sp.edit === "1"}
     />

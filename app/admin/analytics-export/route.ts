@@ -42,7 +42,7 @@ export async function GET(req: Request) {
       b.status === "cancelled" ? b.cancelReason : b.notes,
     ]),
     ...entries.map((e) => [
-      "Trip log",
+      "Daily Diary",
       e.date,
       "",
       e.customer,

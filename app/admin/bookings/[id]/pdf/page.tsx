@@ -18,7 +18,7 @@ import PrintButton from "./PrintButton";
 
 // Figma Flow 9 · Booking PDF. A printable A4 slip (794×1123) for a booking:
 // ?copy=customer (9.1, sent on WhatsApp) or ?copy=driver (9.2, fare hidden,
-// with trip steps and write-in boxes for the Trip log). "Print or save as
+// with trip steps and write-in boxes for the Daily Diary). "Print or save as
 // PDF" makes the file. Company details come from the Company profile.
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ copy?: string | string[] }> };
@@ -219,25 +219,28 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
               <div className="flex gap-4">
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg border border-gray-100 p-4">
                   <p className="type-h4 text-primary">Fare</p>
-                  <Line label={[b.service, b.to ? `${b.from} to ${b.to}` : "", car.type].filter(Boolean).join(" · ")} value={b.quote ? inr(b.quote) : "To be confirmed"} />
+                  <Line label={[b.to ? "Route fare" : b.service, b.to ? `${b.from} to ${b.to}` : "", car.type].filter(Boolean).join(" · ")} value={b.quote ? inr(b.quote) : "To be confirmed"} />
                   <Line label="Night allowance" value={nightNeeded ? `${inr(fares.nightAllowance)} a night` : "Not needed"} />
                   <Line label="Tolls and parking" value="At actuals" />
                   <div className="h-px bg-gray-100" />
                   <div className="flex items-center gap-4">
                     <div className="flex flex-1 flex-col gap-0.5">
                       <p className="type-ui text-primary">Total</p>
-                      <p className="type-body-sm text-secondary">Pay by UPI after the trip</p>
+                      <p className="type-body-sm text-secondary">{company.gstin ? "Includes GST · no advance needed" : "No advance needed"}</p>
                     </div>
                     <p className="type-h2 text-primary">{b.quote ? inr(b.quote) : "—"}</p>
                   </div>
                 </div>
                 {company.upi && (
                   <div className="flex w-[200px] shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-gray-100 px-5 py-4 text-center">
-                    <p className="type-h4 text-primary">Pay by UPI</p>
-                    {/* Company profile "Add a UPI QR to booking PDFs" (Figma 8.1) */}
-                    {company.upiQr && <UpiQr text={upiLink(company.upi, company.name, b.quote ?? 0, bookingRef(b))} />}
-                    <p className="type-body-sm text-secondary">{company.upiQr ? "Scan after the trip, or pay" : "After the trip, to"}</p>
-                    <p className="break-all type-mono-sm text-primary">{company.upi}</p>
+                    {/* Company profile "Add a UPI QR to booking PDFs" (Figma 8.1 / 9.1) */}
+                    <p className="type-h4 text-primary">{company.upiQr ? "Scan to pay" : "Pay by UPI"}</p>
+                    {company.upiQr ? (
+                      <UpiQr text={upiLink(company.upi, company.name, b.quote ?? 0, bookingRef(b))} />
+                    ) : (
+                      <p className="type-body-sm text-secondary">After the trip, to</p>
+                    )}
+                    <p className="break-all type-mono-sm text-secondary">{company.upi}</p>
                   </div>
                 )}
               </div>
@@ -278,7 +281,7 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
               <div className="flex flex-col gap-3.5 rounded-lg border border-gray-100 p-5">
                 <div className="flex items-center gap-4">
                   <p className="flex-1 type-h4 text-primary">Fill after the trip</p>
-                  <p className="type-body-sm text-secondary">Goes into the Trip log</p>
+                  <p className="type-body-sm text-secondary">Goes into the Daily Diary</p>
                 </div>
                 <div className="flex gap-4">
                   {[
@@ -334,7 +337,7 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
           <div className="flex flex-col items-end text-right type-body-sm text-secondary">
             {address && <p>{address}</p>}
             <p>
-              {company.gstin ? `GSTIN ${company.gstin} · ` : ""}
+              {company.gstin && company.showGstin !== false ? `GSTIN ${company.gstin} · ` : ""}
               <span className="text-link">{company.website}</span>
             </p>
           </div>

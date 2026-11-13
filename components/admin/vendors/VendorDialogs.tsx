@@ -1,30 +1,194 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Icon from "@/components/admin/Icon";
 import { FormError, btnDanger, btnGhost, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
-import { approveVendor, rejectVendor, suspendVendor, undoVendorChange } from "@/app/admin/vendor-actions";
+import {
+  approveVendor,
+  reactivateVendor,
+  rejectVendor,
+  suspendVendor,
+  undoVendorChange,
+  type StatusResult,
+  type VendorConflict,
+  type VendorSeen,
+} from "@/app/admin/vendor-actions";
 import { vendorMessages, vendorRejectReasons, vendorSuspendReasons } from "@/lib/site";
-import { CAR_DOCS, docBadge, findDoc, type Vendor } from "@/lib/vendorTypes";
-import Modal from "./Modal";
-import { firstName, joinWords, vendorWa, weekdayDate } from "./format";
+import { CAR_DOCS, VENDOR_STATUS_LABELS, carReady, docBadge, findDoc, type Vendor, type VendorCar } from "@/lib/vendorTypes";
+import Modal, { StateModal } from "./Modal";
+import type { ArtName } from "./parts";
+import { clock, dayMonth, firstName, istToday, joinWords, vendorWa, weekdayDate } from "./format";
 
-// Approve / Reject / Suspend confirmations (Figma 6.7, 6.9, 6.10). Used from
-// the vendor list rows and the vendor page. `onDone` shows the toast.
+// Approve / Reject / Suspend / Reactivate confirmations (Figma 6.13, 6.16,
+// 6.18, 6.20) and what follows a failed save: 6.15 "Couldn't approve"
+// (network) and 6.22 "Already approved elsewhere" (another staff member acted
+// first). Used from the vendor list rows and the vendor page. `onDone` shows
+// the toast.
 
 export type Upcoming = { id: string; ref: string; when: string; route: string };
 export type Done = (text: string, undo?: () => void) => void;
 
 const undo = (id: string) => () => void undoVendorChange(id);
+const seenOf = (v: Vendor): VendorSeen => ({ status: v.status, statusAt: v.statusAt });
 
-// Opens WhatsApp in a new tab. Must run inside the click handler or the
-// browser blocks the pop-up.
-const openWa = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
+// The WhatsApp tab is opened inside the click (or the browser blocks the
+// pop-up) but only pointed at WhatsApp once the change is saved. If the save
+// fails or someone else acted first it closes again, so no message goes out.
+function waTab(url: string | null) {
+  if (!url) return { go() {}, close() {} };
+  const w = window.open("", "_blank");
+  if (w) w.opener = null;
+  return {
+    go: () => (w ? w.location.replace(url) : window.open(url, "_blank", "noopener,noreferrer")),
+    close: () => w?.close(),
+  };
+}
+
+type Outcome = { kind: "failed" } | { kind: "conflict"; conflict: VendorConflict };
+
+// Runs a status change; keeps the inline error, the outcome screen and a retry.
+function useStatusAction() {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState("");
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const last = useRef<() => void>(() => {});
+
+  function run<R extends StatusResult>(wa: string | null, call: () => Promise<R>, ok: (res: R) => void) {
+    last.current = () => run(wa, call, ok);
+    setError("");
+    const tab = waTab(wa);
+    start(async () => {
+      let res: R;
+      try {
+        res = await call();
+      } catch {
+        tab.close();
+        setOutcome({ kind: "failed" });
+        return;
+      }
+      if (res.conflict) {
+        tab.close();
+        setOutcome({ kind: "conflict", conflict: res.conflict });
+      } else if (res.error) {
+        tab.close();
+        setOutcome(null);
+        setError(res.error);
+      } else {
+        tab.go();
+        ok(res);
+      }
+    });
+  }
+  return { pending, error, outcome, run, retry: () => last.current() };
+}
+
+type Verb = "approve" | "reject" | "suspend" | "reactivate";
+
+// "staff@dumraoncab.com" -> "Staff". Staff sign in with an email only.
+function actorName(by?: string) {
+  const n = (by ?? "").split("@")[0].replace(/[._-]+/g, " ").trim();
+  return n ? n.replace(/\b\w/g, (c) => c.toUpperCase()) : "Another staff member";
+}
+
+// 6.15 — the save never reached the server.
+function FailedModal({ vendor, verb, pending, onRetry, onClose }: { vendor: Vendor; verb: Verb; pending: boolean; onRetry: () => void; onClose: () => void }) {
+  const first = firstName(vendor.name);
+  return (
+    <StateModal
+      art="something-went-wrong"
+      title={`Couldn’t ${verb} ${first}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className={btnGhost} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className={btnPrimary} onClick={onRetry} disabled={pending}>
+            {pending ? "Trying…" : "Try again"}
+          </button>
+        </>
+      }
+    >
+      Nothing changed. {first} is still {VENDOR_STATUS_LABELS[vendor.status]} and no WhatsApp went out. Check the internet and try again.
+    </StateModal>
+  );
+}
+
+// 6.22 — another staff member changed this vendor first.
+function ConflictModal({ vendor, conflict: c, onClose }: { vendor: Vendor; conflict: VendorConflict; onClose: () => void }) {
+  const router = useRouter();
+  const first = firstName(vendor.name);
+  const who = actorName(c.by);
+  const did =
+    c.status === "approved"
+      ? c.was === "suspended"
+        ? "reactivated"
+        : "approved"
+      : c.status === "rejected"
+        ? "rejected"
+        : c.status === "suspended"
+          ? "suspended"
+          : "moved back to Pending";
+  const art: ArtName = c.status === "approved" ? "vendor-approved" : c.status === "suspended" ? "vendor-paused" : "documents";
+  const today = istToday();
+  const when = c.at ? (c.at.slice(0, 10) === today ? ` at ${clock(c.at)}` : ` on ${dayMonth(c.at)} at ${clock(c.at)}`) : "";
+  const ready = vendor.cars.filter((car) => carReady(car, today)).map((car) => car.model);
+  const after =
+    c.status === "approved"
+      ? ready.length
+        ? ` ${joinWords(ready)} can take trips.`
+        : ""
+      : c.status === "suspended"
+        ? c.until
+          ? ` Off trips till ${weekdayDate(c.until)}.`
+          : " Off trips until reactivated."
+        : "";
+  const leave = () => {
+    onClose();
+    router.refresh();
+  };
+  return (
+    <StateModal
+      art={art}
+      title={`${who} already ${did} ${first}`}
+      onClose={leave}
+      footer={
+        <>
+          <button type="button" className={btnGhost} onClick={leave}>
+            Close
+          </button>
+          <button
+            type="button"
+            className={btnPrimary}
+            onClick={() => {
+              onClose();
+              router.push(`/admin/vendors/${vendor.id}`);
+              router.refresh();
+            }}
+          >
+            See vendor
+          </button>
+        </>
+      }
+    >
+      {`${who} ${did} ${first}${when} from another computer, so nothing changed here.${after}`}
+    </StateModal>
+  );
+}
+
+function Outcomes({ vendor, verb, outcome, pending, retry, onClose }: { vendor: Vendor; verb: Verb; outcome: Outcome; pending: boolean; retry: () => void; onClose: () => void }) {
+  return outcome.kind === "failed" ? (
+    <FailedModal vendor={vendor} verb={verb} pending={pending} onRetry={retry} onClose={onClose} />
+  ) : (
+    <ConflictModal vendor={vendor} conflict={outcome.conflict} onClose={onClose} />
+  );
+}
 
 function Row({ ok, title, children }: { ok: boolean; title: string; children: React.ReactNode }) {
   return (
     <li className="flex gap-2.5 border-b border-gray-100 px-3.5 py-3 last:border-b-0">
-      <Icon name={ok ? "check-circle-14" : "warning-circle-14"} size={14} className={`mt-[3px] ${ok ? "text-brand" : "text-tag-amber"}`} />
+      <Icon name={ok ? "check-circle" : "warning-circle"} size={18} className={`mt-px ${ok ? "text-brand" : "text-tag-amber"}`} />
       <div className="min-w-0">
         <p className="type-ui text-primary">{title}</p>
         <p className="type-body-sm text-secondary">{children}</p>
@@ -38,8 +202,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function ApproveDialog({ vendor, today, onClose, onDone }: { vendor: Vendor; today: string; onClose: () => void; onDone: Done }) {
   const [welcome, setWelcome] = useState(true);
-  const [error, setError] = useState("");
-  const [pending, start] = useTransition();
+  const { pending, error, outcome, run, retry } = useStatusAction();
 
   const carRows = vendor.cars.map((car) => {
     const bad = CAR_DOCS.map((k) => ({ k, b: docBadge(findDoc(car.docs, k), today) })).filter((x) => x.b !== "verified" && x.b !== "expiring");
@@ -59,16 +222,18 @@ export function ApproveDialog({ vendor, today, onClose, onDone }: { vendor: Vend
     : "Aadhaar and driving licence verified";
 
   function approve() {
-    setError("");
-    if (welcome) openWa(vendorWa(vendor.mobile, vendorMessages.welcome(firstName(vendor.name))));
-    start(async () => {
-      const res = await approveVendor(vendor.id);
-      if (res.error) return setError(res.error);
-      onClose();
-      onDone(`${vendor.name} approved${welcome ? " · welcome note sent on WhatsApp" : ""}`, undo(vendor.id));
-    });
+    const seen = seenOf(vendor);
+    run(
+      welcome ? vendorWa(vendor.mobile, vendorMessages.welcome(firstName(vendor.name))) : null,
+      () => approveVendor(vendor.id, seen),
+      () => {
+        onClose();
+        onDone(`${vendor.name} approved${welcome ? " · welcome note sent on WhatsApp" : ""}`, undo(vendor.id));
+      },
+    );
   }
 
+  if (outcome) return <Outcomes vendor={vendor} verb="approve" outcome={outcome} pending={pending} retry={retry} onClose={onClose} />;
   return (
     <Modal
       icon="check"
@@ -119,8 +284,7 @@ export function RejectDialog({ vendor, onClose, onDone }: { vendor: Vendor; onCl
   const [reason, setReason] = useState(vendorRejectReasons[0].id);
   const [message, setMessage] = useState(draft(vendorRejectReasons[0].id));
   const [edited, setEdited] = useState(false);
-  const [error, setError] = useState("");
-  const [pending, start] = useTransition();
+  const { pending, error, outcome, run, retry } = useStatusAction();
 
   function pick(id: string) {
     setReason(id);
@@ -128,18 +292,20 @@ export function RejectDialog({ vendor, onClose, onDone }: { vendor: Vendor; onCl
   }
 
   function reject() {
-    setError("");
     const label = vendorRejectReasons.find((r) => r.id === reason)?.label ?? "";
     const text = message.trim();
-    if (text) openWa(vendorWa(vendor.mobile, text));
-    start(async () => {
-      const res = await rejectVendor(vendor.id, label, text);
-      if (res.error) return setError(res.error);
-      onClose();
-      onDone(`${vendor.name} rejected${text ? " · message sent on WhatsApp" : ""}`, undo(vendor.id));
-    });
+    const seen = seenOf(vendor);
+    run(
+      text ? vendorWa(vendor.mobile, text) : null,
+      () => rejectVendor(vendor.id, label, text, seen),
+      () => {
+        onClose();
+        onDone(`${vendor.name} rejected${text ? " · message sent on WhatsApp" : ""}`, undo(vendor.id));
+      },
+    );
   }
 
+  if (outcome) return <Outcomes vendor={vendor} verb="reject" outcome={outcome} pending={pending} retry={retry} onClose={onClose} />;
   return (
     <Modal
       icon="x"
@@ -217,22 +383,22 @@ export function SuspendDialog({
   const [days, setDays] = useState<7 | 30 | null>(30);
   const [move, setMove] = useState(true);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [pending, start] = useTransition();
+  const { pending, error, outcome, run, retry } = useStatusAction();
   const n = vendor.cars.length;
   const subtitle = `${n === 0 ? "They come" : n === 1 ? "Their car comes" : n === 2 ? "Both cars come" : `All ${n} cars come`} off trips right away. You can reactivate them any time.`;
 
   function suspend() {
-    setError("");
     const text = message.trim();
-    if (text) openWa(vendorWa(vendor.mobile, text));
-    start(async () => {
-      const res = await suspendVendor(vendor.id, { reason, days, message: text, move: move && upcoming.length > 0 });
-      if (res.error) return setError(res.error);
-      onClose();
-      const moved = res.moved ?? 0;
-      onDone(`Vendor suspended${moved ? ` · ${moved} booking${moved > 1 ? "s" : ""} moved to other drivers` : ""}`, undo(vendor.id));
-    });
+    const seen = seenOf(vendor);
+    run(
+      text ? vendorWa(vendor.mobile, text) : null,
+      () => suspendVendor(vendor.id, { reason, days, message: text, move: move && upcoming.length > 0 }, seen),
+      (res) => {
+        onClose();
+        const moved = res.moved ?? 0;
+        onDone(`Vendor suspended${moved ? ` · ${moved} booking${moved > 1 ? "s" : ""} moved to other drivers` : ""}`, undo(vendor.id));
+      },
+    );
   }
 
   const ranges: { v: 7 | 30 | null; label: string }[] = [
@@ -241,11 +407,12 @@ export function SuspendDialog({
     { v: null, label: "Until I reactivate" },
   ];
 
+  if (outcome) return <Outcomes vendor={vendor} verb="suspend" outcome={outcome} pending={pending} retry={retry} onClose={onClose} />;
   return (
     <Modal
       icon="warning-circle"
       tone="warn"
-      width="max-w-[398px]"
+      width="max-w-[560px]"
       title={`Suspend ${vendor.name}?`}
       subtitle={subtitle}
       onClose={onClose}
@@ -292,8 +459,8 @@ export function SuspendDialog({
       </div>
       {upcoming.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-100">
-          <p className="flex items-center gap-2 px-3.5 py-2.5 type-ui text-primary">
-            <Icon name="warning-circle-14" size={14} className="text-tag-amber" />
+          <p className="flex items-center gap-2 px-3.5 py-3 type-ui text-primary">
+            <Icon name="warning-circle" size={18} className="text-tag-amber" />
             {upcoming.length} upcoming booking{upcoming.length > 1 ? "s use" : " uses"} these cars
           </p>
           {upcoming.map((b) => (
@@ -326,6 +493,94 @@ export function SuspendDialog({
           placeholder={vendorMessages.suspend(firstName(vendor.name), days ? weekdayDate(addDays(today, days)) : "")}
           className={`${inputCls} resize-y`}
         />
+      </div>
+      <FormError error={error} />
+    </Modal>
+  );
+}
+
+// What keeps a car off trips once the vendor is back, e.g. "stays off until insurance is in".
+function offReason(car: VendorCar, today: string) {
+  const bad = CAR_DOCS.map((k) => ({ k, b: docBadge(findDoc(car.docs, k), today) })).filter((x) => x.b !== "verified" && x.b !== "expiring");
+  const missing = bad.filter((x) => x.b === "missing" || x.b === "expired").map((x) => shortDoc[x.k]);
+  const review = bad.filter((x) => x.b === "review").map((x) => shortDoc[x.k]);
+  if (missing.length) return `stays off until ${joinWords(missing)} ${missing.length > 1 ? "are" : "is"} in`;
+  return `stays off until ${joinWords(review)} ${review.length > 1 ? "are" : "is"} checked`;
+}
+
+// 6.20 — Reactivate from the vendor page (6.19) or a list row.
+export function ReactivateDialog({ vendor, today, onClose, onDone }: { vendor: Vendor; today: string; onClose: () => void; onDone: Done }) {
+  const first = firstName(vendor.name);
+  const [tell, setTell] = useState(true);
+  const { pending, error, outcome, run, retry } = useStatusAction();
+  const since = vendor.statusAt ? `Suspended since ${dayMonth(vendor.statusAt)}. ` : "";
+  const n = vendor.cars.length;
+  const theirCars = n === 0 ? "them" : n === 1 ? "their car" : "their cars";
+  const subtitle = `${since}Reactivating puts ${theirCars} back on trips now${vendor.suspendedUntil ? `, not on ${weekdayDate(vendor.suspendedUntil)}` : ""}.`;
+
+  function reactivate() {
+    const seen = seenOf(vendor);
+    run(
+      tell ? vendorWa(vendor.mobile, vendorMessages.reactivate(first)) : null,
+      () => reactivateVendor(vendor.id, seen),
+      () => {
+        onClose();
+        onDone(`${vendor.name} is back on trips${tell ? " · WhatsApp sent" : ""}`, undo(vendor.id));
+      },
+    );
+  }
+
+  if (outcome) return <Outcomes vendor={vendor} verb="reactivate" outcome={outcome} pending={pending} retry={retry} onClose={onClose} />;
+  return (
+    <Modal
+      icon="check-circle"
+      tone="good"
+      width="max-w-[560px]"
+      title={`Reactivate ${vendor.name}?`}
+      subtitle={subtitle}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className={btnGhost} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className={btnPrimary} onClick={reactivate} disabled={pending}>
+            <Icon name="check" size={16} />
+            {pending ? "Reactivating…" : "Reactivate vendor"}
+          </button>
+        </>
+      }
+    >
+      <div className="overflow-hidden rounded-lg border border-gray-100">
+        {n > 0 && (
+          <>
+            <p className="flex items-center gap-2 px-3.5 py-3 type-ui text-primary">
+              <Icon name="check-circle" size={18} className="text-brand" />
+              {n > 1 ? "Cars going back on trips" : "Car going back on trips"}
+            </p>
+            {vendor.cars.map((car) => (
+              <p key={car.id} className="flex gap-2 border-t border-gray-100 px-3.5 py-2.5 type-body-sm text-primary">
+                <span className="mt-0.5 shrink-0 type-mono-sm text-secondary">{car.number}</span>
+                <span className="min-w-0">
+                  {car.model} · {carReady(car, today) ? `all ${CAR_DOCS.length} papers valid` : offReason(car, today)}
+                </span>
+              </p>
+            ))}
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => setTell(!tell)}
+          aria-pressed={tell}
+          className={`flex w-full items-center gap-3 bg-gray-50 px-3.5 py-3 text-left ${n > 0 ? "border-t border-gray-100" : ""}`}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block type-ui text-primary">Tell {first} on WhatsApp</span>
+            <span className="block type-body-sm text-secondary">Sends “You can take trips again” to {vendor.mobile}</span>
+          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={tell ? "/admin-icons/toggle-on.svg" : "/admin-icons/toggle-off.svg"} alt="" width={36} height={20} className="block h-5 w-9 shrink-0" />
+        </button>
       </div>
       <FormError error={error} />
     </Modal>

@@ -49,6 +49,9 @@ export const bookingRef = (b: Pick<Booking, "id">) => `DC-${b.id.replace(/[^a-z0
 // "17:30" → "5:30 PM" (no leading zero, as on the slip and in WhatsApp texts)
 export const fmtClock = (t: string) => fmtTime(t).replace(/^0/, "");
 
+// ISO timestamp → "9:46 AM" (Indian time), e.g. when a booking was last changed.
+export const fmtClockAt = (iso: string) => fmtClock(new Date(Date.parse(iso) + 5.5 * 60 * 60 * 1000).toISOString().slice(11, 16));
+
 // "2026-11-02" → "Mon 2 Nov"
 export function fmtDay(d: string) {
   if (!d) return "";

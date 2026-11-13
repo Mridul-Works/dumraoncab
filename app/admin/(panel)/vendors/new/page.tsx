@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Add vendor" };
 
 type Props = { searchParams: Promise<{ added?: string }> };
 
-// Figma 6.3 Add vendor (6.4 missing info, 6.18 Add place). ?added=<name> after
+// Figma 6.6 Add vendor (6.8 missing info, 6.7 Add place). ?added=<name> after
 // "Save and add another" shows a toast for the vendor just saved.
 export default async function NewVendorPage({ searchParams }: Props) {
   await requireAdmin();

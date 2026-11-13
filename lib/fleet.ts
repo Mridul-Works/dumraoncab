@@ -1,6 +1,8 @@
 import { jsonFile } from "./db";
 import type { Car } from "./catalogTypes";
 import { seedFleet } from "./site";
+import { istDate, tripKey, type Booking } from "./bookingTypes";
+import { listBookings } from "./store";
 
 // Fleet store (data/fleet.json). Until staff save a change, the fleet is the
 // seed list in lib/site.ts.
@@ -57,3 +59,31 @@ export function deleteCar(id: string) {
     return list.splice(i, 1)[0];
   });
 }
+
+// Trips still to run in this car (Figma 4.9: a car with trips coming up can't
+// be deleted). Live bookings dated today or later, soonest first.
+export async function upcomingTrips(carId: string): Promise<Booking[]> {
+  const today = istDate();
+  return (await listBookings())
+    .filter((b) => b.carId === carId && b.date >= today && (b.status === "new" || b.status === "contacted" || b.status === "confirmed"))
+    .sort((a, b) => tripKey(a).localeCompare(tripKey(b)));
+}
+
+// The fields the add/edit form shows. Used to spot a car changed on another
+// computer while the form was open (Figma 4.10).
+export const FORM_FIELDS = ["name", "number", "type", "seats", "transmission", "fuel", "fareClass", "image", "note", "shown", "verified"] as const;
+export type CarFormSnapshot = Pick<Car, (typeof FORM_FIELDS)[number]>;
+
+export const formSnapshot = (c: Car): CarFormSnapshot => ({
+  name: c.name,
+  number: c.number,
+  type: c.type,
+  seats: c.seats,
+  transmission: c.transmission,
+  fuel: c.fuel,
+  fareClass: c.fareClass,
+  image: c.image,
+  note: c.note,
+  shown: c.shown,
+  verified: c.verified ?? true,
+});

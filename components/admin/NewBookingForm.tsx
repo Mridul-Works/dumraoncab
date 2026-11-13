@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/app/admin/actions";
@@ -25,8 +25,10 @@ import {
   type ServiceOption,
   type VendorCarOption,
 } from "@/components/admin/NewBookingParts";
-import { addDays, clock, day, fromMin, hoursWords, norm, phoneShow, toMin } from "@/components/admin/newbooking/format";
+import { addDays, clock, day, dayShort, fromMin, hoursWords, norm, phoneShow, toMin } from "@/components/admin/newbooking/format";
 import { CarPicker, Highlight, OtherDate, SuggestField, TimeField, nextHalfHour, type CarChoice } from "@/components/admin/newbooking/Pickers";
+import SaveDialog from "@/components/admin/newbooking/SaveDialog";
+import { ago, shortPlace, type CarBusyInfo, type RepeatInfo } from "@/components/admin/newbooking/save";
 import { FormError, StatusBadge, btnGhost, btnPrimary, btnText } from "@/components/admin/ui";
 import { inr } from "@/lib/catalogTypes";
 import { customerConfirmText, customerQuoteText } from "@/lib/site";
@@ -81,6 +83,7 @@ export default function NewBookingForm({
   nightAllowance,
   today,
   startedAt,
+  prefill,
 }: {
   customers: CustomerInfo[];
   services: ServiceOption[];
@@ -94,10 +97,16 @@ export default function NewBookingForm({
   nightAllowance: number;
   today: string;
   startedAt: string; // "HH:MM" IST, when the form was opened
+  prefill?: { name?: string; phone?: string }; // from Dashboard search "Add a phone booking for …" (Figma 2.9)
 }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(createBooking, undefined);
-  const [f, setF] = useState<Draft>(() => blank(today));
+  // Saving (Figma 3B.14–3B.18): the button stays locked until the next page is
+  // up. Anything that stops the save opens a dialog; the form keeps every field.
+  const [pending, startSave] = useTransition();
+  const [saveError, setSaveError] = useState<string>();
+  const [dialog, setDialog] = useState<{ kind: "failed" } | { kind: "repeat"; info: RepeatInfo; ago: string; wa: boolean } | { kind: "carBusy"; info: CarBusyInfo } | null>(null);
+  const lastSave = useRef<{ fd: FormData; waUrl: string } | null>(null);
+  const [f, setF] = useState<Draft>(() => ({ ...blank(today), ...(prefill?.name ? { name: prefill.name } : {}), ...(prefill?.phone ? { phone: prefill.phone } : {}) }));
   const [showErrors, setShowErrors] = useState(false);
   const [draftAt, setDraftAt] = useState("");
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -236,21 +245,65 @@ export default function NewBookingForm({
   };
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (pending) return;
     if (errors.length) {
-      e.preventDefault();
       setShowErrors(true);
       document.getElementById(errors[0].key)?.focus();
       return;
     }
-    // Opened from the click, so pop-up blockers allow it; staff press send.
-    if (f.wa && f.phone.length === 10) window.open(`https://wa.me/91${f.phone}?text=${encodeURIComponent(waText())}`, "_blank", "noopener");
-    clearDraft();
+    const submitter = (e.nativeEvent as SubmitEvent).submitter;
+    const fd = new FormData(e.currentTarget, submitter);
+    save(fd, f.wa && f.phone.length === 10 ? `https://wa.me/91${f.phone}?text=${encodeURIComponent(waText())}` : "");
   }
+
+  function save(fd: FormData, waUrl: string) {
+    lastSave.current = { fd, waUrl };
+    setDialog(null);
+    setSaveError(undefined);
+    startSave(async () => {
+      let res: Awaited<ReturnType<typeof createBooking>>;
+      try {
+        res = await createBooking(undefined, fd);
+      } catch {
+        // 3B.15: nothing reached the server (or it failed): nothing saved, nothing sent.
+        setDialog({ kind: "failed" });
+        return;
+      }
+      if (!res) return;
+      if ("error" in res) return setSaveError(res.error);
+      if ("repeat" in res) return setDialog({ kind: "repeat", info: res.repeat, ago: ago(res.repeat.createdAt), wa: !!waUrl });
+      if ("carBusy" in res) {
+        setDialog({ kind: "carBusy", info: res.carBusy });
+        router.refresh(); // fresh "busy" list for the car picker
+        return;
+      }
+      clearDraft();
+      // WhatsApp only once the booking is really saved. Still close enough to
+      // the click for pop-up blockers; if the tab is blocked anyway, the saved
+      // page says so (3B.18).
+      let wa = "0";
+      if (waUrl) {
+        const tab = window.open(waUrl, "_blank");
+        if (tab) tab.opener = null;
+        wa = tab ? "1" : "fail";
+      }
+      const id = res.saved;
+      const next =
+        fd.get("then") === "another"
+          ? `/admin/bookings/new?${new URLSearchParams({ saved: id, n: f.name.trim(), wa })}`
+          : `/admin/bookings/new/saved/${id}?wa=${wa}`;
+      startSave(() => router.push(next));
+    });
+  }
+
+  const closeDialog = () => setDialog(null);
+  const focusLater = (id: string) => setTimeout(() => document.getElementById(id)?.focus(), 0);
 
   const channelLabel = { phone: "Phone call", whatsapp: "WhatsApp", "walk-in": "Walk-in" }[f.channel];
 
   return (
-    <form action={action} onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+    <form onSubmit={onSubmit} noValidate aria-busy={pending} className="flex flex-col gap-6">
       {/* ---- header ---- */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
@@ -264,6 +317,7 @@ export default function NewBookingForm({
         <button
           type="button"
           className={btnGhost}
+          disabled={pending}
           onClick={() => {
             clearDraft();
             router.push("/admin/bookings");
@@ -805,7 +859,7 @@ export default function NewBookingForm({
             <Icon name="whatsapp-logo" size={18} className="text-brand" />
           </div>
 
-          <FormError error={state?.error} />
+          <FormError error={saveError} />
 
           <div className="flex flex-col gap-2">
             <button type="submit" name="then" value="list" disabled={pristine || pending} className={`${btnPrimary} w-full py-3.5`}>
@@ -826,6 +880,72 @@ export default function NewBookingForm({
           </p>
         </aside>
       </div>
+
+      {/* ---- When "Save booking" can't simply save (Figma 3B.15–3B.17) ---- */}
+      {dialog?.kind === "failed" && (
+        <SaveDialog
+          art="publish-failed"
+          artSize={[192, 128]}
+          title="Couldn’t save the booking"
+          onClose={closeDialog}
+          secondary={{ label: "Keep editing", onClick: closeDialog }}
+          primary={{ label: "Try again", onClick: () => lastSave.current && save(lastSave.current.fd, lastSave.current.waUrl) }}
+        >
+          Nothing was saved and no WhatsApp went out. Your details are still here. Check the internet and try again.
+        </SaveDialog>
+      )}
+      {dialog?.kind === "carBusy" && (
+        <SaveDialog
+          art="fare-class-in-use"
+          artSize={[192, 128]}
+          title={`${dialog.info.car} is busy then`}
+          onClose={closeDialog}
+          secondary={{
+            label: "Change time",
+            onClick: () => {
+              closeDialog();
+              focusLater("nb-time");
+            },
+          }}
+          primary={{
+            label: "Pick another car",
+            onClick: () => {
+              closeDialog();
+              setF((p) => ({ ...p, carId: "", vendorCar: "" }));
+              focusLater("nb-car");
+            },
+          }}
+        >
+          It is out on {dialog.info.ref}, {shortPlace(dialog.info.from)}
+          {dialog.info.to ? ` to ${shortPlace(dialog.info.to)}` : ""}, {dayShort(dialog.info.date)}
+          {dialog.info.start ? ` from ${clock(dialog.info.start)} to ${clock(dialog.info.end)}` : ""}. Pick another car or move the pickup time.
+        </SaveDialog>
+      )}
+      {dialog?.kind === "repeat" && (
+        <SaveDialog
+          art="no-bookings"
+          artSize={[204, 136]}
+          title={`${dialog.info.name.split(" ")[0] || "This customer"} already has this trip`}
+          onClose={closeDialog}
+          secondary={{
+            label: "Save anyway",
+            onClick: () => {
+              const last = lastSave.current;
+              if (!last) return closeDialog();
+              const fd = new FormData();
+              last.fd.forEach((v, k) => fd.append(k, v));
+              fd.set("allowRepeat", "1");
+              save(fd, last.waUrl);
+            },
+          }}
+          primary={{ label: `Open ${dialog.info.ref}`, href: `/admin/bookings?id=${dialog.info.id}` }}
+        >
+          {dialog.info.ref}, {shortPlace(dialog.info.from)}
+          {dialog.info.to ? ` to ${shortPlace(dialog.info.to)}` : ""}, {dayShort(dialog.info.date)} at{" "}
+          {clock(dialog.info.time)}, was saved {dialog.ago}. Saving again makes a second booking
+          {dialog.wa ? " and sends a second WhatsApp" : ""}.
+        </SaveDialog>
+      )}
     </form>
   );
 }

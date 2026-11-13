@@ -5,12 +5,12 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import Icon from "@/components/admin/Icon";
 import { NumberPlate, btnDanger, btnGhost, btnPrimary, btnText } from "@/components/admin/ui";
-import { reactivateVendor, undoVendorChange, uploadDocFor } from "@/app/admin/vendor-actions";
+import { uploadDocFor } from "@/app/admin/vendor-actions";
 import { inr } from "@/lib/catalogTypes";
 import { CAR_DOCS, DOC_LABELS, carReady, docBadge, findDoc, type Vendor } from "@/lib/vendorTypes";
 import DocReviewDrawer from "./DocReviewDrawer";
 import { ArtBanner, Card, DocTag, KindTag, Notice, VendorStatusBadge } from "./parts";
-import { ApproveDialog, RejectDialog, SuspendDialog, type Upcoming } from "./VendorDialogs";
+import { ApproveDialog, ReactivateDialog, RejectDialog, SuspendDialog, type Upcoming } from "./VendorDialogs";
 import VendorToast, { type ToastMsg } from "./VendorToast";
 import {
   allDocs,
@@ -34,8 +34,9 @@ import {
   type DocItem,
 } from "./format";
 
-// Figma 6.2 Vendor detail and its states: 6.6 document review drawer, 6.7–6.11
-// approve / reject / suspend, 6.16 rejected, 6.17 asked to re-upload.
+// Figma 6.10 Vendor detail and its states: 6.11 document review drawer, 6.12
+// asked to re-upload, 6.13–6.20 approve / reject / suspend / reactivate (with
+// 6.15 couldn't save and 6.22 already done by another staff member).
 // ?doc=<kind>[:<carId>] opens a document in the review drawer.
 
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -92,9 +93,8 @@ export default function VendorDetail({ vendor: v, upcoming, today, suspendNote }
   const items = allDocs(v);
   const docParam = params.get("doc");
   const [open, setOpen] = useState<string | null>(docParam);
-  const [dialog, setDialog] = useState<"approve" | "reject" | "suspend" | null>(null);
+  const [dialog, setDialog] = useState<"approve" | "reject" | "suspend" | "reactivate" | null>(null);
   const [toast, setToast] = useState<ToastMsg | null>(() => (params.get("saved") ? { text: "Vendor details saved", key: 1 } : null));
-  const [, start] = useTransition();
   const cleaned = useRef(false);
 
   // Keep the open document in the URL so a refresh or a shared link reopens it.
@@ -229,16 +229,7 @@ export default function VendorDetail({ vendor: v, upcoming, today, suspendNote }
     ) : v.status === "suspended" ? (
       <>
         {edit}
-        <button
-          type="button"
-          className={btnPrimary}
-          onClick={() =>
-            start(async () => {
-              const res = await reactivateVendor(v.id);
-              if (!res.error) done(`${v.name} is back on trips`, () => void undoVendorChange(v.id));
-            })
-          }
-        >
+        <button type="button" className={btnPrimary} onClick={() => setDialog("reactivate")}>
           <Icon name="check" size={16} />
           Reactivate vendor
         </button>
@@ -469,6 +460,7 @@ export default function VendorDetail({ vendor: v, upcoming, today, suspendNote }
       {dialog === "approve" && <ApproveDialog vendor={v} today={today} onClose={() => setDialog(null)} onDone={done} />}
       {dialog === "reject" && <RejectDialog vendor={v} onClose={() => setDialog(null)} onDone={done} />}
       {dialog === "suspend" && <SuspendDialog vendor={v} upcoming={upcoming} today={today} onClose={() => setDialog(null)} onDone={done} />}
+      {dialog === "reactivate" && <ReactivateDialog vendor={v} today={today} onClose={() => setDialog(null)} onDone={done} />}
       <VendorToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );

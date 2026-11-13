@@ -1,5 +1,5 @@
-// Browser-safe Trip log types and helpers (no Node imports) — shared by the
-// store (lib/journal.ts), server actions, the admin Trip log and the driver app.
+// Browser-safe Daily Diary (trip log) types and helpers (no Node imports) — shared
+// by the store (lib/journal.ts), server actions, the admin Daily Diary and the driver app.
 
 import type { JournalEntry } from "./catalogTypes";
 
@@ -23,7 +23,8 @@ export type EntryExpense = {
   at?: string; // ISO time the receipt was added
 };
 
-// How the customer paid at the end of the trip.
+// How the customer paid at the end of the trip. Staff entries (Figma 4C
+// "Paid by"): UPI / Cash are received; "Not yet" is stored as received: false.
 export type EntryPayment = {
   method: "upi" | "cash";
   amount: number; // ₹ collected (fare + expenses)
@@ -37,6 +38,9 @@ export type EntryPayment = {
 export type JournalRecord = JournalEntry & {
   phone?: string; // customer's 10-digit mobile
   roundTrip?: boolean; // there and back
+  time?: string; // pickup time, "HH:MM" (Figma 4C.1 "Pickup time")
+  driver?: string; // who drove (Figma 4C "Driver"), free text
+  deletedAt?: string; // ISO — deleted from the admin, kept briefly so the toast can undo it (4C.10)
   // Odometer (driver entries; optional): readings at the start and end of the trip.
   odoStart?: number;
   odoEnd?: number;
@@ -53,11 +57,12 @@ export type JournalRecord = JournalEntry & {
   payment?: EntryPayment;
   fixReason?: FixReason;
   fixNote?: string; // message the office sent back to the driver
+  fixItem?: string; // what to fix, as shown in the toast: "toll receipt", "meter photos" (4B.12)
   submittedAt?: string; // ISO, last (re)submission by the driver
   reviewedAt?: string; // ISO, last office decision
 };
 
-// Whether the entry counts in the Trip log totals: staff entries always,
+// Whether the entry counts in the Daily Diary totals: staff entries always,
 // driver entries once the office approved them.
 export const counts = (e: Pick<JournalRecord, "source" | "status">) => e.source !== "driver" || e.status === "approved";
 
@@ -97,3 +102,6 @@ export type DriverEntryInput = {
   payment?: EntryPayment;
   note?: string;
 };
+
+// Checklist for "Due at this service" on the one-car view (Figma 4B.3).
+export const SERVICE_ITEMS = ["Engine oil", "Oil filter", "Air filter", "Brakes", "Tyre rotation", "Coolant", "Wheel alignment", "Battery"] as const;

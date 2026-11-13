@@ -3,9 +3,11 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { removeCar, saveCar, uploadCarPhoto } from "@/app/admin/fleet-actions";
+import { useRouter } from "next/navigation";
+import { removeCar, saveCar, setCarShown, uploadCarPhoto, type CarFormState } from "@/app/admin/fleet-actions";
 import FleetCard, { ToggleArt, carMeta } from "@/components/admin/FleetCard";
 import Icon from "@/components/admin/Icon";
+import FleetModal from "@/components/admin/fleet/FleetModal";
 import { FormError, btnDanger, btnGhost, btnPrimary, cardCls, inputCls, labelCls } from "@/components/admin/ui";
 import { CAR_TYPES, optimisableImage, perKmLabel, type Car, type FareClass } from "@/lib/catalogTypes";
 
@@ -54,12 +56,69 @@ function SwitchRow({ name, checked, onChange, title, hint }: { name: string; che
   );
 }
 
+// A booking that still uses this car (Figma 4.9), e.g. "DC-3F9A1C on Sat 31 Oct".
+export type CarTrip = { id: string; label: string };
+
+type Conflict = NonNullable<NonNullable<CarFormState>["conflict"]>;
+
+const CHANGE_WORDS: Record<Conflict["changed"][number], string> = {
+  name: "name",
+  number: "car number",
+  type: "type",
+  seats: "seats",
+  transmission: "transmission",
+  fuel: "fuel",
+  fareClass: "rate",
+  image: "photo",
+  note: "description",
+  shown: "website switch",
+  verified: "“Verified” tag",
+};
+
+const listWords = (w: string[]) => (w.length < 2 ? w.join("") : `${w.slice(0, -1).join(", ")} and ${w[w.length - 1]}`);
+
+// Figma 4.10: "Someone on another computer changed the rate to ₹18/km at 10:12 AM."
+function conflictText(c: Conflict, fareClasses: FareClass[]) {
+  const at = c.at
+    ? ` at ${new Date(c.at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).toUpperCase()}`
+    : "";
+  let what: string;
+  if (c.changed.length === 1) {
+    const k = c.changed[0];
+    const v = c.latest[k];
+    if (k === "fareClass") {
+      const cls = fareClasses.find((f) => f.id === v);
+      what = `the rate to ${cls ? perKmLabel(cls.rate) : "on request"}`;
+    } else if (k === "shown") what = v ? "the car to shown on the website" : "the car to hidden from the website";
+    else if (k === "verified" || k === "image" || k === "note" || !v) what = `the ${CHANGE_WORDS[k]}`;
+    else what = `the ${CHANGE_WORDS[k]} to ${v}`;
+  } else {
+    what = `the ${listWords(c.changed.map((k) => CHANGE_WORDS[k]))}`;
+  }
+  return `Someone on another computer changed ${what}${at}. Your changes are still here, not saved.`;
+}
+
 const fileName = (src: string) => decodeURIComponent(src.split(/[?#]/)[0].split("/").pop() || "photo");
 
 // Add car (car undefined) and Edit car share this form. The right column is a
 // live preview of the public car card.
-export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: FareClass[] }) {
-  const [state, action, saving] = useActionState(saveCar, undefined);
+export default function CarForm({
+  car,
+  fareClasses,
+  base,
+  trips = [],
+}: {
+  car?: Car;
+  fareClasses: FareClass[];
+  base?: string; // JSON snapshot of the car's form fields when the page loaded
+  trips?: CarTrip[]; // upcoming bookings in this car
+}) {
+  const router = useRouter();
+  const [state, action, saving] = useActionState<CarFormState, FormData>(saveCar, undefined);
+  const [closed, setClosed] = useState<CarFormState>(undefined); // result whose dialog was dismissed
+  const [tripsBlock, setTripsBlock] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const forceInput = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(car?.name ?? "");
   const [type, setType] = useState<string>(car?.type ?? "");
   const [transmission, setTransmission] = useState(car?.transmission || "Manual");
@@ -77,6 +136,17 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
   const [deleting, startDelete] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
   const busy = saving || uploading || deleting;
+  const open = state && state !== closed ? state : undefined;
+  const conflict = open?.conflict;
+  const saveFailed = !!open?.saveFailed;
+
+  // Resubmit the form as it stands; `force` skips the changed-elsewhere check.
+  function resubmit(force: boolean) {
+    setClosed(state);
+    if (forceInput.current) forceInput.current.value = force ? "1" : "";
+    formRef.current?.requestSubmit();
+    if (forceInput.current) forceInput.current.value = "";
+  }
 
   const fareClass = fareChoice === ON_REQUEST ? "" : fareChoice;
   const cls = fareClasses.find((c) => c.id === fareClass);
@@ -101,8 +171,10 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-      <form action={action} className={`${cardCls} flex min-w-0 flex-1 flex-col gap-4 p-5 md:p-6`}>
+      <form ref={formRef} action={action} className={`${cardCls} flex min-w-0 flex-1 flex-col gap-4 p-5 md:p-6`}>
         {car && <input type="hidden" name="id" value={car.id} />}
+        {base && <input type="hidden" name="base" value={base} />}
+        <input ref={forceInput} type="hidden" name="force" defaultValue="" />
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="transmission" value={transmission} />
         <input type="hidden" name="fuel" value={fuel} />
@@ -250,11 +322,11 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
         />
         <SwitchRow name="verified" checked={verified} onChange={setVerified} title="Show “Verified · Own fleet” tag" hint="Matches the tag on the public car card." />
 
-        <FormError error={state?.error} />
+        <FormError error={state?.saveFailed || state?.conflict ? undefined : state?.error} />
 
         <div className="flex flex-wrap items-center gap-2.5 pt-2">
           {car && (
-            <button type="button" disabled={busy} onClick={() => setConfirmDelete(true)} className={btnDanger}>
+            <button type="button" disabled={busy} onClick={() => (trips.length ? setTripsBlock(true) : setConfirmDelete(true))} className={btnDanger}>
               <Icon name="trash" size={16} />
               {deleting ? "Deleting…" : "Delete car"}
             </button>
@@ -286,8 +358,103 @@ export default function CarForm({ car, fareClasses }: { car?: Car; fareClasses: 
           name={car.name}
           busy={deleting}
           onCancel={() => setConfirmDelete(false)}
-          onConfirm={() => startDelete(() => removeCar(car.id))}
+          onConfirm={() =>
+            startDelete(async () => {
+              const res = await removeCar(car.id);
+              // Someone booked this car since the page loaded: show why it can't go.
+              if (res?.trips) {
+                setConfirmDelete(false);
+                setTripsBlock(true);
+                router.refresh();
+              }
+            })
+          }
         />
+      )}
+
+      {/* Figma 4.9 "Can't delete · trips coming up" */}
+      {tripsBlock && car && (
+        <FleetModal
+          art="car"
+          title={trips.length ? `${car.name} has ${trips.length} ${trips.length === 1 ? "trip" : "trips"} coming up` : `${car.name} has trips coming up`}
+          onClose={() => setTripsBlock(false)}
+          actions={
+            <>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() =>
+                  startDelete(async () => {
+                    await setCarShown(car.id, false);
+                    router.push(`/admin/fleet?saved=${encodeURIComponent(car.id)}`);
+                  })
+                }
+                className={btnGhost}
+              >
+                {deleting ? "Hiding…" : "Hide from website"}
+              </button>
+              <Link
+                href={trips.length === 1 ? `/admin/bookings?id=${trips[0].id}` : `/admin/bookings?q=${encodeURIComponent(car.name)}&sort=travel`}
+                className={btnPrimary}
+              >
+                {trips.length === 1 ? "See the trip" : trips.length ? `See the ${trips.length} trips` : "See the trips"}
+              </Link>
+            </>
+          }
+        >
+          {trips.length > 0 &&
+            `${listWords(trips.slice(0, 3).map((t) => t.label).concat(trips.length > 3 ? [`${trips.length - 3} more`] : []))} ${trips.length === 1 ? "uses" : "use"} this car. `}
+          Move {trips.length === 1 ? "it" : "them"} to another car first, or hide the car from the website instead.
+        </FleetModal>
+      )}
+
+      {/* Figma 4.10 "Car changed elsewhere" */}
+      {conflict && car && (
+        <FleetModal
+          art="car"
+          title={`${car.name} just changed`}
+          onClose={() => setClosed(state)}
+          actions={
+            <>
+              <button type="button" disabled={busy} onClick={() => resubmit(true)} className={btnGhost}>
+                Save mine over it
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setClosed(state);
+                  router.refresh(); // the edit page re-keys this form on the new version
+                }}
+                className={btnPrimary}
+              >
+                Load the latest
+              </button>
+            </>
+          }
+        >
+          {conflictText(conflict, fareClasses)}
+        </FleetModal>
+      )}
+
+      {/* Figma 4.8 "Couldn't save car" */}
+      {saveFailed && (
+        <FleetModal
+          art="error"
+          title={`Couldn’t save ${name.trim() || car?.name || "the car"}`}
+          onClose={() => setClosed(state)}
+          actions={
+            <>
+              <button type="button" onClick={() => setClosed(state)} className={btnGhost}>
+                Keep editing
+              </button>
+              <button type="button" disabled={busy} onClick={() => resubmit(false)} className={btnPrimary}>
+                Try again
+              </button>
+            </>
+          }
+        >
+          Your changes are still here. The website keeps the old details until this saves. Check the internet and try again.
+        </FleetModal>
       )}
     </div>
   );

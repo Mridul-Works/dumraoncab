@@ -20,7 +20,7 @@ export default function FleetGrid({ cars }: { cars: GridCar[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Figma "Type tabs": pill group, selected tab = inverse fill */}
+      {/* Figma "Type tabs": pill group, selected tab = grey "selected" fill */}
       <div className="max-w-full self-start overflow-x-auto rounded-full border border-gray-100 bg-layer p-1 [scrollbar-width:none]">
         <div className="flex w-max gap-1" role="tablist" aria-label="Filter by car type">
           {(["All", ...types] as const).map((t) => {
@@ -33,11 +33,11 @@ export default function FleetGrid({ cars }: { cars: GridCar[] }) {
                 aria-selected={on}
                 onClick={() => setTab(t)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-[7px] transition-colors ${
-                  on ? "bg-inverse text-inverse" : "text-primary hover:bg-layer-hover"
+                  on ? "bg-layer-selected text-primary" : "text-primary hover:bg-layer-hover"
                 }`}
               >
                 <span className="type-ui">{t === "All" ? "All cars" : t}</span>
-                <span className={`type-body-sm ${on ? "text-secondary-inverse" : "text-secondary"}`}>
+                <span className={`type-body-sm ${on ? "text-primary" : "text-secondary"}`}>
                   {t === "All" ? cars.length : cars.filter((c) => c.type === t).length}
                 </span>
               </button>

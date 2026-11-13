@@ -69,7 +69,8 @@ async function buildCatalog(): Promise<Catalog> {
       rate: perKmLabel(cls.rate),
     })),
     hourlyPackages: fares.hourly.map((p) => ({ name: p.name, for: p.for, price: inr(p.price) })),
-    routes: routes.map((r) => ({ ...r, fareFrom: inr(fares.routes[r.slug] ?? 0) })),
+    // Routes removed in the admin drop out of fares.routes — hide them rather than show ₹0.
+    routes: routes.filter((r) => r.slug in fares.routes).map((r) => ({ ...r, fareFrom: inr(fares.routes[r.slug]) })),
     nightAllowance: night,
     fareNotes: [`Night driver allowance ${night} per night on outstation trips.`, ...fares.rules],
   };

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Icon from "@/components/admin/Icon";
 
-// Figma "Toast" with an optional Undo link (6.8, 6.11, 6.16, 6.17). Bottom
+// Figma "Toast" with an optional Undo link (6.14, 6.17, 6.19, 6.20). Bottom
 // centre of the content area; closes itself after 8 seconds.
 export type ToastMsg = { text: string; undo?: () => void; key: number };
 

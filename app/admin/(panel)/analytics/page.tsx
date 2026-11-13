@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ExportMenu from "@/components/admin/analytics/ExportMenu";
-import RangeSwitch from "@/components/admin/analytics/RangeSwitch";
+import AnalyticsHeader from "@/components/admin/analytics/Header";
+import LoadFailed from "@/components/admin/analytics/LoadFailed";
+import AnalyticsSkeleton from "@/components/admin/analytics/Skeleton";
 import { Card, DataTable, KpiStrip, Meter, Quiet, RevenueChart } from "@/components/admin/analytics/parts";
 import { btnGhost, btnPrimary, cardCls } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
-import { loadReport, reportText, resolveRange } from "@/lib/analytics";
+import { loadReport, reportText, resolveRange, type Range, type Report } from "@/lib/analytics";
 import { istDate } from "@/lib/bookingTypes";
 import { inr } from "@/lib/catalogTypes";
 import { getCompany } from "@/lib/company";
@@ -18,14 +21,48 @@ type Search = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 // /admin/analytics — Figma Flow 7: 7.1 overview · 7.2 date range · 7.3 export
-// · 7.4 no data yet · 7.5 report sent. Everything is worked out from bookings,
-// the trip log, the fleet and vendors (lib/analytics.ts).
+// · 7.4 no data yet · 7.5 report sent · 7.6 couldn't load · 7.7 report didn't
+// send · 7.8 loading. Everything is worked out from bookings, the trip log,
+// the fleet and vendors (lib/analytics.ts). The header shows at once; the
+// numbers stream in behind a skeleton, again on every range change.
 export default async function AnalyticsPage({ searchParams }: { searchParams: Search }) {
   await requireAdmin();
   const sp = await searchParams;
   const today = istDate();
   const range = resolveRange({ range: one(sp.range), from: one(sp.from), to: one(sp.to), cmp: one(sp.cmp) }, today);
-  const [r, company] = await Promise.all([loadReport(range), getCompany()]);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Suspense
+        key={`${range.from}-${range.to}-${range.compare}`}
+        fallback={
+          <>
+            <AnalyticsHeader range={range} today={today} />
+            <AnalyticsSkeleton />
+          </>
+        }
+      >
+        <AnalyticsBody range={range} today={today} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function AnalyticsBody({ range, today }: { range: Range; today: string }) {
+  let r: Report;
+  let company: Awaited<ReturnType<typeof getCompany>>;
+  try {
+    [r, company] = await Promise.all([loadReport(range), getCompany()]);
+  } catch (err) {
+    console.error("Analytics couldn't load", err);
+    // 7.6 — couldn't load the numbers.
+    return (
+      <>
+        <AnalyticsHeader range={range} today={today} />
+        <LoadFailed />
+      </>
+    );
+  }
 
   const qs = new URLSearchParams({ from: range.from, to: range.to, ...(range.compare ? {} : { cmp: "0" }) });
   if (range.key !== "custom") qs.set("range", range.key);
@@ -36,40 +73,34 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const waHref = `https://wa.me/${owner}?text=${encodeURIComponent(waText)}`;
 
   const header = (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="min-w-[min(100%,16rem)] flex-1">
-        <h1 className="type-h1 text-primary">Analytics</h1>
-        <p className="mt-1 type-body-md text-secondary">
-          {range.label}
-          {range.compare && ` · compared with ${range.prevLabel}`}
-        </p>
-      </div>
-      <RangeSwitch key={`${range.key}-${range.from}-${range.to}-${range.compare}`} current={range.key} from={range.from} to={range.to} compare={range.compare} today={today} />
-      {r.hasAnyData && <ExportMenu csvHref={`/admin/analytics-export?${qs}`} pdfHref={`${reportPath}&print=1`} waHref={waHref} ownerLine={ownerLine} rangeLabel={range.label} />}
-    </div>
+    <AnalyticsHeader range={range} today={today}>
+      <ExportMenu csvHref={`/admin/analytics-export?${qs}`} pdfHref={`${reportPath}&print=1`} waHref={waHref} ownerLine={ownerLine} rangeLabel={range.label} />
+    </AnalyticsHeader>
   );
 
   // 7.4 — nothing logged or booked yet.
   if (!r.hasAnyData) {
     return (
-      <div className="flex flex-col gap-6">
+      <>
         {header}
         <section className={`flex flex-col items-center px-6 py-20 text-center ${cardCls}`}>
-          <Image src="/admin-illustrations/analytics-empty.svg" alt="" width={240} height={160} unoptimized className="h-40 w-60" />
-          <h2 className="mt-5 type-h3 text-primary">Numbers show up after your first week</h2>
-          <p className="mt-2 max-w-[472px] type-body-md text-secondary">
-            Analytics fills in from bookings and Trip log entries. Add today’s trips in the Trip log to see earnings by car.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/admin/journal" className={btnPrimary}>
-              Open Trip log
-            </Link>
-            <Link href="/admin/bookings" className={btnGhost}>
-              Go to bookings
-            </Link>
+          <div className="flex w-full max-w-[520px] flex-col items-center gap-2 py-10">
+            <Image src="/admin-illustrations/analytics-empty.svg" alt="" width={240} height={160} unoptimized className="h-40 w-60" />
+            <h2 className="mt-3 type-h3 text-primary">Numbers show up after your first week</h2>
+            <p className="type-body-md text-secondary">
+              Analytics fills in from bookings and Daily Diary entries. Add today’s trips in the Daily Diary to see earnings by car.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 pt-4">
+              <Link href="/admin/journal" className={btnPrimary}>
+                Open Daily Diary
+              </Link>
+              <Link href="/admin/bookings" className={btnGhost}>
+                Go to bookings
+              </Link>
+            </div>
           </div>
         </section>
-      </div>
+      </>
     );
   }
 
@@ -77,7 +108,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const maxReason = Math.max(1, ...r.cancels.reasons.map((x) => x.count));
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       {header}
 
       <KpiStrip r={r} />
@@ -129,7 +160,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             />
           ) : (
             <Quiet>
-              No trips logged for your cars in this range. <Link href="/admin/journal" className="text-link hover:text-link-hover">Open Trip log</Link>
+              No trips logged for your cars in this range. <Link href="/admin/journal" className="text-link hover:text-link-hover">Open Daily Diary</Link>
             </Quiet>
           )}
         </Card>
@@ -166,6 +197,6 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           )}
         </Card>
       </div>
-    </div>
+    </>
   );
 }

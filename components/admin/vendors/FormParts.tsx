@@ -7,7 +7,7 @@ import { vendorPlaces } from "@/lib/site";
 import type { WorkPlace } from "@/lib/vendorTypes";
 import { distanceKm } from "./format";
 
-// Pieces of the Add / Edit vendor form (Figma 6.3, 6.4, 6.18).
+// Pieces of the Add / Edit vendor form (Figma 6.6, 6.7, 6.8).
 
 const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
 
@@ -84,7 +84,7 @@ export function UploadBox({
   );
 }
 
-// "Works around" chips + Add place search (Figma 6.18).
+// "Works around" chips + Add place search (Figma 6.7).
 export function PlacesField({
   home,
   pin,

@@ -5,14 +5,14 @@ import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "@/components/admin/Icon";
 import { btnDanger, btnGhost, btnPrimary } from "@/components/admin/ui";
-import { reactivateVendor, undoVendorChange } from "@/app/admin/vendor-actions";
 import type { Vendor, VendorStatus } from "@/lib/vendorTypes";
 import { EmptyBlock, KindTag, Notice, VendorStatusBadge } from "./parts";
-import { ApproveDialog, RejectDialog, SuspendDialog, type Upcoming } from "./VendorDialogs";
+import { ApproveDialog, ReactivateDialog, RejectDialog, SuspendDialog, type Upcoming } from "./VendorDialogs";
 import VendorToast, { type ToastMsg } from "./VendorToast";
 
-// Figma 6.1 Vendors list + 6.12–6.15 empty / no results / caught up / error.
-// Status tab and search live in the URL (?status=pending&q=…).
+// Figma 6.1 Vendors list + 6.2–6.5 none yet / no results / caught up / error.
+// 6.21 (loading) is app/admin/(panel)/vendors/loading.tsx. Status tab and
+// search live in the URL (?status=pending&q=…).
 
 type Tab = "all" | VendorStatus;
 const TABS: { id: Tab; label: string }[] = [
@@ -37,7 +37,7 @@ function matches(v: Vendor, q: string) {
     .every((w) => hay.includes(w));
 }
 
-type Dialog = { kind: "approve" | "reject" | "suspend"; vendor: Vendor } | null;
+type Dialog = { kind: "approve" | "reject" | "suspend" | "reactivate"; vendor: Vendor } | null;
 
 export default function VendorList({
   vendors,
@@ -108,7 +108,7 @@ export default function VendorList({
     </div>
   );
 
-  // 6.12 — nobody has signed up or been added yet.
+  // 6.2 — nobody has signed up or been added yet.
   if (!failed && !vendors.length) {
     return (
       <div className="flex flex-col gap-6">
@@ -168,10 +168,10 @@ export default function VendorList({
                 role="tab"
                 aria-selected={on}
                 onClick={() => setParams({ status: t.id })}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-[7px] transition-colors ${on ? "bg-inverse" : "hover:bg-layer-hover"}`}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-[7px] transition-colors ${on ? "bg-layer-selected" : "hover:bg-layer-hover"}`}
               >
-                <span className={`type-ui ${on ? "text-inverse" : "text-primary"}`}>{t.label}</span>
-                <span className={`type-body-sm tabular-nums ${on ? "text-secondary-inverse" : "text-secondary"}`}>{failed ? "–" : counts[t.id]}</span>
+                <span className="type-ui text-primary">{t.label}</span>
+                <span className={`type-body-sm tabular-nums ${on ? "text-primary" : "text-secondary"}`}>{failed ? "–" : counts[t.id]}</span>
               </button>
             );
           })}
@@ -204,7 +204,7 @@ export default function VendorList({
         </div>
 
         {failed ? (
-          // 6.15
+          // 6.5
           <EmptyBlock
             art="something-went-wrong"
             title="Couldn’t load vendors"
@@ -218,7 +218,7 @@ export default function VendorList({
           </EmptyBlock>
         ) : visible.length === 0 ? (
           q ? (
-            // 6.13
+            // 6.3
             <EmptyBlock
               art="no-results"
               title={`No vendors match “${q}”`}
@@ -238,7 +238,7 @@ export default function VendorList({
               Check the spelling, or search by mobile number or car number instead.
             </EmptyBlock>
           ) : tab === "pending" ? (
-            // 6.14
+            // 6.4
             <EmptyBlock
               art="all-caught-up"
               title="No vendors waiting"
@@ -306,16 +306,7 @@ export default function VendorList({
                     </button>
                   )}
                   {v.status === "suspended" && (
-                    <button
-                      type="button"
-                      className={btnGhost}
-                      onClick={() =>
-                        start(async () => {
-                          const res = await reactivateVendor(v.id);
-                          if (!res.error) done(`${v.name} is back on trips`, () => void undoVendorChange(v.id));
-                        })
-                      }
-                    >
+                    <button type="button" className={btnGhost} onClick={() => setDialog({ kind: "reactivate", vendor: v })}>
                       Reactivate
                     </button>
                   )}
@@ -339,6 +330,7 @@ export default function VendorList({
       {dialog?.kind === "suspend" && (
         <SuspendDialog vendor={dialog.vendor} upcoming={upcoming[dialog.vendor.id] ?? []} today={today} onClose={() => setDialog(null)} onDone={done} />
       )}
+      {dialog?.kind === "reactivate" && <ReactivateDialog vendor={dialog.vendor} today={today} onClose={() => setDialog(null)} onDone={done} />}
       <VendorToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );

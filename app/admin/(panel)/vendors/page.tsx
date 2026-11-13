@@ -10,7 +10,7 @@ import { upcomingByVendor } from "./data";
 
 export const metadata: Metadata = { title: "Vendors" };
 
-// Figma Flow 6 · 6.1 Vendors (+ empty, no results, caught up, couldn't load).
+// Figma Flow 6 · 6.1 Vendors (+ 6.2 none yet, 6.3 no results, 6.4 caught up, 6.5 couldn't load; 6.21 loading).
 export default async function VendorsPage() {
   await requireAdmin();
   let vendors: Vendor[] = [];

@@ -31,9 +31,9 @@ const byUse = (list: string[]) => {
   return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([v]) => v);
 };
 
-export default async function NewBookingPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
+export default async function NewBookingPage({ searchParams }: { searchParams: Promise<{ saved?: string; name?: string; phone?: string }> }) {
   await requireAdmin();
-  const [{ saved }, bookings, cars, fares, vendors] = await Promise.all([searchParams, listBookings(), listCars(), getFares(), listApprovedVendors()]);
+  const [{ saved, name: preName, phone: prePhone }, bookings, cars, fares, vendors] = await Promise.all([searchParams, listBookings(), listCars(), getFares(), listApprovedVendors()]);
   const today = istDate();
 
   // Past customers, one per phone number (Figma 3B.8).
@@ -125,6 +125,7 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
         nightAllowance={fares.nightAllowance}
         today={today}
         startedAt={istTime()}
+        prefill={{ name: preName?.trim().slice(0, 80) || undefined, phone: /^\d{10}$/.test(prePhone ?? "") ? prePhone : undefined }}
       />
       <Suspense>
         <SavedToast />

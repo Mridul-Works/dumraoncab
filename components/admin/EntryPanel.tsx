@@ -1,18 +1,23 @@
 "use client";
 
 import { useActionState, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { removeEntry, saveEntry } from "@/app/admin/journal-actions";
+import type { FormState } from "@/app/admin/form";
 import Drawer from "@/components/admin/Drawer";
 import Icon from "@/components/admin/Icon";
 import { time12 } from "@/components/admin/JournalFormat";
+import EntryDialog from "@/components/admin/journal/EntryDialog";
 import { FormError, btnDanger, btnGhost, btnPrimary } from "@/components/admin/ui";
 import { inr, type CarType } from "@/lib/catalogTypes";
 import type { JournalRecord } from "@/lib/journalTypes";
 
-// "New trip entry" slide-over (Figma 4B.2, 4C.1–4C.6): date chips, customer and
-// route (typed, or picked from a booking), car accordion with search, money,
-// note, and a live net-for-this-trip footer.
+// "New trip entry" slide-over (Figma 4B.2, 4C.1–4C.11): date chips, pickup
+// time, customer and route (typed, or picked from a booking), car accordion
+// with search, driver, money (fare, paid by, fuel, tolls, parking, driver
+// share), note, and a live net-for-this-trip footer. Edit adds "Delete entry"
+// (4C.9/4C.10); closing with unsaved changes asks first (4C.11); a save that
+// can't reach the server says so and keeps the form (4C.8).
 
 export type BookingOption = {
   id: string;
@@ -26,6 +31,7 @@ export type BookingOption = {
   to: string;
   carId: string;
   quote: number;
+  driver?: string; // driver given when the car was assigned
 };
 export type CarOption = { id: string; name: string; number: string; type: CarType };
 export type BusyCar = { carId: string; date: string; label: string };
@@ -66,6 +72,19 @@ function Radio({ on }: { on: boolean }) {
   return <span aria-hidden="true" className="size-5 shrink-0 rounded-full border-[1.5px] border-gray-200 bg-layer" />;
 }
 
+type SaveState = (FormState & { failed?: boolean }) | undefined;
+type PaidBy = "" | "upi" | "cash" | "later";
+const PAID_BY: { value: Exclude<PaidBy, "">; label: string }[] = [
+  { value: "upi", label: "UPI" },
+  { value: "cash", label: "Cash" },
+  { value: "later", label: "Not yet" },
+];
+// Tolls / parking are kept as expenses on the entry (added to the customer's bill).
+const expenseOf = (e: JournalRecord | undefined, kind: string) => {
+  const n = (e?.expenses ?? []).filter((x) => x.kind === kind).reduce((sum, x) => sum + x.amount, 0);
+  return n ? String(n) : "";
+};
+
 export default function EntryPanel({
   entry,
   prefillBookingId,
@@ -78,6 +97,8 @@ export default function EntryPanel({
   returnTo,
   defaultCarId,
   startPicking,
+  driverByCar = {},
+  driverNames = [],
 }: {
   entry?: JournalRecord;
   prefillBookingId?: string;
@@ -90,9 +111,27 @@ export default function EntryPanel({
   returnTo: string;
   defaultCarId?: string;
   startPicking?: boolean; // open on the booking picker ("Pick from a booking", 4B.4)
+  driverByCar?: Record<string, string>; // who last drove each car — fills "Driver" when a car is picked
+  driverNames?: string[]; // suggestions for "Driver"
 }) {
   const router = useRouter();
-  const [state, action, saving] = useActionState(saveEntry, undefined);
+  const formRef = useRef<HTMLFormElement>(null);
+  // A save that never reached the server (offline, server down) keeps the form
+  // and shows "Couldn't save the entry" (4C.8). Redirects pass through.
+  const [state, action, saving] = useActionState(async (prev: SaveState, fd: FormData): Promise<SaveState> => {
+    try {
+      return await saveEntry(prev, fd);
+    } catch (err) {
+      unstable_rethrow(err);
+      return { failed: true };
+    }
+  }, undefined);
+  const [failOpen, setFailOpen] = useState(false);
+  const [lastState, setLastState] = useState(state);
+  if (state !== lastState) {
+    setLastState(state);
+    if (state?.failed) setFailOpen(true);
+  }
   const [deleting, startDelete] = useTransition();
   const otherDate = useRef<HTMLInputElement>(null);
 
@@ -114,7 +153,13 @@ export default function EntryPanel({
     fuel: entry && entry.fuel ? String(entry.fuel) : "",
     driverCut: entry && entry.driverCut ? String(entry.driverCut) : "",
     note: entry?.note ?? "",
+    time: entry?.time ?? initialBooking?.time ?? "",
+    driver: entry?.driver ?? initialBooking?.driver ?? (driverByCar[entry?.carId ?? (initialBooking?.carId || defaultCarId || "")] || ""),
+    tolls: expenseOf(entry, "Toll"),
+    parking: expenseOf(entry, "Parking"),
+    paidBy: (!entry?.payment ? "" : !entry.payment.received ? "later" : entry.payment.method) as PaidBy,
   }));
+  const [initial] = useState(() => JSON.stringify(f));
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((prev) => ({ ...prev, [k]: e.target.value }));
   const [mode, setMode] = useState<"manual" | "pick" | "linked">(initialBooking ? "linked" : startPicking ? "pick" : "manual");
   const linked = mode === "linked" ? bookings.find((b) => b.id === f.bookingId) : undefined;
@@ -131,9 +176,14 @@ export default function EntryPanel({
       roundTrip: b.round,
       carId: b.carId || prev.carId,
       fare: b.quote ? String(b.quote) : prev.fare,
+      time: b.time || prev.time,
+      driver: b.driver || (b.carId && driverByCar[b.carId]) || prev.driver,
     }));
     setMode("linked");
   }
+  // Picking a car fills in its usual driver, unless one was typed.
+  const pickCar = (id: string) =>
+    setF((p) => ({ ...p, carId: id, driver: !p.driver || p.driver === driverByCar[p.carId] ? driverByCar[id] || p.driver : p.driver }));
   const unlink = () => {
     setF((prev) => ({ ...prev, bookingId: "" }));
     setMode("manual");
@@ -181,7 +231,12 @@ export default function EntryPanel({
   const hasMoney = f.fare.trim() !== "" || f.fuel.trim() !== "" || f.driverCut.trim() !== "";
   const net = num(f.fare) - num(f.fuel) - num(f.driverCut);
   const pristine = !entry && !f.bookingId && !f.customer && !f.to && !f.carId && !hasMoney && !f.note;
-  const close = () => router.push(returnTo, { scroll: false });
+  const dirty = JSON.stringify(f) !== initial;
+  const leave = () => router.push(returnTo, { scroll: false });
+  // 4C.11: closing with something typed asks first.
+  const [askDiscard, setAskDiscard] = useState(false);
+  const close = () => (dirty && !saving && !deleting ? setAskDiscard(true) : leave());
+  const [askDelete, setAskDelete] = useState(false);
 
   const yesterday = shift(today, -1);
   const dateChoice = f.date === today ? "today" : f.date === yesterday ? "yesterday" : "other";
@@ -190,7 +245,7 @@ export default function EntryPanel({
       on ? "bg-brand text-on-color" : "border border-gray-200 bg-layer text-primary hover:bg-layer-hover"
     }`;
 
-  const MoneyField = ({ k, label, extra, invalid }: { k: "fare" | "fuel" | "driverCut"; label: string; extra?: React.ReactNode; invalid?: boolean }) => (
+  const MoneyField = ({ k, label, extra, invalid }: { k: "fare" | "fuel" | "driverCut" | "tolls" | "parking"; label: string; extra?: React.ReactNode; invalid?: boolean }) => (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
       <label htmlFor={`je-${k}`} className="flex items-center gap-2 type-body-sm text-secondary">
         {label}
@@ -240,18 +295,6 @@ export default function EntryPanel({
               </>
             )}
           </div>
-          {entry && (
-            <button
-              type="button"
-              disabled={saving || deleting}
-              onClick={() => {
-                if (confirm("Delete this trip entry? This can't be undone.")) startDelete(() => removeEntry(entry.id, returnTo));
-              }}
-              className={btnDanger}
-            >
-              Delete
-            </button>
-          )}
           <button type="button" onClick={close} className={btnGhost}>
             Cancel
           </button>
@@ -263,6 +306,7 @@ export default function EntryPanel({
       }
     >
       <form
+        ref={formRef}
         id="entry-form"
         action={action}
         noValidate
@@ -279,6 +323,7 @@ export default function EntryPanel({
         <input type="hidden" name="date" value={f.date} />
         <input type="hidden" name="roundTrip" value={f.roundTrip ? "1" : ""} />
         <input type="hidden" name="km" value={f.km.trim() === "" ? "" : String(totalKm)} />
+        <input type="hidden" name="paidBy" value={f.paidBy} />
 
         {/* Date */}
         <section className="flex flex-col gap-2.5">
@@ -306,6 +351,15 @@ export default function EntryPanel({
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
             </label>
+          </div>
+          <div className="flex flex-col gap-1.5 pt-1">
+            <label htmlFor="je-time" className="type-body-sm text-secondary">
+              Pickup time
+            </label>
+            <div className={`${boxCls()} w-full sm:w-[226px]`}>
+              <Icon name="clock" size={18} className="text-[var(--icon-secondary)]" />
+              <input id="je-time" name="time" type="time" value={f.time} onChange={set("time")} className={bareInput} style={noOutline} />
+            </div>
           </div>
         </section>
 
@@ -345,7 +399,7 @@ export default function EntryPanel({
                 />
               </label>
               <p className="bg-gray-50 px-3.5 pb-1.5 pt-2 type-body-sm text-secondary">
-                {bookingQuery.trim() ? "Trips not in the Trip log yet" : "Confirmed trips, today and yesterday"}
+                {bookingQuery.trim() ? "Trips not in the Daily Diary yet" : "Confirmed trips, today and yesterday"}
               </p>
               {bookingHits.length === 0 && (
                 <p className="border-t border-gray-100 px-3.5 py-3 type-body-sm text-secondary">
@@ -539,7 +593,7 @@ export default function EntryPanel({
                   {carHits.length === 1 ? "1 match" : `${carHits.length} matches`}
                 </p>
                 {carHits.map((c) => (
-                  <CarRow key={c.id} c={c} on={c.id === f.carId} busy={busyLabel.get(c.id)} query={q} onPick={() => setF((p) => ({ ...p, carId: c.id }))} />
+                  <CarRow key={c.id} c={c} on={c.id === f.carId} busy={busyLabel.get(c.id)} query={q} onPick={() => pickCar(c.id)} />
                 ))}
               </>
             ) : (
@@ -562,7 +616,7 @@ export default function EntryPanel({
                     </button>
                     {open &&
                       g.list.map((c) => (
-                        <CarRow key={c.id} c={c} on={c.id === f.carId} busy={busyLabel.get(c.id)} indent onPick={() => setF((p) => ({ ...p, carId: c.id }))} />
+                        <CarRow key={c.id} c={c} on={c.id === f.carId} busy={busyLabel.get(c.id)} indent onPick={() => pickCar(c.id)} />
                       ))}
                   </div>
                 );
@@ -575,12 +629,37 @@ export default function EntryPanel({
               Choose the car that did this trip
             </p>
           )}
+          <div className="flex flex-col gap-1.5 pt-1">
+            <label htmlFor="je-driver" className="type-body-sm text-secondary">
+              Driver
+            </label>
+            <div className={boxCls()}>
+              <Icon name="user" size={18} className="text-[var(--icon-secondary)]" />
+              <input
+                id="je-driver"
+                name="driver"
+                list="je-driver-names"
+                value={f.driver}
+                onChange={set("driver")}
+                placeholder="Fills in when you pick a car"
+                maxLength={80}
+                autoComplete="off"
+                className={bareInput}
+                style={noOutline}
+              />
+              <datalist id="je-driver-names">
+                {driverNames.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
+            </div>
+          </div>
         </section>
 
         {/* Money */}
         <section className="flex flex-col gap-2.5">
           <p className="type-ui text-primary">Money</p>
-          <div className="flex gap-2.5">
+          <div className="flex flex-col gap-2.5 sm:flex-row">
             {MoneyField({
               k: "fare",
               label: "Fare",
@@ -590,8 +669,34 @@ export default function EntryPanel({
                   <span className="rounded-full bg-gray-50 px-2 type-body-sm text-secondary">from booking</span>
                 ) : undefined,
             })}
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <p id="je-paid-by" className="type-body-sm text-secondary">
+                Paid by
+              </p>
+              <div role="radiogroup" aria-labelledby="je-paid-by" className="flex h-11 gap-0.5 rounded-md border border-gray-200 bg-gray-50 p-[3px]">
+                {PAID_BY.map((o) => {
+                  const on = f.paidBy === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setF((p) => ({ ...p, paidBy: on ? "" : o.value }))}
+                      className={`flex-1 rounded-sm type-body-sm ${on ? "border border-gray-200 bg-layer text-primary" : "border border-transparent text-secondary hover:text-primary"}`}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {MoneyField({ k: "fuel", label: "Fuel" })}
-            {MoneyField({ k: "driverCut", label: "Driver cut" })}
+            {MoneyField({ k: "tolls", label: "Tolls" })}
+            {MoneyField({ k: "parking", label: "Parking" })}
+            {MoneyField({ k: "driverCut", label: "Driver share" })}
           </div>
           {fareErr && (
             <p className="flex items-center gap-1.5 type-body-sm text-error">
@@ -622,8 +727,94 @@ export default function EntryPanel({
           </div>
         </section>
 
+        {entry && (
+          <button
+            type="button"
+            disabled={saving || deleting}
+            onClick={() => setAskDelete(true)}
+            className="inline-flex items-center gap-1.5 self-start type-body-sm text-error hover:underline disabled:opacity-40"
+          >
+            <Icon name="trash" size={16} />
+            {deleting ? "Deleting…" : "Delete entry"}
+          </button>
+        )}
+
         <FormError error={state?.error} />
       </form>
+
+      {askDelete && entry && (
+        <EntryDialog
+          title="Delete this entry?"
+          onCancel={() => setAskDelete(false)}
+          footer={
+            <>
+              <button type="button" onClick={() => setAskDelete(false)} className={btnGhost}>
+                Keep it
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setAskDelete(false);
+                  startDelete(() => removeEntry(entry.id, returnTo));
+                }}
+                className={btnDanger}
+              >
+                Delete entry
+              </button>
+            </>
+          }
+        >
+          The trip comes off the Daily Diary and the totals for this day and car go down. You can undo for 10 seconds after.
+        </EntryDialog>
+      )}
+
+      {askDiscard && (
+        <EntryDialog
+          title={entry ? "Discard your changes?" : "Discard this entry?"}
+          onCancel={() => setAskDiscard(false)}
+          footer={
+            <>
+              <button type="button" onClick={() => setAskDiscard(false)} className={btnGhost}>
+                Keep editing
+              </button>
+              <button type="button" onClick={leave} className={btnDanger}>
+                Discard
+              </button>
+            </>
+          }
+        >
+          {entry ? "The entry stays as it was. If you close now, your changes are lost." : "Nothing is saved yet. If you close now, what you typed is lost."}
+        </EntryDialog>
+      )}
+
+      {failOpen && (
+        <EntryDialog
+          art="/admin-illustrations/publish-failed.svg"
+          title="Couldn’t save the entry"
+          onCancel={() => setFailOpen(false)}
+          footer={
+            <>
+              <button type="button" onClick={() => setFailOpen(false)} className={btnGhost}>
+                Keep editing
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  setFailOpen(false);
+                  formRef.current?.requestSubmit();
+                }}
+                className={btnPrimary}
+              >
+                Try again
+              </button>
+            </>
+          }
+        >
+          Your entry is still here and nothing was added to the log. Check the internet and try again.
+        </EntryDialog>
+      )}
     </Drawer>
   );
 }

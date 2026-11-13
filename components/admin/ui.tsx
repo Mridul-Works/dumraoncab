@@ -10,8 +10,8 @@ import type { ServiceState } from "@/lib/catalogTypes";
 
 // Badge colours from the Figma StatusBadge component.
 export const statusStyle: Record<BookingStatus, string> = {
-  new: "bg-inverse text-inverse",
-  contacted: "bg-tag-amber text-tag-amber",
+  new: "bg-tag-amber text-tag-amber",
+  contacted: "bg-tag-blue text-tag-blue",
   confirmed: "bg-tag-green text-brand",
   completed: "bg-tag-gray text-secondary",
   cancelled: "bg-tag-red text-error",
@@ -19,8 +19,8 @@ export const statusStyle: Record<BookingStatus, string> = {
 
 // Small status dots (timelines, chart bars, lists).
 export const statusDot: Record<BookingStatus, string> = {
-  new: "bg-inverse",
-  contacted: "bg-warning-500",
+  new: "bg-warning-500",
+  contacted: "bg-info-500",
   confirmed: "bg-brand",
   completed: "bg-gray-400",
   cancelled: "bg-negative",

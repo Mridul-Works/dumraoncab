@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { assignBooking, cancelBooking, removeBooking, saveBookingDetails, type AssignInput } from "@/app/admin/actions";
-import { fmtClock, fmtLongDate, fmtReceived, fmtTime, fmtWhen, hasDriver, pdfHref, sourceId } from "@/components/admin/BookingFormat";
+import { bookingRef, fmtClock, fmtClockAt, fmtLongDate, fmtReceived, fmtTime, fmtWhen, hasDriver, pdfHref, sourceId } from "@/components/admin/BookingFormat";
 import ContactLinks, { customerMessage, waHref } from "@/components/admin/ContactLinks";
 import Drawer from "@/components/admin/Drawer";
 import Icon from "@/components/admin/Icon";
-import { FormError, StatusBadge, btnDanger, btnGhost, btnPrimary, btnText, inputCls, labelCls } from "@/components/admin/ui";
+import { FormError, StatusBadge, btnDanger, btnGhost, btnPrimary, btnText, inputCls, labelCls, statusStyle } from "@/components/admin/ui";
 import { STATUS_LABELS, STATUS_STEPS, phoneDigits, type Booking, type BookingStatus } from "@/lib/bookingTypes";
 import { inr, type CarType } from "@/lib/catalogTypes";
 import { cancelReasons, customerCancelText } from "@/lib/site";
@@ -103,6 +104,7 @@ export default function BookingPanel({
   bookings,
   office,
   journaled,
+  initialMode = "detail",
   onClose,
   onDone,
 }: {
@@ -112,12 +114,17 @@ export default function BookingPanel({
   bookings: Booking[]; // all bookings: car availability and saved drivers
   office: string;
   journaled: boolean;
+  initialMode?: "detail" | "assign"; // Dashboard "Assign car" links with ?assign=1 (Figma 2.2)
   onClose: () => void;
   onDone: (message: ToastMsg) => void; // after a save: close and show a toast
 }) {
   const [deleting, startDelete] = useTransition();
   const [state, save, saving] = useActionState(saveBookingDetails, undefined);
-  const [mode, setMode] = useState<"detail" | "assign">("detail");
+  const router = useRouter();
+  // Figma 3.11: the save came back with "changed on another computer".
+  const [handled, setHandled] = useState<typeof state>();
+  const conflict = state?.conflict && handled !== state ? state.conflict : undefined;
+  const [mode, setMode] = useState<"detail" | "assign">(initialMode);
   const [cancelling, setCancelling] = useState(false);
   const busy = saving || deleting;
   const assigned = cars.find((c) => c.id === b.carId);
@@ -143,6 +150,21 @@ export default function BookingPanel({
   const onTrack = (status?: BookingStatus) => {
     const form = document.getElementById(FORM_ID) as HTMLFormElement | null;
     submitted.current = { status, quote: (form?.elements.namedItem("quote") as HTMLInputElement | null)?.value ?? "" };
+  };
+
+  const saveMineOverIt = () => {
+    const form = document.getElementById(FORM_ID) as HTMLFormElement | null;
+    if (!form) return;
+    const fd = new FormData(form);
+    fd.set("force", "1");
+    if (submitted.current.status) fd.set("setStatus", submitted.current.status);
+    setHandled(state);
+    startTransition(() => save(fd));
+  };
+  const loadLatest = () => {
+    setHandled(state);
+    // The form is keyed on updatedAt, so it remounts with the newer values.
+    router.refresh();
   };
 
   const deleteBooking = () => {
@@ -258,6 +280,7 @@ export default function BookingPanel({
           <form id={FORM_ID} key={b.updatedAt ?? "new"} action={save} className="flex flex-col gap-5.5 px-5 py-5.5 md:px-7">
             <input type="hidden" name="id" value={b.id} />
             <input type="hidden" name="people" value={b.people ?? ""} />
+            <input type="hidden" name="seen" value={b.updatedAt ?? ""} />
 
             <h3 className="type-h4 text-primary">Trip</h3>
             <dl className="-mt-2">
@@ -325,7 +348,7 @@ export default function BookingPanel({
                     aria-pressed={current}
                     onClick={() => onTrack(s)}
                     className={`rounded-md py-2.25 type-ui transition-colors ${
-                      current ? "bg-inverse text-inverse" : "bg-layer-accent text-secondary hover:bg-[var(--layer-accent-hover)] hover:text-primary"
+                      current ? statusStyle[s] : "bg-layer-accent text-secondary hover:bg-[var(--layer-accent-hover)] hover:text-primary"
                     }`}
                   >
                     {STATUS_LABELS[s]}
@@ -382,6 +405,16 @@ export default function BookingPanel({
             <FormError error={state?.error} />
           </form>
         </Drawer>
+      )}
+      {conflict && (
+        <ConflictModal
+          refId={bookingRef(b)}
+          changed={conflict.status !== b.status ? `was marked ${STATUS_LABELS[conflict.status]}` : "was changed"}
+          at={conflict.at ? fmtClockAt(conflict.at) : ""}
+          busy={saving}
+          onSaveMine={saveMineOverIt}
+          onLoadLatest={loadLatest}
+        />
       )}
       {cancelling && <CancelModal booking={b} carFreed={Boolean(b.carId || b.vendorId)} onKeep={() => setCancelling(false)} onDone={onDone} />}
     </>
@@ -718,6 +751,69 @@ function CancelModal({ booking: b, carFreed, onKeep, onDone }: { booking: Bookin
           </button>
           <button type="button" onClick={confirmCancel} disabled={pending} className={btnDanger}>
             {pending ? "Cancelling…" : "Cancel booking"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------- 3.11 Changed on another computer ------------------------- */
+
+function ConflictModal({
+  refId,
+  changed,
+  at,
+  busy,
+  onSaveMine,
+  onLoadLatest,
+}: {
+  refId: string;
+  changed: string; // "was marked Contacted" / "was changed"
+  at: string; // "9:46 AM"
+  busy: boolean;
+  onSaveMine: () => void;
+  onLoadLatest: () => void;
+}) {
+  const latestRef = useRef(onLoadLatest);
+  useEffect(() => {
+    latestRef.current = onLoadLatest;
+  });
+  // Esc = the safe choice (load the latest); it never closes the drawer underneath.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      latestRef.current();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-scrim [animation:fade_.15s_ease-out]" aria-hidden="true" />
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="conflict-title"
+        aria-describedby="conflict-desc"
+        className="relative flex w-full max-w-120 flex-col items-center gap-2 rounded-lg bg-layer px-7 pb-7 pt-6 text-center shadow-[0_16px_48px_var(--shadow-md)] [animation:pop_.15s_ease-out]"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- static line-art SVG from the design */}
+        <img src="/admin-illustrations/no-bookings.svg" alt="" width={192} height={128} style={{ width: 192, height: 128 }} className="max-w-full" />
+        <h2 id="conflict-title" className="type-h3 text-primary">
+          This booking just changed
+        </h2>
+        <p id="conflict-desc" className="type-body-sm text-secondary">
+          {refId} {changed} on another computer{at ? ` at ${at}` : ""}, while you were editing. Your edits are not saved yet.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3 pt-4">
+          <button type="button" onClick={onSaveMine} disabled={busy} className={btnGhost}>
+            {busy ? "Saving…" : "Save mine over it"}
+          </button>
+          <button type="button" onClick={onLoadLatest} disabled={busy} autoFocus className={btnPrimary}>
+            Load the latest
           </button>
         </div>
       </div>

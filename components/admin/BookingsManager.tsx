@@ -6,14 +6,26 @@ import { useSearchParams } from "next/navigation";
 import { fmtDate, fmtShortDate, fmtTime, pdfHref, route, sourceId } from "@/components/admin/BookingFormat";
 import BookingPanel, { type CarOption, type ToastMsg, type VendorOption } from "@/components/admin/BookingPanel";
 import Icon from "@/components/admin/Icon";
+import {
+  BOOKING_COLS as COLS,
+  BookingNotFound,
+  BookingsEmpty as Empty,
+  BookingsTableHead,
+  STATUS_FILTERS,
+  TabLabel,
+  datePillCls,
+  searchPillCls,
+  tabBarCls,
+  tabCls,
+  type StatusFilter,
+} from "@/components/admin/bookings/BookingsChrome";
 import { usePopover } from "@/components/admin/newbooking/Pickers";
 import { ShareMenuPanel } from "@/components/admin/newbooking/ShareMenu";
 import { shareDataFor } from "@/components/admin/newbooking/shareData";
 import { StatusBadge, btnGhost, btnPrimary, cardCls } from "@/components/admin/ui";
-import { BOOKING_STATUSES, STATUS_LABELS, isWebsiteBooking, tripKey, type Booking, type BookingStatus } from "@/lib/bookingTypes";
+import { BOOKING_STATUSES, isWebsiteBooking, tripKey, type Booking } from "@/lib/bookingTypes";
 import { inr } from "@/lib/catalogTypes";
 
-type StatusFilter = "all" | BookingStatus;
 type SourceFilter = "all" | "website" | "phone";
 type Sort = "received" | "travel";
 
@@ -21,9 +33,10 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
 
-function matches(b: Booking, q: string) {
+// `carText`: the assigned car's fleet name and number, so ?q=<car name> (Fleet "See the N trips") finds its trips.
+function matches(b: Booking, q: string, carText = "") {
   if (!q) return true;
-  const hay = [b.name, b.phone, b.phone.replace(/\D/g, ""), b.from, b.to, b.service, b.car, b.notes, b.adminNote ?? ""].join(" ").toLowerCase();
+  const hay = [b.name, b.phone, b.phone.replace(/\D/g, ""), b.from, b.to, b.service, b.car, carText, b.notes, b.adminNote ?? ""].join(" ").toLowerCase();
   return q
     .toLowerCase()
     .split(/\s+/)
@@ -32,12 +45,6 @@ function matches(b: Booking, q: string) {
 
 const pick = <T extends string>(v: string | null, allowed: readonly T[], fallback: T): T =>
   allowed.includes(v as T) ? (v as T) : fallback;
-
-// Grid columns shared by the table header and rows (Figma "Booking row":
-// Customer 200, Trip 220, Pickup 110, Car 120, Source 130, Status 112, then
-// the PDF + Share icon buttons).
-const COLS =
-  "lg:grid-cols-[minmax(0,200fr)_minmax(0,220fr)_minmax(0,110fr)_minmax(0,120fr)_112px_76px] xl:grid-cols-[minmax(0,200fr)_minmax(0,220fr)_minmax(0,110fr)_minmax(0,120fr)_minmax(0,130fr)_112px_76px]";
 
 // Figma "Icon button", Ghost style (36px, for table rows).
 const iconBtn = "grid size-9 place-items-center rounded-md text-[var(--icon-primary)] transition-colors hover:bg-layer-hover";
@@ -52,7 +59,7 @@ function Stat({ label, value, hint, highlight = false }: { label: string; value:
   );
 }
 
-// Figma 3.1–3.4. Filters and the open drawer live in the URL, so dashboard
+// Figma 3.1–3.5 and 3.10. Filters and the open drawer live in the URL, so dashboard
 // links, the ⌘K search and the back button all land on the right view.
 export default function BookingsManager({
   bookings,
@@ -83,7 +90,7 @@ export default function BookingsManager({
 
   const [query, setQuery] = useState(urlQuery);
   // Back from "Add phone booking" (Figma 3B.4): ?saved=<id>&n=<name>&wa=1 → toast + highlighted row.
-  const savedId = params.get("saved");
+  const savedId = params.get("saved") ?? params.get("new"); // 3B.5 uses ?new=<id> (no toast)
   const [highlight] = useState(savedId);
   const [toast, setToast] = useState<ToastMsg | null>(() =>
     savedId && params.get("n") ? { text: `Booking saved for ${params.get("n") || "the customer"}${params.get("wa") === "1" ? " · confirmation sent on WhatsApp" : ""}` } : null,
@@ -108,7 +115,7 @@ export default function BookingsManager({
   }, []);
 
   useEffect(() => {
-    if (savedId) setParams({ saved: null, n: null, wa: null });
+    if (savedId) setParams({ saved: null, new: null, n: null, wa: null });
   }, [savedId, setParams]);
 
   // Pickup date presets → from/to in the URL.
@@ -130,6 +137,7 @@ export default function BookingsManager({
   const dateLabel = preset ? preset.label : `${from ? fmtShortDate(from) : "…"} – ${to ? fmtShortDate(to) : "…"}`;
 
   const q = query.trim();
+  const carIndex = useMemo(() => new Map(cars.map((c) => [c.id, `${c.name} ${c.number}`])), [cars]);
   // Base set for the tab counts: everything except the status filter itself.
   const base = useMemo(
     () =>
@@ -138,9 +146,9 @@ export default function BookingsManager({
           (source === "all" || (source === "website") === isWebsiteBooking(b)) &&
           (!from || (b.date && b.date >= from)) &&
           (!to || (b.date && b.date <= to)) &&
-          matches(b, q),
+          matches(b, q, carIndex.get(b.carId ?? "")),
       ),
-    [bookings, source, from, to, q],
+    [bookings, source, from, to, q, carIndex],
   );
 
   const counts = useMemo(() => {
@@ -189,6 +197,8 @@ export default function BookingsManager({
   }, [bookings, today, now, weekStart]);
 
   const open = openId ? bookings.find((b) => b.id === openId) : undefined;
+  // Figma 3.10: an old or deleted booking link (?id=…) gets its own state.
+  const missing = Boolean(openId && !open);
   const carName = (b: Booking) => (b.carId ? cars.find((x) => x.id === b.carId)?.name : undefined) ?? (b.car || "Any car");
 
   const clearSearch = () => {
@@ -203,7 +213,7 @@ export default function BookingsManager({
   return (
     <div className="flex flex-col gap-6">
       {/* KPI cards — hidden while searching (Figma 3.4) and before the first booking (3.5) */}
-      {!q && bookings.length > 0 && (
+      {!q && !missing && bookings.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
           <Stat label="New, not contacted" value={stats.fresh} hint="Reply within 15 min" highlight={stats.fresh > 0} />
           <Stat label="Pickups today" value={stats.pickups} hint={stats.pickupHint} />
@@ -214,12 +224,8 @@ export default function BookingsManager({
 
       {/* Filters: status tabs · search · pickup date */}
       <div className="flex flex-wrap items-center gap-3">
-        <div
-          className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-100 bg-layer p-1 [scrollbar-width:none]"
-          role="tablist"
-          aria-label="Filter by status"
-        >
-          {(["all", ...BOOKING_STATUSES] as StatusFilter[]).map((f) => {
+        <div className={tabBarCls} role="tablist" aria-label="Filter by status">
+          {STATUS_FILTERS.map((f) => {
             const on = status === f;
             return (
               <button
@@ -227,18 +233,17 @@ export default function BookingsManager({
                 type="button"
                 role="tab"
                 aria-selected={on}
-                onClick={() => setParams({ status: f })}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.75 transition-colors ${on ? "bg-inverse" : "hover:bg-layer-hover"}`}
+                onClick={() => setParams({ status: f, id: null })}
+                className={tabCls(on)}
               >
-                <span className={`type-ui ${on ? "text-inverse" : "text-primary"}`}>{f === "all" ? "All" : STATUS_LABELS[f]}</span>
-                <span className={`type-body-sm ${on ? "text-secondary-inverse" : "text-secondary"}`}>{counts[f]}</span>
+                <TabLabel filter={f} on={on} count={counts[f]} />
               </button>
             );
           })}
         </div>
         <span className="hidden flex-1 xl:block" />
         <label
-          className={`flex min-w-0 flex-1 items-center gap-2 rounded-full bg-layer px-3.5 py-2.5 text-[var(--icon-secondary)] focus-within:border-[1.5px] focus-within:border-brand sm:flex-none sm:w-60 ${
+          className={`${searchPillCls} focus-within:border-[1.5px] focus-within:border-brand ${
             q ? "border-[1.5px] border-brand" : "border border-gray-200"
           }`}
         >
@@ -249,20 +254,20 @@ export default function BookingsManager({
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              setParams({ q: e.target.value });
+              setParams({ q: e.target.value, id: null }); // also leaves the 3.10 not-found state
             }}
             placeholder="Search name, phone or place"
             className="min-w-0 flex-1 bg-transparent type-body-sm text-primary placeholder:text-secondary [&::-webkit-search-cancel-button]:hidden"
             style={{ outline: "none" }} // the brand border on the pill shows focus
           />
         </label>
-        <label className="relative flex shrink-0 items-center rounded-full border border-gray-200 bg-layer hover:bg-layer-hover">
+        <label className={datePillCls}>
           <span className="sr-only">Pickup date</span>
           <select
             value={preset?.id ?? "custom"}
             onChange={(e) => {
               const p = presets.find((x) => x.id === e.target.value);
-              if (p) setParams({ from: p.from || null, to: p.to || null });
+              if (p) setParams({ from: p.from || null, to: p.to || null, id: null });
             }}
             className="absolute inset-0 cursor-pointer appearance-none opacity-0"
           >
@@ -283,16 +288,17 @@ export default function BookingsManager({
       {/* Table (cards below lg) */}
       {/* No overflow-hidden here: the row Share menu opens below its row. */}
       <div className={cardCls}>
-        <div className={`hidden gap-4 rounded-t-lg bg-layer-accent px-5 py-2.5 type-body-sm text-secondary lg:grid ${COLS}`}>
-          <span>Customer</span>
-          <span>Trip</span>
-          <span>Pickup</span>
-          <span>Car</span>
-          <span className="hidden xl:block">Source</span>
-          <span>Status</span>
-          <span />
-        </div>
-        {bookings.length === 0 ? (
+        {!missing && <BookingsTableHead />}
+        {missing ? (
+          <BookingNotFound
+            id={openId ?? ""}
+            action={
+              <button type="button" onClick={() => setParams({ id: null })} className={btnPrimary}>
+                Back to all bookings
+              </button>
+            }
+          />
+        ) : bookings.length === 0 ? (
           <Empty
             title="No bookings yet"
             art="no-bookings"
@@ -369,7 +375,7 @@ export default function BookingsManager({
           </ul>
         )}
       </div>
-      {visible.length > 0 && visible.length < bookings.length && (
+      {!missing && visible.length > 0 && visible.length < bookings.length && (
         <p className="-mt-3 type-body-sm text-helper">
           Showing {visible.length} of {bookings.length}
         </p>
@@ -384,42 +390,19 @@ export default function BookingsManager({
           bookings={bookings}
           vendors={vendors}
           office={office}
-          onClose={() => setParams({ id: null })}
+          initialMode={params.get("assign") === "1" ? "assign" : "detail"}
+          onClose={() => setParams({ id: null, assign: null })}
           onDone={(message) => {
-            setParams({ id: null });
+            setParams({ id: null, assign: null });
             setToast(message);
           }}
         />
       )}
-      {openId && !open && <Toast onClose={() => setParams({ id: null })}>That booking no longer exists.</Toast>}
       {toast && !openId && (
         <Toast onClose={() => setToast(null)} action={toast.action}>
           {toast.text}
         </Toast>
       )}
-    </div>
-  );
-}
-
-// Figma 3.4 / 3.5 empty state, inside the table card.
-function Empty({
-  title,
-  art,
-  children,
-  action,
-}: {
-  title: string;
-  art: "no-bookings" | "no-search-results";
-  children?: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2.5 px-5 py-20 text-center">
-      {/* eslint-disable-next-line @next/next/no-img-element -- static line-art SVG from the design */}
-      <img src={`/admin-illustrations/${art}.svg`} alt="" width={204} height={136} className="h-34 w-51" />
-      <p className="type-h4 text-primary">{title}</p>
-      {children && <p className="max-w-3xl type-body-sm text-secondary">{children}</p>}
-      {action}
     </div>
   );
 }

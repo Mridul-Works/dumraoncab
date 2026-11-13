@@ -4,7 +4,7 @@ import { btnGhost, cardCls } from "@/components/admin/ui";
 import { entryNet, inr, shortDate, type Car } from "@/lib/catalogTypes";
 import type { JournalRecord } from "@/lib/journalTypes";
 
-// Building blocks for the Trip log (Figma 4B.1 / 4B.3 / 4C.7).
+// Building blocks for the Daily Diary (Figma 4B.1 / 4B.3 / 4B.12 / 4C.7).
 
 export const kmText = (n: number) => `${n.toLocaleString("en-IN")} km`;
 export const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
@@ -164,10 +164,12 @@ export function entryTitle(e: JournalRecord) {
   return e.note ? [e.note, e.customer].filter(Boolean).join(" · ") : e.customer || routeText(e) || "Trip";
 }
 
-export type EntryTag = { label: string; tone: "amber" | "gray" };
+export type EntryTag = { label: string; tone: "amber" | "gray" | "waiting" };
 
 export function entryTags(e: JournalRecord): EntryTag[] {
   const tags: EntryTag[] = [];
+  // Sent back to the driver with "Ask to fix" (Figma 4B.12); not in the totals yet.
+  if (e.source === "driver" && e.status === "fix") tags.push({ label: "Waiting for driver", tone: "waiting" });
   if (e.payment && !e.payment.received) tags.push({ label: "Payment pending", tone: "gray" });
   if (e.fare === 0 && !e.customer && !e.bookingId) tags.push({ label: "Own use", tone: "gray" });
   else if (e.fare === 0) tags.push({ label: "No fare entered", tone: "amber" });
@@ -294,9 +296,10 @@ export function EntryRow({
           {tags.map((t) => (
             <span
               key={t.label}
-              className={`flex items-center gap-1 rounded-full px-2 py-0.5 type-body-sm ${t.tone === "amber" ? "bg-tag-amber text-tag-amber" : "bg-gray-50 text-secondary"}`}
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 type-body-sm ${t.tone === "gray" ? "bg-gray-50 text-secondary" : "bg-tag-amber text-tag-amber"}`}
             >
               {t.tone === "amber" && <Icon name="warning-circle" size={12} />}
+              {t.tone === "waiting" && <span aria-hidden="true" className="mx-0.5 size-1.5 rounded-full bg-current" />}
               {t.label}
             </span>
           ))}

@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: vendor ? vendor.name : "Vendor not found" };
 }
 
-// Figma 6.2 Vendor detail (+ 6.6–6.11, 6.16, 6.17).
+// Figma 6.10 Vendor detail (+ 6.11–6.20, 6.22).
 export default async function VendorPage({ params }: Props) {
   await requireAdmin();
   const { id } = await params;
