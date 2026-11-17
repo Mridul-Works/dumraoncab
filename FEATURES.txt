@@ -1,6 +1,6 @@
 =====================================================================
 DUMRAON CAB SERVICE — FEATURE INVENTORY
-Last updated: 2026-11-13
+Last updated: 2026-11-15
 ---------------------------------------------------------------------
 MAINTENANCE RULE: this file is the living list of everything the
 site does. Whenever a feature is added, changed or removed, update
@@ -92,7 +92,7 @@ Mobile: top bar with search + sign-out icons and horizontal nav.
 Loading: app/admin/(panel)/loading.tsx shows grey placeholders in the
 page area (sidebar stays) the moment a page is opened.
 Booking statuses: New → Contacted → Confirmed → Completed, or Cancelled
-(badges: New amber, Contacted blue, Confirmed green, Completed grey,
+(badges: New gold, Contacted blue, Confirmed green, Completed grey,
 Cancelled red).
 - /admin/login (Figma 1.1–1.3): route-map backdrop (Figma SVGs in
   public/admin-login/, desktop only); card with brand band ("Admin
@@ -125,6 +125,8 @@ Cancelled red).
 - Page not found (Figma 1.4): any unknown /admin/* address (old link,
   typo) shows "This page doesn't exist" inside the admin shell with Go
   to dashboard / Go to bookings; signed-out visitors go to sign in.
+  /admin/daily-diary (the address on the Figma admin map) redirects to
+  the Daily Diary at /admin/journal, keeping any ?query.
 - Search (Figma 2.4 / 2.9): on the Dashboard the header pill is a live search
   box — results drop below it as you type, grouped Bookings (name,
   ref, date/time, route, status badge), Drivers and cars (vendors and
@@ -141,17 +143,20 @@ Cancelled red).
   list; "Needs a call back" (new requests, oldest first, waiting chip
   turns amber after 15 min, handled-today progress; row opens the
   booking; "All caught up" illustration when empty). Call → the row
-  asks how it went: Mark contacted (row leaves, counts update, toast
+  stays highlighted and asks how it went: Mark contacted (row leaves, counts update, toast
   with Undo for 10 s that puts it back) or No answer (tries counted
   "tried n of 3", Call again / WhatsApp; after 3 it leaves the list and
   "Not reachable" is added to the booking's internal note). WhatsApp
   quote marks Contacted straight away. Call state is remembered on the
-  device. "Up next" card (next contacted/confirmed trip, countdown,
+  device. Offline, a marked row stays dimmed ("Contacted · waiting to
+  send", buttons locked) until the change goes out. "Up next" card (next contacted/confirmed trip, countdown,
   pickup/drop, car, Call customer / Open booking — Assign car when no
   car yet, opening the drawer in assign mode via ?id=&assign=1); today's
   pickups timeline (completed with a tick and driver-app return time /
-  on trip / up next; adds a "Tomorrow" group when today is done); fleet
-  right now (cars out, or free cars by type); "This week" card:
+  on trip / up next; hourly rentals read "Dumraon (local) · 8 hr / 80
+  km" and "On trip · back 5:00 PM" — package hours from the booking
+  notes; adds a "Tomorrow" group when today is done); fleet right now
+  (cars out with when they're due back, or free cars by type); "This week" card:
   requests vs last week, Open analytics link, Revenue (+% vs last
   week), Net earnings and Trips from the Daily Diary, and a
   requests-per-day bar chart. Loading shows a skeleton under the real
@@ -160,9 +165,10 @@ Cancelled red).
 - /admin/bookings: KPI cards (new not contacted, pickups today with the
   next one, confirmed this week + ₹ quoted, completed this month vs
   last); status tabs with counts (All/New/Contacted/Confirmed/
-  Completed/Cancelled); search (name, phone, place, notes, car name or
+  Completed/Cancelled; the selected tab is soft grey, not black); search (name, phone, place, notes, car name or
   number); pickup-date presets (any, today, tomorrow, this week, next 7
-  days, upcoming, past); table (stacked cards on small screens) with PDF
+  days, upcoming, past); table (stacked cards on small screens; trips
+  with no drop read "<pickup> (local)") with PDF
   + Share icon buttons per row (Share opens the same Figma 3B.6 share
   menu as the "Booking saved" page) and a "Just added" row (on top,
   green edge) after a new phone booking (?new=<id> or ?saved=<id>);
@@ -185,7 +191,7 @@ Cancelled red).
   Delete · Reopen); every status button also saves typed edits. Esc or
   scrim closes. Confirmed/completed bookings show "Car and driver" with
   links to the customer and driver PDF copies. The current status step
-  takes the status badge colour. Changed elsewhere (Figma 3.11): if the
+  takes the status badge colour (New in warm gold, "needs action"). Changed elsewhere (Figma 3.11): if the
   booking was saved on another computer after the drawer opened, the
   save is held back and a modal says what changed and when, with "Save
   mine over it" or "Load the latest".
@@ -202,7 +208,8 @@ Cancelled red).
 - Booking PDF (Figma Flow 9): /admin/bookings/[id]/pdf?copy=customer|
   driver — printable A4 slip (print or save as PDF; toolbar hidden in
   print). Customer copy: greeting, date/time, trip tags, key facts (pickup,
-  car plate, driver, total), route with stops and distance/drive time for
+  car plate, driver, total), route with pickup and drop joined by one
+  route line (both copies) and distance/drive time for
   known routes, fare lines ("Route fare · A to B · type"; total
   "Includes GST · no advance needed"), "Pay by UPI" box with the UPI id
   — or "Scan to pay" with a scannable UPI QR when Company profile "Add a
@@ -213,20 +220,23 @@ Cancelled red).
   from the Company profile (lib/company.ts). Footer GSTIN only when "Show
   GSTIN on booking PDFs" is on.
 - /admin/bookings/new (phone booking): channel (phone call / WhatsApp /
-  walk-in) and +91 mobile — typing it lists past customers (trips, usual
+  walk-in) and +91 mobile (focused on open) — typing it lists past customers (trips, usual
   pickup → drop); one tap fills name, usual pickup/drop and payment, and
   a returning-customer summary shows; one way / round trip, trip type;
   pickup with the three most used places (a past customer's own first)
   plus "Drop a pin on the map" (opens Google Maps); drop with matching
-  places as you type (typed part in green, km · fare for fixed routes);
-  swap and popular-route chips; date tiles plus "Other" month calendar
+  places as you type ("Type a place or town"; typed part in green, km ·
+  fare for fixed routes); swap button (no popular-route chips — removed
+  in the Figma review); date tiles plus "Other" month calendar
   (past days off, fully booked days faded); pickup time list every 15
   min centred on the usual slot, or type a time; flight/train number;
   people and bag counters, car class with free count; "Assign a car"
-  picker lists only free cars of the class, approved vendors' cars when
-  none of ours are free; notes for driver and internal; summary with
+  picker lists only free cars of the class (car · plate, with the driver
+  from that car's latest booking that names one), approved vendors' cars
+  when none of ours are free; notes for driver and internal; summary with
   editable fare and discount, total, payment, WhatsApp confirmation
-  switch; Save / Save and add another; missing-info checks; local draft
+  switch; Save / Save and add another; missing-info checks ("N things to
+  fix" box replaces the status badge until fixed); local draft
   with Discard. Saving locks Save, Save and add another and Discard
   until the next page is up (Figma 3B.14). Before saving, the server
   checks for a repeat (same mobile, day and pickup time: "<name> already
@@ -251,7 +261,9 @@ Cancelled red).
   chips, shown-on-site switch), Add car; saved/deleted toast; "No cars
   yet" empty state (garage illustration + Add car) when the fleet is
   empty; "Couldn't load your cars" error card (Try again) when storage
-  can't be read; skeleton grid while loading.
+  can't be read; skeleton while loading (Figma 4.11: real header with a
+  usable Add car, skeleton type tabs and nine skeleton cards, no spinner).
+  Header: Add car sits bottom-aligned with the intro line.
 - /admin/fleet/new and /admin/fleet/[car]: form card + live "Preview on
   /fleet" card; edit header "Last updated <date> by <admin email>";
   name, number (edit), type, seats/transmission/fuel, fare class (rate
@@ -280,13 +292,21 @@ Cancelled red).
   (/admin/journal-report: totals, by car, every trip; Save as PDF).
   Empty states: "No entries yet" (New entry / Pick from a booking), "No
   trips in this range" (Pick another range opens the custom range,
-  ?range=custom; Show all cars on one car). Loading skeleton; "Couldn't
-  load the Daily Diary" with Try again.
+  ?range=custom; with a car picked the Daily Diary header and filters
+  stay, the car pill reads the car's name, and Show all cars widens it).
+  Export follows the car on screen (CSV and PDF get &car=). Entries sent
+  back with Ask to fix carry a "Waiting for driver" status badge on its
+  own line. Loading skeleton (New entry stays usable, Export waits);
+  "Couldn't load the Daily Diary" with Try again.
 - New trip entry panel (?new=1, edit with ?entry=, ?pick=1 opens the
-  booking picker): date chips; pickup time; customer and mobile; one way
-  / round trip (round trip by default); route and km; pick from a
-  booking (search by booking no., name or phone; today's and yesterday's
-  confirmed trips listed; fills time and driver) or unlink; car
+  booking picker): date chips; pickup time ("e.g. 6:00 AM" until
+  picked); customer and mobile; one way / round trip (round trip by
+  default); route and km (typing a known destination fills the one-way
+  km from the site's routes or earlier entries; a typed km is kept); pick
+  from a booking (search by booking no., name or phone; today's and
+  yesterday's confirmed trips listed; fills time, driver and distance;
+  the linked card shows the route and km, with a km field only when the
+  distance isn't known) or unlink; car
   accordion with search grouped by type (on-trip cars dimmed); driver
   (fills in with the car's last driver, suggestions); fare · paid by
   (UPI / Cash / Not yet) · fuel · tolls · parking · driver share (tolls
@@ -320,7 +340,10 @@ Cancelled red).
   can't be removed) and an "Add …" link (car class — name, cars picked
   from Fleet, rate; package; route — "Dumraon → X", km, ₹; extra or
   rule). New rows must be complete and a route can't be added twice
-  ("Fix 1 new entry to publish" in the bar, click jumps to the field).
+  ("Fix 1 new entry to publish" in the bar, click jumps to the field);
+  once you leave a new row its empty fields turn red with a line under
+  it ("Add a price to publish this route."). A new row shows in the bar
+  as "New car class Utility · Magic Pickup · ₹12 per km".
   A class still used by Fleet cars can't be removed ("Move the cars
   first" → Open Fleet); cars picked for a new class move to it on
   publish. Floating unsaved-changes bar (changes, last old → new ·
@@ -351,8 +374,10 @@ Cancelled red).
   no WhatsApp API, staff tap send) with a toast and View PDF; if the
   browser is offline or blocks the new tab, a "Couldn't send the
   report" dialog offers Download CSV / Try again. The header shows at
-  once and the numbers stream in behind a skeleton of the cards (also on
-  every range change); if they can't be read, "Couldn't load the
+  once and the numbers stream in behind a skeleton of the cards (Figma
+  7.8 — same grid and row rhythm as the loaded cards; also on every range
+  change, and on first open the range switch shows unselected while the
+  route loads); if they can't be read, "Couldn't load the
   numbers" with Try again. Empty state "Numbers show up after your
   first week" (Open Daily Diary / Go to bookings) until the first
   booking or trip entry exists.
@@ -544,17 +569,19 @@ Search Console, Google Business Profile, admin env vars).
 
 9. DRIVER APP (/driver — phone web app, noindex, robots-blocked)
 ---------------------------------------------------------------------
-Design: Figma "Flow 10 · Driver app" (10.1–10.47) on Chinkara. A
+Design: Figma "Flow 10 · Driver app" (10.1–10.55) on Chinkara. A
 390-wide phone layout (centred column on bigger screens). Pages in
 app/driver/, parts in components/driver/ (ui.tsx, fields.tsx,
 camera.tsx, Sheet.tsx, Trip.tsx …), actions in app/driver/actions.ts,
 server helpers in lib/driverTrips.ts, sign-in in lib/driverAuth.ts.
 Line art in public/driver-art/, icons from public/admin-icons/.
-- Sign in (10.1–10.4): Welcome → mobile number → 6-digit code. Code
+- Sign in (10.1–10.5): Welcome → mobile number → 6-digit code. Code
   is random, stored only as a hash with 10-min expiry
   (data/driver-otp.json); 3 wrong tries → new code needed; resend
-  after 30 s, max 5 codes/hour per number; boxes turn red and clear
-  on the next tap; Android WebOTP auto-fill. NO SMS provider: in
+  after 30 s, max 5 codes/hour per number — past that the code screen
+  shows "Too many codes asked. Ask again in N minutes, or call the
+  office" (10.5); boxes turn red and clear on the next tap (10.4);
+  Android WebOTP auto-fill. NO SMS provider: in
   development the code is printed to the server console and shown in
   a "Demo" note; for a demo/preview without SMS set DRIVER_DEMO_CODE
   (6 digits — every number then uses that code, shown on screen; anyone
@@ -566,41 +593,70 @@ Line art in public/driver-art/, icons from public/admin-icons/.
   not set up". Session =
   HMAC-signed httpOnly cookie (30 days) keyed by
   DRIVER_SESSION_SECRET or data/driver-secret.key (auto-created).
-- Join (10.5–10.11): photo, name, own car vs Dumraon Cab car, where
+- Join (10.6–10.13): photo, name, own car vs Dumraon Cab car, where
   you live, UPI → Aadhaar + licence (front and back stitched into one
   photo) → cars (stepper, car details, RC/insurance/permit/PUC, 4
-  car photos) → check and submit. Draft kept in
+  car photos) → check and submit. "Progress steps" bar on each step
+  (what's next + "Step N of 3"; fields.tsx ProgressSteps). Car papers
+  (10.12) is grouped: car, "Papers for this car", "Photos of the car"
+  and a footer naming what's missing ("No insurance yet, so this car
+  stays off trips"). Draft kept in
   data/driver-drafts.json; Submit creates a Vendor (source
   "driver-app", status "pending") for /admin/vendors. Documents are
   private (lib/vendorDocs.ts → data/vendor-docs).
 - Instant feedback: every button that saves shows a spinner and
   busy text ("Saving…", "Sending…") as soon as it's tapped
   (components/driver/SubmitBtn.tsx for server-action forms, Busy in
-  ui.tsx for client buttons). Today, Trip, Earnings and Account
+  ui.tsx for client buttons). Dashboard, Today, Trip, Earnings and Account
   (incl. car/documents) have loading.tsx placeholder screens
   (components/driver/Skeleton.tsx) so opening them is instant.
-- Camera (10.7/10.8): live camera with guide box (getUserMedia),
-  gallery pick, phone camera fallback (<input capture>); "Camera is
-  off" screen with gallery option. Photos shrunk to 1600 px on the
-  phone before upload.
-- Office checks (10.12–10.15): Waiting for checking (documents
-  grouped Verified / Being checked / Upload), Fix a document when
-  staff ask for a re-upload, You are approved (once), Two quick
-  settings (trip alerts, location, camera via browser prompts).
-- Today (10.16–10.21, 10.47): greeting, Available switch (off duty
-  keeps booked trips, hides new requests), week stats from the Trip
-  log, next trip card, later trips, empty state, skeleton loading,
-  checks for new trips every 20 s with a sound. Trips paused when a
-  document has expired or the vendor is suspended.
-- Trip requests (10.18/10.19): a booking staff assign to the vendor
-  shows as a request sheet with a 10-minute countdown and the
-  driver's share (trip.share), never the fare. Take it / can't take
-  it (3 reasons) is saved on booking.trip for the booking drawer.
+- Camera (10.8–10.10): live camera with guide box (getUserMedia),
+  gallery pick, phone camera fallback (<input capture>). For
+  documents it checks each frame for blur and glare ("Looks clear.
+  Hold still") and takes the photo itself after ~1 s of a clear,
+  still paper; the shutter still works by hand. "Camera is off" (10.9)
+  with try-again and gallery. A photo that didn't upload (10.10)
+  stays on the phone: notice above the boxes, the box says "Try
+  again" and re-sends without the camera. Photos shrunk to 1600 px on
+  the phone before upload.
+- Office checks (10.14–10.17): Waiting for checking (documents
+  grouped Verified / Being checked / Upload), Fix a document (10.15)
+  when staff ask for a re-upload — take the photo, then Send again,
+  You are approved (once; "Go to dashboard"), Two quick settings
+  (trip alerts, location, camera via browser prompts; one button,
+  "Not now" only after the browser says no) → Dashboard.
+- Tab bar: 4 tabs — Dashboard, Today, Earnings, Profile
+  (components/driver/ui.tsx TabBar; Profile = /driver/account). The
+  front door /driver sends an approved, set-up driver to the Dashboard.
+- Dashboard (10.18–10.22, /driver/dashboard, the home tab): greeting
+  ("Welcome, <name>" before the first trip) with date, car and plate;
+  Available switch (off duty keeps booked trips, hides new requests);
+  one office notice (a trip the office asked to fix, else a paper
+  expiring within 30 days → My documents); next trip card; This week
+  card (approved share, trips, rating, Monday payout → Earnings).
+  First day: "No trips yet" empty state. Trips paused (10.21) lives
+  here: switch greyed, upload the expired paper / call the office —
+  when a document has expired or the vendor is suspended. Loading:
+  skeleton with the switch working straight away.
+- Today (10.23–10.28): "Today" + date and next-trip line; Earlier
+  today (trips sent to the office today, km, opens the trip); next
+  trip card with service/people tags; Later this week; empty state
+  ("Keep Available on in Dashboard"); fix-trip banners; loading shows
+  the title and the phone's date at once. Dashboard and Today both
+  check for new trips every 20 s with a sound.
+- Trip requests (10.25–10.27, over Dashboard or Today): a booking
+  staff assign to the vendor shows as a request sheet with a 10-minute
+  countdown and the driver's share (trip.share), never the fare. Take
+  it / can't take it (3 reasons) is saved on booking.trip for the
+  booking drawer. When the 10 minutes run out the sheet turns into
+  "This trip went to another driver · Time ran out" (Back / Call the
+  office) and Take it is refused on the server (isOfferExpired).
   Each request alerts (sound, vibrate, notification) only once per
   device, and once answered it never pops up again on that device,
   even after reopening the app or if a refresh returns stale data.
   Only a new request (or the office re-sending it) shows again.
-- Trip (10.22–10.32, one page /driver/trip/[id] that follows
+  Pickup → drop route line joins the two dots (ui.tsx Route).
+- Trip (10.29–10.39, one page /driver/trip/[id] that follows
   booking.trip.stage): details + checklist (lib/site.ts
   driverChecklist) → start with odometer + meter photo (checks the
   last reading: lower or 300+ km above needs a second look) → going
@@ -610,22 +666,38 @@ Line art in public/driver-art/, icons from public/admin-icons/.
   driver's phone, customer not coming → tells the office) → on the
   way (Maps, add toll/parking/fuel with receipt photo) → end trip
   (meter + photo, expenses listed). Help sheet: call office / 112.
-- Payment (10.33–10.35): one total (quote + expenses); UPI QR made
+- Payment (10.40–10.42): one total (quote + expenses); UPI QR made
   on the phone from the company UPI ID (lib/company.ts; QR encoder in
   components/driver/qr.ts), "not paid after 5 min" hint, driver
   confirms "Customer has paid"; cash with amount check; pay the office
   later.
-- Check and send (10.36–10.39): summary with edit rows → Send to
+- Check and send (10.43–10.46): summary with edit rows → Send to
   office creates a Daily Diary entry (addDriverEntry, "From driver
-  app"); trip done screen; offline: saved on the phone and sent
-  automatically when back online; office "ask to fix" opens Fix and
-  send again (resubmitDriverEntry).
-- Cancelled (10.40): full screen with a sound when the office
-  cancels an accepted trip.
-- Earnings (10.41–10.43): this week's approved share, trips with
-  "Being checked" until approved, next Monday payout, cash to hand
-  over (cash trips until staff set trip.cashHandedOver).
-- Account (10.44–10.46): car(s) and papers, handover photos, My
-  documents with Verified / Expires soon / Expired / Missing badges
-  and upload, payout UPI, call the office, sign out.
+  app"); trip done screen (Back to dashboard); offline: saved on the
+  phone and sent automatically when back online; office "ask to fix"
+  opens Fix and send again (resubmitDriverEntry).
+- Cancelled (10.47): full screen with a sound when the office
+  cancels an accepted trip (on Dashboard or Today); Back to dashboard.
+- Earnings (10.48–10.50, Earnings tab): this week's approved share,
+  trips with "Being checked" until approved, next Monday payout; first
+  week empty state; cash to hand over (amber card on top, cash trips
+  until staff set trip.cashHandedOver) or "₹0 · all handed over";
+  Last payout = share of the latest earlier week with approved trips,
+  on the Monday after it (derived, not a recorded payment).
+- Profile (10.51–10.53, Profile tab; was "Account", route stays
+  /driver/account): name, role and mobile; car card with service due;
+  My documents (expiring first) with Verified / Expires soon / Expired
+  / Missing badges and upload; payout UPI, call the office, sign out.
+  Your car: odometer (highest meter reading the driver logged, or the
+  office estimate), service due + last service from the fleet car with
+  the same number plate (Daily Diary one-car view), papers, handover
+  photos, call the office.
+- One phone at a time (10.55): each sign-in claims the number for that
+  phone (cookie dc_driver_phone, data/driver-phones.json); the older
+  phone's session stops working and opens /driver/signed-out ("Signed
+  in on another phone", number filled in, sign in again with a new
+  code). Off for the demo driver, on per-instance demo storage, and
+  with DRIVER_ONE_PHONE=off; sessions from before this stay valid.
+- Update the app (10.54): /driver/update, "Update now" reloads the
+  newest version. Nothing links to it yet (no app version check).
 =====================================================================

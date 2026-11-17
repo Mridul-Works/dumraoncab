@@ -186,20 +186,23 @@ export default function CallBackCard({
                       ? `no answer · tried ${m.tries} of ${MAX_TRIES}${m.lastTry ? ` · ${clockIST(m.lastTry)}` : ""}`
                       : `waiting ${duration(wait)}`;
               const amber = state !== "waiting" || late;
-              const dim = state === "sending" ? "opacity-60" : "";
+              const sendingNow = state === "sending";
+              // 2.7: the row that was just called stays highlighted until it is answered.
+              // 2.10: a change waiting to send dims the whole row (buttons included) to 60 %.
+              const rowTone = state === "called" ? "bg-hover" : sendingNow ? "opacity-60" : "hover:bg-layer-hover";
               return (
-                <li key={b.id} className="relative flex flex-wrap items-center gap-3 border-b border-gray-100 py-3 pl-5 pr-4 hover:bg-layer-hover">
-                  <span className={`grid size-9 shrink-0 place-items-center rounded-full bg-gray-100 text-[var(--icon-secondary)] ${dim}`}>
+                <li key={b.id} className={`relative flex flex-wrap items-center gap-3 border-b border-gray-100 py-3 pl-5 pr-4 ${rowTone}`}>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gray-100 text-[var(--icon-secondary)]">
                     <Icon name="user" size={18} />
                   </span>
-                  <div className={`min-w-48 flex-1 ${dim}`}>
+                  <div className="min-w-48 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* The whole row opens the booking; the buttons sit above this link. */}
                       <Link href={panelHref(b)} className="type-ui text-primary after:absolute after:inset-0">
                         {b.name || "Unnamed"}
                       </Link>
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-2 pr-2.5 type-body-sm ${amber ? "bg-tag-amber text-tag-amber" : "bg-gray-50 text-secondary"}`}
+                        className={`inline-flex items-center gap-1 rounded-full py-[3px] pl-2 pr-2.5 type-body-sm ${amber ? "bg-tag-amber text-tag-amber" : "bg-gray-50 text-secondary"}`}
                       >
                         <Icon name="clock" size={14} />
                         {chip}
@@ -210,11 +213,13 @@ export default function CallBackCard({
                       {b.date ? ` · ${dayLabel(b.date).replace(/ 0/, " ")}` : ""}
                     </p>
                   </div>
-                  <div className="relative basis-full pl-12 sm:basis-auto sm:pl-0">
+                  {/* While the change waits to send the buttons look as usual (the row
+                      is dimmed) but can't be used: `inert` takes them out of reach. */}
+                  <div className="relative basis-full pl-12 sm:basis-auto sm:pl-0" inert={sendingNow} aria-disabled={sendingNow || undefined}>
                     <RequestActions
                       booking={b}
                       carName={b.carId ? carNames[b.carId] : undefined}
-                      state={state}
+                      state={sendingNow ? "waiting" : state}
                       onCall={() => call(b)}
                       onWhatsApp={() => markContacted(b)}
                       onNoAnswer={() => noAnswer(b)}

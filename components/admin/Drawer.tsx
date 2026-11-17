@@ -18,6 +18,7 @@ export default function Drawer({
   children,
   footer,
   width = "max-w-[540px]",
+  compact,
 }: {
   title: React.ReactNode;
   badge?: React.ReactNode; // sits right of the title (e.g. a StatusBadge)
@@ -27,6 +28,9 @@ export default function Drawer({
   children: React.ReactNode;
   footer?: React.ReactNode;
   width?: string;
+  // Daily Diary panels (Figma 4B.5, 4C.x): 69px header (22/18 padding, 20px
+  // close) and a 77px footer (14px padding, 12px gaps).
+  compact?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -60,21 +64,23 @@ export default function Drawer({
         tabIndex={-1}
         className={`relative flex h-full w-full ${width} flex-col bg-layer shadow-[0_24px_64px_-8px_var(--shadow-lg),0_8px_16px_-4px_var(--shadow-sm)] outline-none [animation:slide-in_.2s_ease-out]`}
       >
-        <header className="flex flex-col gap-2 border-b border-gray-100 px-5 pb-5 pt-6 md:px-7 md:pt-7">
+        <header className={`flex flex-col gap-2 border-b border-gray-100 ${compact ? "px-5 pb-[18px] pt-[22px] md:pl-7 md:pr-6" : "px-5 pb-5 pt-6 md:px-7 md:pt-7"}`}>
           <div className="flex items-start gap-2.5">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
               <h2 className="min-w-0 truncate type-h3 text-primary">{title}</h2>
               {badge}
             </div>
             <button type="button" onClick={onClose} aria-label="Close" className="-m-1 grid shrink-0 place-items-center rounded-full p-1 text-[var(--icon-primary)] hover:bg-layer-hover">
-              <Icon name="x" size={22} />
+              <Icon name="x" size={compact ? 20 : 22} />
             </button>
           </div>
           {subtitle && <div className="type-body-sm text-secondary">{subtitle}</div>}
           {actions && <div className="flex flex-wrap gap-2.5 pt-2">{actions}</div>}
         </header>
         <div className="flex-1 overflow-y-auto">{children}</div>
-        {footer && <footer className="flex flex-wrap items-center gap-2.5 border-t border-gray-100 px-5 py-4 md:px-7">{footer}</footer>}
+        {footer && (
+          <footer className={`flex flex-wrap items-center border-t border-gray-100 px-5 md:px-7 ${compact ? "gap-3 py-3.5" : "gap-2.5 py-4"}`}>{footer}</footer>
+        )}
       </div>
     </div>
   );

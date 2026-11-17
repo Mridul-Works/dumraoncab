@@ -1,4 +1,4 @@
-import { Body, Screen } from "./ui";
+import { Body, Screen, type TabKey } from "./ui";
 
 // Grey placeholder shapes shown the moment a driver screen is opened, while
 // the server builds it (Figma 10.16: cards fill in, no spinner). Used by the
@@ -37,6 +37,19 @@ export function StatsSkeleton() {
   );
 }
 
+// The Available switch card while the Dashboard loads (10.22).
+export function SwitchSkeleton() {
+  return (
+    <div className="flex items-center gap-[12px] rounded-lg border border-gray-100 bg-layer p-[16px]">
+      <div className="flex flex-1 flex-col gap-[8px]">
+        <Bar className="h-[14px] w-[120px]" />
+        <Bar className="h-[10px] w-[180px] max-w-full" />
+      </div>
+      <Bar className="h-[20px] w-[36px]" />
+    </div>
+  );
+}
+
 // A list card of rows (Account, Earnings).
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
@@ -54,24 +67,29 @@ export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   );
 }
 
-// Whole screen: title, then the given placeholders.
+// Whole screen: title, then the given placeholders. `header` replaces the
+// title bars when the title is known up front (10.22, 10.23).
 export function ScreenSkeleton({
   tabs,
   label,
+  header,
   children,
 }: {
-  tabs?: "today" | "earnings" | "account";
+  tabs?: TabKey;
   label: string;
+  header?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <Screen tabs={tabs}>
       <Body className="gap-[16px] pt-[16px] pb-[20px]">
         <div role="status" aria-label={label} className="flex flex-col gap-[16px]">
-          <div className="flex flex-col gap-[8px] pt-[4px]">
-            <Bar className="h-[22px] w-[180px]" />
-            <Bar className="h-[12px] w-[140px]" />
-          </div>
+          {header ?? (
+            <div className="flex flex-col gap-[8px] pt-[4px]">
+              <Bar className="h-[22px] w-[180px]" />
+              <Bar className="h-[12px] w-[140px]" />
+            </div>
+          )}
           {children}
           <p className="type-body-sm text-secondary">{label}</p>
         </div>

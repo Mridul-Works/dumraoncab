@@ -65,8 +65,8 @@ export default async function BookingSavedPage({ params, searchParams }: Props) 
             {confirmed ? `${who} is booked for ${when.join(" at ")}.` : `${who}'s request is saved for ${when.join(" at ")}. Call back to confirm.`}
           </p>
           {wa === "fail" && digits && (
-            <div role="alert" className="mt-1 flex w-full items-start gap-2.5 rounded-md bg-tag-amber px-5.5 py-3.5 text-left">
-              <Icon name="warning-circle" size={18} className="mt-px shrink-0 text-tag-amber" />
+            <div role="alert" className="flex w-full items-start gap-2.5 rounded-md bg-tag-amber px-3.5 py-3 text-left">
+              <Icon name="warning-circle" size={20} className="shrink-0 text-tag-amber" />
               <div className="flex min-w-0 flex-col gap-0.5">
                 <p className="type-body-sm text-tag-amber">WhatsApp didn’t send</p>
                 <p className="type-ui text-primary">

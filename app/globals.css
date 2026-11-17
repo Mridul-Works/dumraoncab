@@ -184,6 +184,8 @@
   --border-color-negative-subtle: var(--border-negative-subtle);
   --border-color-positive: var(--border-positive);
   --border-color-positive-subtle: var(--border-positive-subtle);
+  /* Tag red as a border: wrong-code boxes in the driver app (Figma 10.4) */
+  --border-color-tag-red: var(--tag-color-red);
 
   /* ---- Type: Google Sans Flex + Google Sans Code */
   --font-sans: var(--font-family-sans);

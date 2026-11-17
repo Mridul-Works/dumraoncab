@@ -38,14 +38,14 @@ const duration = (from?: string, to?: string) => {
 const minutesUntil = (iso: string) => Math.round((Date.parse(iso) - Date.now()) / 60000);
 const capital = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 
-// One page for a whole trip; the screen follows the trip's stage (Figma 10.22–10.39).
+// One page for a whole trip; the screen follows the trip's stage (Figma 10.29–10.46).
 export default async function TripPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ step?: string }> }) {
   const [{ id }, { step }] = await Promise.all([params, searchParams]);
   const { vendor } = await requireApproved();
   const b = await getMyBooking(id, vendor.id);
   if (!b) notFound();
   const t = b.trip;
-  if (b.status === "cancelled" || !t || t.stage === "offered" || t.stage === "declined") redirect("/driver/today");
+  if (b.status === "cancelled" || !t || t.stage === "offered" || t.stage === "declined") redirect("/driver/dashboard");
 
   const office = await officeContact();
   const help = <HelpButton officeTel={office.tel} officeDisplay={office.display} />;
@@ -61,7 +61,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
     return <Done b={b} />;
   }
 
-  /* ---- 10.22 Trip details · 10.23 Start trip ---- */
+  /* ---- 10.29 Trip details · 10.30 Start trip · 10.31 Check the meter ---- */
   if (t.stage === "accepted") {
     if (step === "start") {
       const last = lastOdometer(await listMyBookings(vendor.id), b.vendorCarId, b.id);
@@ -120,7 +120,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
     );
   }
 
-  /* ---- 10.25 Going to pickup · 10.26 Location is off ---- */
+  /* ---- 10.32 Going to pickup · 10.33 Location is off ---- */
   if (t.stage === "to-pickup") {
     const go = arrived.bind(null, id);
     return (
@@ -153,7 +153,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
     );
   }
 
-  /* ---- 10.27 Waiting for customer · 10.28 Customer not coming ---- */
+  /* ---- 10.34 Waiting for customer · 10.35 Customer not coming ---- */
   if (t.stage === "waiting") {
     const since = Date.parse(t.arrivedAt ?? new Date().toISOString());
     const board = onBoard.bind(null, id);
@@ -182,7 +182,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
     );
   }
 
-  /* ---- 10.29 On the way · 10.30 Add expense · 10.31 Help ---- */
+  /* ---- 10.36 On the way · 10.37 Add expense · 10.38 Help ---- */
   if (t.stage === "on-trip" && step !== "end") {
     const lastExpense = t.expenses?.at(-1);
     const dist = await routeDistance(b);
@@ -224,7 +224,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
   }));
   const extra = (t.expenses ?? []).reduce((s, x) => s + x.amount, 0);
 
-  /* ---- 10.32 End trip (also edit from 10.36) ---- */
+  /* ---- 10.39 End trip (also edit from 10.43) ---- */
   if (step === "end" || t.stage === "on-trip") {
     const editing = t.stage === "paid";
     return (
@@ -237,7 +237,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
     );
   }
 
-  /* ---- 10.33 Collect payment · 10.34 Not paid yet · 10.35 Cash received ---- */
+  /* ---- 10.40 Collect payment · 10.41 Not paid yet · 10.42 Cash received ---- */
   if (t.stage === "ended") {
     const fare = b.quote ?? 0;
     const due = fare + extra;
@@ -252,7 +252,7 @@ export default async function TripPage({ params, searchParams }: { params: Promi
     );
   }
 
-  /* ---- 10.36 Check and send (stage "paid") ---- */
+  /* ---- 10.43 Check and send (stage "paid") ---- */
   const payLine =
     t.payment === "upi" ? `UPI · ${inr(t.collected ?? 0)}` : t.payment === "cash" ? `Cash · ${inr(t.collected ?? 0)}` : "Pay the office later";
   const photos = [t.startPhoto, t.endPhoto].filter(Boolean).length;
@@ -309,7 +309,7 @@ function LocationPing({ id }: { id: string }) {
   return <LocationWatch tripId={id} customer="" place="" silent />;
 }
 
-/* ---- 10.37 Trip done · 10.38 No signal ---- */
+/* ---- 10.44 Trip done · 10.45 No signal ---- */
 function Done({ b, offline, overlay }: { b: Booking; offline?: boolean; overlay?: boolean }) {
   const t = b.trip!;
   const content = (
@@ -322,8 +322,8 @@ function Done({ b, offline, overlay }: { b: Booking; offline?: boolean; overlay?
           <h1 className="type-h2 text-primary">Trip done</h1>
           <p className="type-body-md text-secondary">
             {offline
-              ? "Saved on your phone. Waiting to send to the Trip log."
-              : `Sent to the office${t.sentAt ? ` at ${clockOf(t.sentAt)}` : ""}. It joins the Trip log once checked.`}
+              ? "Saved on your phone. Waiting to send to the Daily Diary."
+              : `Sent to the office${t.sentAt ? ` at ${clockOf(t.sentAt)}` : ""}. It joins the Daily Diary once checked.`}
           </p>
         </div>
         <Facts
@@ -334,7 +334,7 @@ function Done({ b, offline, overlay }: { b: Booking; offline?: boolean; overlay?
           ]}
         />
         <Spacer />
-        <LinkBtn href="/driver/today">Back to Today</LinkBtn>
+        <LinkBtn href="/driver/dashboard">Back to dashboard</LinkBtn>
       </Body>
       {offline && <OutboxSync />}
     </Screen>
@@ -342,7 +342,7 @@ function Done({ b, offline, overlay }: { b: Booking; offline?: boolean; overlay?
   return overlay ? <div className="fixed inset-0 z-30 overflow-y-auto bg-gray-50">{content}</div> : content;
 }
 
-/* ---- 10.39 Office asked to fix ---- */
+/* ---- 10.46 Office asked to fix ---- */
 function Fix({ b, reason, note, at }: { b: Booking; reason?: string; note?: string; at?: string }) {
   const t = b.trip!;
   const idx = Math.max(0, (t.expenses ?? []).findIndex((x) => x.kind.toLowerCase() === "toll"));

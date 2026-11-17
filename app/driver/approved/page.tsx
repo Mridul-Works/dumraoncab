@@ -12,7 +12,9 @@ export const metadata: Metadata = { title: "You are approved" };
 const PAPER = { rc: "RC", insurance: "insurance", permit: "permit", puc: "PUC" } as const;
 const notReady = (c: VendorCar) => CAR_DOCS.filter((k) => c.docs.find((d) => d.kind === k)?.status !== "verified");
 
-// Figma 10.14 You are approved — when the office approves (admin 6.8).
+// Figma 10.16 You are approved — when the office approves (admin 6.13 Approve
+// vendor / 6.14 Vendor approved). Cars with all papers go on trips; the rest
+// wait. "Go to dashboard" leads on to 10.17 (once) and the Dashboard (10.18).
 export default async function ApprovedPage() {
   const { vendor } = await requireVendor();
   if (vendor.status !== "approved") redirect("/driver");
@@ -20,9 +22,9 @@ export default async function ApprovedPage() {
   const lead =
     vendor.kind === "owner"
       ? ready.length
-        ? `Your ${ready.map((c) => shortModel(c.model)).join(" and ")} can take trips now. Turn on Available on Today.`
+        ? `Your ${ready.map((c) => shortModel(c.model)).join(" and ")} can take trips now. Turn on Available on your dashboard.`
         : "Add the missing car papers to start taking trips."
-      : "The office will tell you which car to drive. Turn on Available on Today.";
+      : "The office will tell you which car to drive. Turn on Available on your dashboard.";
   return (
     <Screen>
       <Body className="gap-[20px] pt-[48px] pb-[24px]">
@@ -49,7 +51,7 @@ export default async function ApprovedPage() {
         </div>
         <Spacer />
         <form action={seenApproved}>
-          <SubmitBtn busy="Opening…">Go to Today</SubmitBtn>
+          <SubmitBtn busy="Opening…">Go to dashboard</SubmitBtn>
         </form>
       </Body>
     </Screen>

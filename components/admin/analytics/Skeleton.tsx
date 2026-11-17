@@ -16,16 +16,20 @@ function CardHead({ title, note }: { title: string; note?: string }) {
   );
 }
 
+// Same rhythm as DataTable: a 20px head line, then rows of a 10px top pad
+// over a 24px line, each under a hairline.
 function TableSkeleton({ rows, cols }: { rows: number; cols: string[] }) {
   return (
     <div className="flex flex-col gap-2.5">
       {Array.from({ length: rows + 1 }, (_, r) => (
-        <div key={r} className={`flex items-center gap-3 ${r ? "border-t border-gray-100 pt-[18px] pb-1.5" : "pb-1"}`}>
-          <span className={`${bar} w-[min(156px,40%)]`} />
-          <span className="flex-1" />
-          {cols.map((w, i) => (
-            <span key={i} className={`${bar} ${w}`} />
-          ))}
+        <div key={r} className={r ? "border-t border-gray-100 pt-2.5" : ""}>
+          <div className={`flex items-center gap-3 ${r ? "h-6" : "h-5"}`}>
+            <span className={`${bar} w-[min(220px,40%)]`} />
+            <span className="flex-1" />
+            {cols.map((w, i) => (
+              <span key={i} className={`${bar} ${w}`} />
+            ))}
+          </div>
         </div>
       ))}
     </div>
@@ -68,7 +72,7 @@ export default function AnalyticsSkeleton() {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Revenue by day */}
         <section className={card}>
-          <CardHead title="w-[114px]" note="w-[196px] max-w-[45%]" />
+          <CardHead title="w-[160px] max-w-[40%]" note="w-[196px] max-w-[45%]" />
           <div className="flex flex-col gap-4">
             <div className="relative h-[200px]">
               {[0, 25, 50, 75].map((top) => (
@@ -81,8 +85,8 @@ export default function AnalyticsSkeleton() {
               </div>
             </div>
             <div className="flex justify-between gap-2">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <span key={i} className={`${bar} w-[34px]`} />
+              {["w-[34px]", "w-[37px]", "w-[42px]", "w-[44px]", "w-[46px]"].map((w) => (
+                <span key={w} className={`${bar} ${w}`} />
               ))}
             </div>
           </div>
@@ -91,20 +95,28 @@ export default function AnalyticsSkeleton() {
         {/* Where bookings come from */}
         <section className={card}>
           <CardHead title="w-[220px] max-w-[70%]" />
-          {["w-[77px]", "w-[93px]", "w-[130px]"].map((w, i) => (
-            <div key={i} className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <span className={`${bar} ${w}`} />
-                <span className={`${bar} w-[85px]`} />
+          {[
+            ["w-[77px]", "w-[85px]"],
+            ["w-[93px]", "w-[86px]"],
+            ["w-[130px]", "w-[88px]"],
+          ].map(([label, count]) => (
+            <div key={label} className="flex flex-col gap-1.5">
+              <div className="flex h-5 items-center justify-between gap-3">
+                <span className={`${bar} ${label}`} />
+                <span className={`${bar} ${count}`} />
               </div>
-              <span className="block h-1.5 rounded-full bg-gray-100" />
+              <span className="block h-2 rounded-full bg-gray-100" />
             </div>
           ))}
           <span className="h-px w-2.5 bg-gray-100" aria-hidden="true" />
           <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col gap-4">
-              <span className={`${bar} w-[183px] max-w-full`} />
-              <span className={`${bar} w-[59px]`} />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex h-5 items-center">
+                <span className={`${bar} w-[183px] max-w-full`} />
+              </span>
+              <span className="flex h-9 items-center">
+                <span className={`${bar} w-[59px]`} />
+              </span>
             </div>
             <span className={`${bar} w-[86px]`} />
           </div>
@@ -130,15 +142,17 @@ export default function AnalyticsSkeleton() {
         <section className={card}>
           <CardHead title="w-[139px]" note="w-[86px]" />
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-3 border-t border-gray-100 pb-1.5 pt-[18px]">
-              <span className={`${bar} w-[min(156px,40%)]`} />
-              <span className="flex-1" />
-              <span className="block h-1.5 w-[120px] shrink-0 rounded-full bg-gray-100" />
-              <span className={`${bar} w-1.5`} />
+            <div key={i} className="border-t border-gray-100 pt-2.5">
+              <div className="flex h-6 items-center gap-3">
+                <span className={`${bar} w-[min(220px,40%)]`} />
+                <span className="flex-1" />
+                <span className="block h-1.5 w-[120px] shrink-0 rounded-full bg-gray-100" />
+                <span className={`${bar} w-2`} />
+              </div>
             </div>
           ))}
-          <span className="block h-11 rounded-sm bg-gray-50 p-3">
-            <span className={`${bar} w-[156px] max-w-full`} />
+          <span className="flex h-11 items-center rounded-sm bg-gray-50 px-3">
+            <span className={`${bar} w-[220px] max-w-full`} />
           </span>
         </section>
       </div>

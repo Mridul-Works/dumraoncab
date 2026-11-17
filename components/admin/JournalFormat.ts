@@ -3,13 +3,15 @@
 
 const fmt = (d: string, o: Intl.DateTimeFormatOptions) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { ...o, timeZone: "UTC" });
 
-// "1 – 29 Oct 2026", "28 Sept – 3 Oct 2026", "29 Oct 2026"
-export function rangeLabel(from: string, to: string) {
-  if (from === to) return fmt(to, { day: "numeric", month: "short", year: "numeric" });
-  const sameMonth = from.slice(0, 7) === to.slice(0, 7);
+// "1 – 29 Oct 2026", "28 Sept – 3 Oct 2026", "29 Oct 2026". `short` drops the
+// year inside one year ("1 – 29 Oct", the export menu in Figma 4B.10).
+export function rangeLabel(from: string, to: string, short = false) {
   const sameYear = from.slice(0, 4) === to.slice(0, 4);
+  const end: Intl.DateTimeFormatOptions = short && sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" };
+  if (from === to) return fmt(to, end);
+  const sameMonth = from.slice(0, 7) === to.slice(0, 7);
   const start = fmt(from, sameMonth ? { day: "numeric" } : sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
-  return `${start} – ${fmt(to, { day: "numeric", month: "short", year: "numeric" })}`;
+  return `${start} – ${fmt(to, end)}`;
 }
 
 // "09:00" → "9:00 AM"

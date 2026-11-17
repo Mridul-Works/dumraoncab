@@ -9,7 +9,24 @@ import { declineReasons } from "./rules";
 import { Sheet } from "./Sheet";
 import { Busy, btnClass, Facts, Route, Tag } from "./ui";
 
-// Figma 10.17 / 10.21 / 10.47: the Available switch card.
+// Today's date from the phone, shown at once on the Today loading screen
+// (10.23) before the server answers: "Fri 30 Oct".
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const noSub = () => () => {};
+export function PhoneDate() {
+  const text = useSyncExternalStore(
+    noSub,
+    () => {
+      const d = new Date();
+      return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+    },
+    () => "",
+  );
+  return <>{text || "\u00a0"}</>;
+}
+
+// Figma 10.18 / 10.20 / 10.21: the Available switch card on the Dashboard.
 export function AvailableSwitch({ on, paused, pausedNote }: { on: boolean; paused?: boolean; pausedNote?: string }) {
   const [value, setValue] = useState(on);
   const [pending, start] = useTransition();
@@ -127,16 +144,16 @@ export function useAlertOnce(key: string, text: string, skip = false) {
   }, [key, text, skip]);
 }
 
-function Countdown({ until }: { until: number }) {
-  const [now, setNow] = useState(() => until - 1);
+// Seconds left to answer, ticking every second (0 once the time ran out).
+function useSecondsLeft(until: number, expired: boolean) {
+  const [now, setNow] = useState(() => (expired ? until : until - 1));
   useEffect(() => {
     const tick = () => setNow(Date.now());
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, []);
-  const left = Math.max(0, Math.round((until - now) / 1000));
-  return <Tag tone="amber">{left > 0 ? `Answer in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "Answer now"}</Tag>;
+  return Math.max(0, Math.round((until - now) / 1000));
 }
 
 export type OfferView = {
@@ -150,19 +167,58 @@ export type OfferView = {
   passengers: string;
   share: string;
   deadline: number; // ms
+  expired?: boolean; // the answer time already ran out when the page was built
+  officeTel: string; // tel: link for 10.27
 };
 
-// Figma 10.18 New trip request → 10.19 Can't take it.
-export function OfferSheet({ offer }: { offer: OfferView }) {
+// Figma 10.25 New trip request → 10.26 Can't take it, or 10.27 Request timed
+// out when the answer time runs out (the office gives it to another driver).
+export function OfferSheet({ offer, back = "Back to Today" }: { offer: OfferView; back?: string }) {
   const [step, setStep] = useState<"ask" | "decline">("ask");
   const [accepting, start] = useTransition();
   const [state, action, declining] = useActionState<ActionState, FormData>(declineTrip, undefined);
   // A new offer of the same booking (office re-sends it) has a new deadline.
   const request = `${offer.id}@${offer.deadline}`;
   const answered = useMark(`answered:${request}`);
-  useAlertOnce(request, `New trip from the office: ${offer.when}`, answered);
+  const left = useSecondsLeft(offer.deadline, !!offer.expired);
+  useAlertOnce(request, `New trip from the office: ${offer.when}`, answered || !!offer.expired);
 
   if (answered) return null;
+
+  const facts = (
+    <>
+      <p className="type-h2 text-primary">{offer.when}</p>
+      <Route from={offer.from} to={offer.to} fromTime={offer.fromTime} toTime={offer.toTime} />
+      <Facts
+        tone="soft"
+        items={[
+          { label: "Distance", value: offer.distance },
+          { label: "Passengers", value: offer.passengers },
+          { label: "Your share", value: offer.share, brand: true },
+        ]}
+      />
+    </>
+  );
+
+  // 10.27 Request timed out
+  if (left === 0 && step === "ask")
+    return (
+      <Sheet open label="This trip went to another driver" handle>
+        <div className="flex items-center gap-[8px]">
+          <span className="flex-1 type-ui text-primary">This trip went to another driver</span>
+          <Tag tone="amber">Time ran out</Tag>
+        </div>
+        {facts}
+        <div className="flex flex-col gap-[4px]">
+          <button type="button" onClick={() => addMark(`answered:${request}`)} className={btnClass("primary")}>
+            {back}
+          </button>
+          <a href={offer.officeTel} className={btnClass("ghost")}>
+            Call the office
+          </a>
+        </div>
+      </Sheet>
+    );
 
   if (step === "decline")
     return (
@@ -188,18 +244,9 @@ export function OfferSheet({ offer }: { offer: OfferView }) {
     <Sheet open label="New trip from the office" handle>
       <div className="flex items-center gap-[8px]">
         <span className="flex-1 type-ui text-primary">New trip from the office</span>
-        <Countdown until={offer.deadline} />
+        <Tag tone="amber">{`Answer in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`}</Tag>
       </div>
-      <p className="type-h2 text-primary">{offer.when}</p>
-      <Route from={offer.from} to={offer.to} fromTime={offer.fromTime} toTime={offer.toTime} />
-      <Facts
-        tone="soft"
-        items={[
-          { label: "Distance", value: offer.distance },
-          { label: "Passengers", value: offer.passengers },
-          { label: "Your share", value: offer.share, brand: true },
-        ]}
-      />
+      {facts}
       <div className="flex flex-col gap-[4px]">
         <button type="button" disabled={accepting} onClick={() => {
             addMark(`answered:${request}`);

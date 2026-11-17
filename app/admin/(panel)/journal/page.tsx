@@ -39,7 +39,7 @@ import { istDate } from "@/lib/bookingTypes";
 import { carLabel, daysBetween, entryNet, inr, serviceState, shortDate, weekday } from "@/lib/catalogTypes";
 import { listCars } from "@/lib/fleet";
 import { counts, getDeletedEntry, getServiceItems, listAllEntries, needsCheck, type JournalRecord } from "@/lib/journal";
-import { site } from "@/lib/site";
+import { routes, site } from "@/lib/site";
 import { listBookings } from "@/lib/store";
 import { listVendors } from "@/lib/vendors";
 
@@ -153,6 +153,17 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   ]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));
+  // "Typing To shows the route distance" (Figma 4C.2): one-way km for the
+  // site's routes, then for places already in the diary.
+  const routeKm: Record<string, number> = {};
+  for (const e of entries) {
+    const key = e.to.trim().toLowerCase();
+    if (key && e.km && !(key in routeKm)) routeKm[key] = e.roundTrip ? Math.round(e.km / 2) : e.km;
+  }
+  for (const r of routes) {
+    const km = Number.parseInt(r.distance, 10);
+    if (km > 0) routeKm[r.to.trim().toLowerCase()] = km;
+  }
   const busy: BusyCar[] = bookings
     .filter((b) => b.carId && b.date && (b.status === "contacted" || b.status === "confirmed") && b.id !== editing?.bookingId && b.id !== one(sp.booking))
     .map((b) => ({ carId: b.carId as string, date: b.date, label: `On trip${b.time ? ` · ${time12(b.time)}` : ""}` }));
@@ -184,6 +195,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       startPicking={one(sp.pick) === "1"}
       driverByCar={driverByCar}
       driverNames={driverNames}
+      routeKm={routeKm}
     />
   ) : null;
 
@@ -234,6 +246,19 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       autoCloseMs={10_000}
     />
   ) : null;
+
+  // Export (Figma 4B.10): CSV and PDF summary for the range (and car) on screen.
+  const exportQs = `from=${from}&to=${to}${car ? `&car=${car.id}` : ""}`;
+  const pageHeader = (
+    <PageHeader title="Daily Diary" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
+      <ExportMenu csvHref={`/admin/journal/export?${exportQs}`} pdfHref={`/admin/journal-report?${exportQs}&print=1`} scope={`${rangeLabel(from, to, true)} · ${car ? car.name : "all cars"}`} />
+      <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
+        <Icon name="plus" size={16} />
+        New entry
+      </Link>
+    </PageHeader>
+  );
+  const carOptions = cars.map((c) => ({ id: c.id, label: carLabel(c) }));
 
   /* ================================ One car ================================ */
   if (car) {
@@ -367,16 +392,19 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
       </>
     );
 
-    // Figma 4B.9: nothing written for this car in the range.
+    // Figma 4B.9: nothing written for this car in the range. The Daily Diary
+    // header and filters stay (car picked, range kept) with one tap to widen.
     if (rows.length === 0) {
       return (
         <>
-          {header}
-          <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-start">
-            <DiaryEmpty
+          {pageHeader}
+          <div className="mt-5">
+            <JournalToolbar key={startCustom ? "custom" : "range"} from={from} to={to} today={today} carId={car.id} carName={car.name} cars={carOptions} startCustom={startCustom} overview />
+          </div>
+          <DiaryEmpty
+              bare
               art="diary"
               title="No trips in this range"
-              className="min-w-0 flex-1"
               actions={
                 <>
                   <Link href={rangeQs()} className={btnPrimary}>
@@ -389,9 +417,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
               }
             >
               Nothing written for {car.name} {gapWhen({ fromDate: from, toDate: to })}. Try another range, or show all cars.
-            </DiaryEmpty>
-            {serviceCard}
-          </div>
+          </DiaryEmpty>
           {panel}
           {toast}
         </>
@@ -556,23 +582,11 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   const shownDays = showAll ? dayList : dayList.slice(0, DAYS_SHOWN);
   const dayFmt = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "");
 
-  // Export (Figma 4B.10): CSV and PDF summary for the range on screen.
-  const exportQs = `from=${from}&to=${to}`;
-  const header = (
-    <PageHeader title="Daily Diary" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
-      <ExportMenu csvHref={`/admin/journal/export?${exportQs}`} pdfHref={`/admin/journal-report?${exportQs}&print=1`} scope={`${rangeLabel(from, to)} · all cars`} />
-      <Link href={plus("new=1")} scroll={false} className={btnPrimary}>
-        <Icon name="plus" size={16} />
-        New entry
-      </Link>
-    </PageHeader>
-  );
-
   // First day, nothing written yet (Figma 4B.4).
   if (allEntries.length === 0) {
     return (
       <>
-        {header}
+        {pageHeader}
         <DiaryEmpty
           art="diary"
           title="No entries yet"
@@ -605,7 +619,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
         to={to}
         today={today}
         carId=""
-        cars={cars.map((c) => ({ id: c.id, label: carLabel(c) }))}
+        cars={carOptions}
         attention={attention.length}
         startCustom={startCustom}
       />
@@ -616,7 +630,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
   if (listedInRange.length === 0) {
     return (
       <>
-        {header}
+        {pageHeader}
         {toolbar}
         <DiaryEmpty
           bare
@@ -638,7 +652,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Sear
 
   return (
     <>
-      {header}
+      {pageHeader}
       {toolbar}
 
       <div className="mt-5">

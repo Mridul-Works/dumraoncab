@@ -66,6 +66,16 @@ const noOutline = { outline: "none" } as const;
 const grouped = (s: string) => (s === "" ? "" : Number(s).toLocaleString("en-IN"));
 const linkBtn = "inline-flex items-center gap-1.5 type-body-sm text-link hover:text-link-hover";
 
+// One-way km for a destination: an exact match, or the only route that starts
+// with what was typed ("Varan" → Varanasi).
+function kmFrom(routeKm: Record<string, number>, to: string) {
+  const k = to.trim().toLowerCase();
+  if (k.length < 3) return undefined;
+  if (routeKm[k] != null) return routeKm[k];
+  const hits = Object.keys(routeKm).filter((r) => r.startsWith(k));
+  return hits.length === 1 ? routeKm[hits[0]] : undefined;
+}
+
 function Radio({ on }: { on: boolean }) {
   // eslint-disable-next-line @next/next/no-img-element -- static two-colour design asset
   if (on) return <img src="/admin-icons/radio-checked.svg" alt="" width={20} height={20} className="size-5 shrink-0" />;
@@ -99,6 +109,7 @@ export default function EntryPanel({
   startPicking,
   driverByCar = {},
   driverNames = [],
+  routeKm = {},
 }: {
   entry?: JournalRecord;
   prefillBookingId?: string;
@@ -113,6 +124,7 @@ export default function EntryPanel({
   startPicking?: boolean; // open on the booking picker ("Pick from a booking", 4B.4)
   driverByCar?: Record<string, string>; // who last drove each car — fills "Driver" when a car is picked
   driverNames?: string[]; // suggestions for "Driver"
+  routeKm?: Record<string, number>; // destination (lower case) → one-way km; typing To fills the distance (4C.2)
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -147,7 +159,7 @@ export default function EntryPanel({
     to: entry?.to ?? initialBooking?.to ?? "",
     roundTrip: roundInit,
     // One-way distance as typed; a round trip stores twice this.
-    km: entry?.km != null ? String(roundInit ? Math.round(entry.km / 2) : entry.km) : "",
+    km: entry?.km != null ? String(roundInit ? Math.round(entry.km / 2) : entry.km) : initialBooking ? String(kmFrom(routeKm, initialBooking.to) ?? "") : "",
     carId: entry?.carId ?? (initialBooking?.carId || defaultCarId || ""),
     fare: entry ? String(entry.fare) : initialBooking?.quote ? String(initialBooking.quote) : "",
     fuel: entry && entry.fuel ? String(entry.fuel) : "",
@@ -163,8 +175,27 @@ export default function EntryPanel({
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((prev) => ({ ...prev, [k]: e.target.value }));
   const [mode, setMode] = useState<"manual" | "pick" | "linked">(initialBooking ? "linked" : startPicking ? "pick" : "manual");
   const linked = mode === "linked" ? bookings.find((b) => b.id === f.bookingId) : undefined;
+  const [timeFocus, setTimeFocus] = useState(false);
+
+  // Route distance (4C.2 "Typing To shows the route distance"): a known
+  // destination fills the one-way km, unless a distance was typed by hand.
+  const kmFor = (to: string) => kmFrom(routeKm, to);
+  const [autoKm, setAutoKm] = useState(() => (!entry && initialBooking && kmFor(initialBooking.to) != null ? f.km : ""));
+  const typeTo = (to: string) => {
+    const auto = kmFor(to);
+    const next = auto != null ? String(auto) : "";
+    setF((p) => ({ ...p, to, km: p.km === "" || p.km === autoKm ? next : p.km }));
+    setAutoKm(next);
+  };
+  // A linked booking shows its distance in the card (4C.5); the km field only
+  // appears when the route's distance isn't known.
+  const [askKm, setAskKm] = useState(() => Boolean(initialBooking) && f.km === "");
 
   function pickBooking(b: BookingOption) {
+    const auto = kmFor(b.to);
+    const km = auto != null ? String(auto) : f.to === b.to ? f.km : "";
+    setAutoKm(auto != null ? String(auto) : "");
+    setAskKm(km === "");
     setF((prev) => ({
       ...prev,
       bookingId: b.id,
@@ -173,6 +204,7 @@ export default function EntryPanel({
       phone: digits(b.phone).slice(-10),
       from: b.from,
       to: b.to,
+      km,
       roundTrip: b.round,
       carId: b.carId || prev.carId,
       fare: b.quote ? String(b.quote) : prev.fare,
@@ -247,7 +279,7 @@ export default function EntryPanel({
 
   const MoneyField = ({ k, label, extra, invalid }: { k: "fare" | "fuel" | "driverCut" | "tolls" | "parking"; label: string; extra?: React.ReactNode; invalid?: boolean }) => (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <label htmlFor={`je-${k}`} className="flex items-center gap-2 type-body-sm text-secondary">
+      <label htmlFor={`je-${k}`} className="flex items-center gap-1.5 type-body-sm text-secondary">
         {label}
         {extra}
       </label>
@@ -272,6 +304,7 @@ export default function EntryPanel({
       title={entry ? "Edit trip entry" : "New trip entry"}
       onClose={close}
       width="max-w-[520px]"
+      compact
       footer={
         <>
           <div className="min-w-0 flex-1">
@@ -352,13 +385,36 @@ export default function EntryPanel({
               />
             </label>
           </div>
-          <div className="flex flex-col gap-1.5 pt-1">
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="je-time" className="type-body-sm text-secondary">
               Pickup time
             </label>
             <div className={`${boxCls()} w-full sm:w-[226px]`}>
               <Icon name="clock" size={18} className="text-[var(--icon-secondary)]" />
-              <input id="je-time" name="time" type="time" value={f.time} onChange={set("time")} className={bareInput} style={noOutline} />
+              {/* Empty, it reads "e.g. 6:00 AM" (4C.1); focused or filled it's a time picker. */}
+              <input
+                id="je-time"
+                name="time"
+                type={f.time || timeFocus ? "time" : "text"}
+                placeholder="e.g. 6:00 AM"
+                value={f.time}
+                onChange={set("time")}
+                onFocus={(e) => {
+                  const el = e.currentTarget;
+                  setTimeFocus(true);
+                  if (f.time) return;
+                  requestAnimationFrame(() => {
+                    try {
+                      el.showPicker?.();
+                    } catch {
+                      /* not every browser opens it on focus */
+                    }
+                  });
+                }}
+                onBlur={() => setTimeFocus(false)}
+                className={bareInput}
+                style={noOutline}
+              />
             </div>
           </div>
         </section>
@@ -499,7 +555,7 @@ export default function EntryPanel({
             </div>
           )}
 
-          {mode !== "pick" && (
+          {mode === "manual" && (
             <>
               <div className="flex items-center gap-2 pt-1">
                 <p className="flex-1 type-body-sm text-secondary">Route</p>
@@ -529,7 +585,7 @@ export default function EntryPanel({
                   <Icon name="arrow-right" size={18} className="text-[var(--icon-secondary)]" />
                   <div className={`${boxCls()} flex-1`}>
                     <Icon name="map-pin" size={18} className="text-[var(--icon-secondary)]" />
-                    <input id="je-to" name="to" value={f.to} onChange={set("to")} aria-label="To" placeholder="Where to?" className={bareInput} style={noOutline} />
+                    <input id="je-to" name="to" value={f.to} onChange={(e) => typeTo(e.target.value)} aria-label="To" placeholder="Where to?" className={bareInput} style={noOutline} />
                     <input
                       id="je-km"
                       value={f.km}
@@ -543,25 +599,25 @@ export default function EntryPanel({
                   </div>
                 </div>
               )}
-              {mode === "linked" && (
-                <div className="flex items-center gap-2.5">
-                  <label htmlFor="je-km" className="flex-1 type-body-sm text-secondary">
-                    Distance one way
-                  </label>
-                  <div className={`${boxCls()} w-32`}>
-                    <input
-                      id="je-km"
-                      value={f.km}
-                      onChange={(e) => setF((p) => ({ ...p, km: digits(e.target.value).slice(0, 4) }))}
-                      inputMode="numeric"
-                      placeholder="0"
-                      className={`${bareInput} text-right`} style={noOutline}
-                    />
-                    <span className="type-body-sm text-secondary">km</span>
-                  </div>
-                </div>
-              )}
             </>
+          )}
+          {mode === "linked" && askKm && (
+            <div className="flex items-center gap-2.5">
+              <label htmlFor="je-km" className="flex-1 type-body-sm text-secondary">
+                Distance one way
+              </label>
+              <div className={`${boxCls()} w-32`}>
+                <input
+                  id="je-km"
+                  value={f.km}
+                  onChange={(e) => setF((p) => ({ ...p, km: digits(e.target.value).slice(0, 4) }))}
+                  inputMode="numeric"
+                  placeholder="0"
+                  className={`${bareInput} text-right`} style={noOutline}
+                />
+                <span className="type-body-sm text-secondary">km</span>
+              </div>
+            </div>
           )}
         </section>
 
@@ -589,7 +645,7 @@ export default function EntryPanel({
             </label>
             {q ? (
               <>
-                <p className="border-t border-gray-100 px-3.5 pb-1 pt-2.5 type-body-sm text-secondary">
+                <p className="border-t border-gray-100 px-3.5 pb-1.5 pt-2.5 type-body-sm text-secondary">
                   {carHits.length === 1 ? "1 match" : `${carHits.length} matches`}
                 </p>
                 {carHits.map((c) => (
@@ -629,7 +685,7 @@ export default function EntryPanel({
               Choose the car that did this trip
             </p>
           )}
-          <div className="flex flex-col gap-1.5 pt-1">
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="je-driver" className="type-body-sm text-secondary">
               Driver
             </label>
@@ -666,14 +722,14 @@ export default function EntryPanel({
               invalid: fareErr,
               extra:
                 linked && linked.quote > 0 && num(f.fare) === linked.quote ? (
-                  <span className="rounded-full bg-gray-50 px-2 type-body-sm text-secondary">from booking</span>
+                  <span className="rounded-full bg-gray-50 px-1.5 py-px type-body-sm text-secondary">from booking</span>
                 ) : undefined,
             })}
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <p id="je-paid-by" className="type-body-sm text-secondary">
                 Paid by
               </p>
-              <div role="radiogroup" aria-labelledby="je-paid-by" className="flex h-11 gap-0.5 rounded-md border border-gray-200 bg-gray-50 p-[3px]">
+              <div role="radiogroup" aria-labelledby="je-paid-by" className="flex gap-0.5 rounded-md border border-gray-200 bg-gray-50 p-[3px]">
                 {PAID_BY.map((o) => {
                   const on = f.paidBy === o.value;
                   return (
@@ -683,7 +739,7 @@ export default function EntryPanel({
                       role="radio"
                       aria-checked={on}
                       onClick={() => setF((p) => ({ ...p, paidBy: on ? "" : o.value }))}
-                      className={`flex-1 rounded-sm type-body-sm ${on ? "border border-gray-200 bg-layer text-primary" : "border border-transparent text-secondary hover:text-primary"}`}
+                      className={`flex min-w-0 flex-1 justify-center rounded-sm px-2.5 py-1 type-body-sm ${on ? "border border-gray-200 bg-layer text-primary" : "border border-transparent text-secondary hover:text-primary"}`}
                     >
                       {o.label}
                     </button>
@@ -732,7 +788,7 @@ export default function EntryPanel({
             type="button"
             disabled={saving || deleting}
             onClick={() => setAskDelete(true)}
-            className="inline-flex items-center gap-1.5 self-start type-body-sm text-error hover:underline disabled:opacity-40"
+            className="inline-flex items-center gap-2 self-start pt-2 type-ui text-error hover:underline disabled:opacity-40"
           >
             <Icon name="trash" size={16} />
             {deleting ? "Deleting…" : "Delete entry"}

@@ -16,6 +16,8 @@ const shift = (d: string, days: number) => {
 // range), the car pill (opens that car's view), and the attention count.
 // `startCustom` opens the custom range straight away ("Pick another range",
 // Figma 4B.9). The one-car view shows the range pill only for a custom range.
+// `overview` keeps the Daily Diary filters with a car picked (4B.9 "No trips
+// in this range": the car pill reads "Nexon" and can go back to All cars).
 export default function JournalToolbar({
   from,
   to,
@@ -25,6 +27,7 @@ export default function JournalToolbar({
   cars,
   attention,
   startCustom,
+  overview,
 }: {
   from: string;
   to: string;
@@ -34,6 +37,7 @@ export default function JournalToolbar({
   cars: { id: string; label: string }[];
   attention?: number;
   startCustom?: boolean;
+  overview?: boolean;
 }) {
   const router = useRouter();
   const go = (next: { from?: string; to?: string; car?: string | null }) => {
@@ -47,7 +51,8 @@ export default function JournalToolbar({
 
   const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
   const monthStart = `${today.slice(0, 8)}01`;
-  const presets = carId
+  const carMode = Boolean(carId) && !overview;
+  const presets = carMode
     ? [
         { label: "This week", from: shift(today, -dow), to: today },
         { label: "This month", from: monthStart, to: today },
@@ -88,14 +93,14 @@ export default function JournalToolbar({
             </button>
           );
         })}
-        {!carId && (
+        {!carMode && (
           <button type="button" aria-pressed={customOn} onClick={() => setCustom((c) => !c)} className={seg(customOn)}>
             Custom
           </button>
         )}
       </div>
 
-      {(!carId || customOn) && (
+      {(!carMode || customOn) && (
         <div className="relative">
           <button type="button" aria-expanded={custom} onClick={() => setCustom((c) => !c)} className={`${pillCls} hover:bg-layer-hover`}>
             <Icon name="calendar-blank" size={18} className="text-[var(--icon-secondary)]" />
@@ -116,7 +121,7 @@ export default function JournalToolbar({
         </div>
       )}
 
-      {carId ? (
+      {carMode ? (
         <span className="flex items-center gap-2 rounded-md border-[1.5px] border-brand bg-layer py-[9px] pl-3 pr-2.5 type-ui text-primary">
           <Icon name="car-simple" size={18} className="text-[var(--icon-secondary)]" />
           {carName}
@@ -127,12 +132,12 @@ export default function JournalToolbar({
       ) : (
         <label className={`relative ${pillCls} hover:bg-layer-hover`}>
           <Icon name="car-simple" size={18} className="text-[var(--icon-secondary)]" />
-          All cars
+          {carId ? carName : "All cars"}
           <Icon name="caret-down" size={16} className="text-[var(--icon-secondary)]" />
           <select
-            value=""
+            value={carId}
             aria-label="Open one car"
-            onChange={(e) => e.target.value && go({ car: e.target.value })}
+            onChange={(e) => (e.target.value ? go({ car: e.target.value }) : go({ car: null }))}
             className="absolute inset-0 cursor-pointer opacity-0"
           >
             <option value="">All cars</option>

@@ -47,21 +47,21 @@ export default async function VendorAddedPage({ params }: Props) {
   const otherPlaces = v.places.filter((p) => !p.home).length + (v.address?.town ? 1 : 0);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-7">
       <Link href="/admin/vendors" className="inline-flex w-fit items-center gap-1.5 type-ui text-link hover:text-link-hover">
         <Icon name="arrow-left" size={16} />
         Vendors
       </Link>
 
-      <div className="mx-auto flex w-full max-w-[540px] flex-col items-center gap-2 text-center">
+      <div className="mx-auto mt-7 flex w-full max-w-[540px] flex-col items-center gap-3 text-center">
         <Art name="vendors" />
-        <h1 className="mt-3 type-h1 text-primary">Vendor added</h1>
+        <h1 className="mt-4 type-h1 text-primary">Vendor added</h1>
         <p className="type-body-md text-secondary">
           {v.name} is in Pending. Check their documents to start trips.
         </p>
         {welcome && (
-          <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-layer px-3.5 py-1.5 type-body-sm text-primary">
-            <Icon name="whatsapp-logo" size={16} className="text-brand" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-layer px-[15px] py-[9px] type-body-sm text-primary">
+            <Icon name="whatsapp-logo" size={18} className="text-brand" />
             Welcome note sent on WhatsApp to {v.mobile}
             <span className="text-secondary">· {clock(welcome.at)}</span>
           </p>
@@ -69,16 +69,16 @@ export default async function VendorAddedPage({ params }: Props) {
       </div>
 
       <section className="mx-auto w-full max-w-[760px] overflow-hidden rounded-lg border border-gray-100 bg-layer shadow-[0_1px_2px_var(--shadow-sm)]">
-        <div className="flex flex-wrap items-center gap-2.5 border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2.5 border-b border-gray-100 px-6 py-4">
           <h2 className="type-h4 text-primary">{v.name}</h2>
           {v.code && <span className="type-mono-sm text-secondary">{v.code}</span>}
           <VendorStatusBadge status={v.status} />
-          <Link href={`/admin/vendors/${v.id}`} className={`${btnText} ml-auto`}>
+          <Link href={`/admin/vendors/${v.id}`} className={`${btnText} ml-auto px-5 py-2.5`}>
             Open vendor
           </Link>
         </div>
-        <div className="flex flex-col gap-5 px-5 py-5">
-          <div className="grid gap-4 border-b border-gray-100 pb-5 sm:grid-cols-3">
+        <div className="flex flex-col gap-5 p-6">
+          <div className="grid gap-6 border-b border-gray-100 pb-5 sm:grid-cols-3">
             <Fact icon="user" label={v.kind === "owner" ? "Owner" : "Driver"} title={v.name} line={v.mobile} />
             <Fact
               icon="car-simple-18"
@@ -89,7 +89,7 @@ export default async function VendorAddedPage({ params }: Props) {
             <Fact icon="map-pin" label="Location" title={town || "Not added"} line={`${otherPlaces} place${otherPlaces === 1 ? "" : "s"}${v.radiusKm ? ` within ${v.radiusKm} km` : ""}`} />
           </div>
           <div>
-            <p className="type-ui text-primary">
+            <p className="mb-5 flex flex-wrap items-baseline gap-x-2.5 type-ui text-primary">
               Documents · {have} of {total} <span className="type-body-sm text-secondary">Needed before the first trip</span>
             </p>
             {rows.length ? (
@@ -120,7 +120,7 @@ export default async function VendorAddedPage({ params }: Props) {
                 );
               })
             ) : (
-              <p className="mt-2 type-body-sm text-secondary">Every document is in. Approve the vendor from their page.</p>
+              <p className="type-body-sm text-secondary">Every document is in. Approve the vendor from their page.</p>
             )}
           </div>
         </div>
@@ -139,7 +139,7 @@ export default async function VendorAddedPage({ params }: Props) {
           <Icon name="phone" size={16} />
           Call {first}
         </a>
-        <Link href="/admin/vendors" className={btnText}>
+        <Link href="/admin/vendors" className={`${btnText} px-5 py-2.5`}>
           Go to vendors
         </Link>
       </div>

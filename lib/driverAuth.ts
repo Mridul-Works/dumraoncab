@@ -4,7 +4,7 @@ import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 
 import { demoStorage, jsonFile } from "./db";
 import { DEMO_DRIVER_MOBILE } from "./demoData.mjs";
 
-// Driver app sign-in (Figma 10.2–10.4): mobile number + 6-digit one-time code.
+// Driver app sign-in (Figma 10.2–10.5): mobile number + 6-digit one-time code.
 //
 // There is no SMS provider in this project, so the code is delivered honestly:
 //  - development: printed to the server console and shown on the code screen
@@ -101,7 +101,19 @@ const otpDb = jsonFile<Record<string, OtpRecord>>("driver-otp.json", () => ({}))
 
 export type SendResult =
   | { ok: true; devCode?: string; resendIn: number }
-  | { ok: false; error: string; resendIn?: number };
+  | { ok: false; error: string; resendIn?: number; blockedMin?: number };
+
+// Figma 10.5 Too many codes asked: minutes until the oldest of the last hour's
+// sends drops out of the hourly limit (0 = a code may be sent).
+function blockedMinutes(sends: number[] | undefined, now: number): number {
+  const recent = (sends ?? []).filter((t) => now - t < 60 * 60 * 1000);
+  if (recent.length < MAX_SENDS_PER_HOUR) return 0;
+  return Math.max(1, Math.ceil((Math.min(...recent) + 60 * 60 * 1000 - now) / 60000));
+}
+
+export async function sendBlockedMinutes(input: string): Promise<number> {
+  return blockedMinutes((await otpDb.read())[mobileDigits(input)]?.sends, Date.now());
+}
 
 async function deliver(mobile: string, code: string): Promise<string | null> {
   if (WEBHOOK) {
@@ -136,7 +148,8 @@ export async function sendCode(input: string): Promise<SendResult> {
     return { ok: false, error: "A code was just sent. Wait a few seconds.", resendIn: Math.ceil((prev.sentAt + RESEND_SECONDS * 1000 - now) / 1000) };
   }
   const recent = (prev?.sends ?? []).filter((t) => now - t < 60 * 60 * 1000);
-  if (recent.length >= MAX_SENDS_PER_HOUR) return { ok: false, error: "Too many codes asked for this number. Try again in an hour." };
+  const blockedMin = blockedMinutes(recent, now);
+  if (blockedMin) return { ok: false, error: `Too many codes asked. Ask again in ${blockedMin} ${blockedMin === 1 ? "minute" : "minutes"}.`, blockedMin };
 
   const code = !WEBHOOK && DEMO_CODE ? DEMO_CODE : String(randomInt(0, 1_000_000)).padStart(6, "0");
   const failed = await deliver(mobile, code);
@@ -202,13 +215,70 @@ export async function startDriverSession(mobile: string): Promise<void> {
     path: "/",
     maxAge: SESSION_DAYS * 86400,
   });
+  await claimPhone(mobile);
 }
 
 export async function endDriverSession(): Promise<void> {
   (await cookies()).delete(DRIVER_COOKIE);
+  (await cookies()).delete(DRIVER_PHONE_COOKIE);
+}
+
+/* ---------------------------- one phone at a time ---------------------------- */
+
+// Figma 10.55 "Signed in on another phone": signing in on a new phone signs
+// the old one out. Every sign-in gets a random phone id (cookie
+// dc_driver_phone) and the latest one per number is kept in
+// data/driver-phones.json; a session whose phone id isn't the latest was
+// replaced and is no longer valid. Off for the demo driver (everyone trying
+// the demo shares it), on per-instance demo storage (instances would disagree
+// and sign people out at random), and with DRIVER_ONE_PHONE=off. Sessions from
+// before this existed (no phone cookie) stay valid until they expire.
+export const DRIVER_PHONE_COOKIE = "dc_driver_phone";
+type PhoneRecord = { id: string; at: number }; // at = ms of that sign-in
+const phonesDb = jsonFile<Record<string, PhoneRecord>>("driver-phones.json", () => ({}));
+const onePhone = (mobile: string) => process.env.DRIVER_ONE_PHONE !== "off" && !demoStorage && !(DEMO_SHORTCUT && mobile === DEMO_MOBILE);
+
+async function claimPhone(mobile: string): Promise<void> {
+  if (!onePhone(mobile)) return;
+  const id = randomBytes(16).toString("base64url");
+  await phonesDb.mutate((all) => {
+    all[mobile] = { id, at: Date.now() };
+  });
+  (await cookies()).set(DRIVER_PHONE_COOKIE, id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_DAYS * 86400,
+  });
+}
+
+// When this phone's session was replaced by a sign-in on another phone: the
+// time of that sign-in (ms). null = still the current phone.
+async function phoneReplaced(mobile: string): Promise<number | null> {
+  if (!onePhone(mobile)) return null;
+  const mine = (await cookies()).get(DRIVER_PHONE_COOKIE)?.value;
+  if (!mine) return null;
+  const latest = (await phonesDb.read())[mobile];
+  return latest && !safeEqual(latest.id, mine) ? latest.at : null;
+}
+
+// The signed-out-by-another-phone state for 10.55: whose number and when the
+// other phone signed in. null when the session is fine or simply missing.
+export async function replacedSession(): Promise<{ mobile: string; at: string } | null> {
+  const s = await signedSession();
+  if (!s) return null;
+  const at = await phoneReplaced(s.mobile);
+  return at == null ? null : { mobile: s.mobile, at: new Date(at).toISOString() };
 }
 
 export async function getDriverSession(): Promise<DriverSession | null> {
+  const s = await signedSession();
+  return s && (await phoneReplaced(s.mobile)) == null ? s : null;
+}
+
+// The signed session cookie, without the one-phone check.
+async function signedSession(): Promise<DriverSession | null> {
   const token = (await cookies()).get(DRIVER_COOKIE)?.value;
   if (!token) return null;
   const [payload, sig] = token.split(".");
@@ -222,9 +292,10 @@ export async function getDriverSession(): Promise<DriverSession | null> {
   }
 }
 
-// Driver pages and actions: bounce to Welcome when signed out.
+// Driver pages and actions: bounce to Welcome when signed out, or to 10.55
+// when another phone signed in with this number.
 export async function requireDriverSession(): Promise<DriverSession> {
   const s = await getDriverSession();
-  if (!s) redirect("/driver/welcome");
+  if (!s) redirect((await replacedSession()) ? "/driver/signed-out" : "/driver/welcome");
   return s;
 }

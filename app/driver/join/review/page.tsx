@@ -10,7 +10,9 @@ export const metadata: Metadata = { title: "Check and submit" };
 
 const PAPER = { rc: "RC", insurance: "insurance", permit: "permit", puc: "PUC" } as const;
 
-// Figma 10.11 Check and submit — last look before the office sees it.
+// Figma 10.13 Check and submit — last look before the office sees it. Submit
+// sends it to Vendors as Pending (admin 6.1, 6.10) with a WhatsApp to staff;
+// the office checks it (admin 6.10–6.14, "The office checks" in the journey).
 export default async function ReviewPage() {
   const { draft } = await requireJoining();
   if (!draft.name) redirect("/driver/join/details");

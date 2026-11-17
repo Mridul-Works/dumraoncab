@@ -101,6 +101,13 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
     v.cars.map((c) => ({ key: `${v.id}:${c.id}`, vendor: v.name, model: c.model, number: c.number, type: c.type, seats: c.seats })),
   );
 
+  // Who drives each car (Figma 3B.13 lists it under the car): the driver on
+  // that car's most recent booking that names one.
+  const driverOf = new Map<string, string>();
+  for (const b of [...bookings].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
+    if (b.carId && b.driverName?.trim() && !driverOf.has(b.carId)) driverOf.set(b.carId, b.driverName.trim());
+  }
+
   // Cars already promised to a live booking, per travel date.
   const busy: Record<string, string[]> = {};
   for (const b of bookings) {
@@ -119,7 +126,7 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
         pickups={pickups}
         drops={drops}
         classes={classes}
-        cars={cars.map((c) => ({ id: c.id, name: c.name, number: c.number, fareClass: c.fareClass }))}
+        cars={cars.map((c) => ({ id: c.id, name: c.name, number: c.number, fareClass: c.fareClass, driver: driverOf.get(c.id) ?? "" }))}
         vendorCars={vendorCars}
         busy={busy}
         nightAllowance={fares.nightAllowance}

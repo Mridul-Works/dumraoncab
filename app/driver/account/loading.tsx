@@ -1,9 +1,9 @@
 import { ListSkeleton, ScreenSkeleton } from "@/components/driver/Skeleton";
 
-// Shown instantly while Account (and its sub-pages) load.
+// Shown instantly while Profile (and its sub-pages) load.
 export default function Loading() {
   return (
-    <ScreenSkeleton tabs="account" label="Opening your account…">
+    <ScreenSkeleton tabs="profile" label="Opening your profile…">
       <ListSkeleton rows={2} />
       <ListSkeleton rows={4} />
     </ScreenSkeleton>

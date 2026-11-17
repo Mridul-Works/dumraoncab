@@ -159,7 +159,7 @@ export function StartForm({ id, last }: { id: string; last?: number }) {
       ) : null}
       <UploadBox
         label="Photo of the meter"
-        hint="Needed for the Trip log"
+        hint="Needed for the Daily Diary"
         doneHint={value ? `${num(value)} km` : undefined}
         name="photo"
         camera={{ title: "Photo of the meter", guide: "Fit the meter inside the box so the km can be read." }}
@@ -398,7 +398,7 @@ export function EndForm({
         ))}
       <UploadBox
         label="Meter photo"
-        hint="Needed for the Trip log"
+        hint="Needed for the Daily Diary"
         done={hasPhoto}
         doneHint={value ? `${num(value)} km` : "Added"}
         name="photo"
@@ -508,7 +508,7 @@ export function PaymentForm({
             <span className={`flex-1 type-body-sm ${late ? "text-primary" : "text-secondary"}`}>
               {late
                 ? `Not paid after 5 min. Ask ${customer} to check his UPI app, or pick Cash.`
-                : `Waiting for ${inr(due)}. Check the payment done screen on the customer’s phone.`}
+                : `Waiting for ${inr(due)}. This moves on by itself once paid.`}
             </span>
           </div>
         </div>

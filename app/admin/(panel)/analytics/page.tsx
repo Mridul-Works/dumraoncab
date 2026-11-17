@@ -131,12 +131,12 @@ async function AnalyticsBody({ range, today }: { range: Range; today: string }) 
             </div>
           ))}
           <span className="h-px w-2.5 bg-gray-100" aria-hidden="true" />
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <p className="type-body-sm text-secondary">Requests that became trips</p>
               <p className="type-h2 text-primary">{r.conversionPct === null ? "—" : `${r.conversionPct}%`}</p>
             </div>
-            <p className="pb-1.5 type-body-sm text-secondary">
+            <p className="type-body-sm text-secondary">
               {r.requests} request{r.requests === 1 ? "" : "s"}
             </p>
           </div>

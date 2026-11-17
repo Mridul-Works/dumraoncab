@@ -6,10 +6,10 @@ export default async function DriverHome() {
   const me = await getDriver();
   if (!me) redirect("/driver/welcome");
   const v = me.vendor;
-  if (!v) redirect("/driver/join/details"); // new number → set up (10.5)
+  if (!v) redirect("/driver/join/details"); // new number → set up (10.6)
   if (v.status === "pending" || v.status === "rejected") redirect("/driver/status");
   const prefs = await getPrefs(v.id);
   if (v.status === "approved" && !prefs.seenApproved) redirect("/driver/approved");
   if (v.status === "approved" && !prefs.settingsDone) redirect("/driver/settings");
-  redirect("/driver/today");
+  redirect("/driver/dashboard"); // home tab (10.18)
 }

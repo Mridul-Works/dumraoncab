@@ -347,7 +347,7 @@ export default function BookingsManager({
                     <StatusBadge status={b.status} />
                   </span>
                   <span className="col-span-2 min-w-0 lg:col-span-1">
-                    <span className="block truncate type-ui text-primary">{route(b)}</span>
+                    <span className="block truncate type-ui text-primary">{b.to ? route(b) : `${b.from || "No pickup"} (local)`}</span>
                     <span className="block truncate type-body-sm text-secondary">{b.service}</span>
                   </span>
                   <span className="min-w-0">

@@ -18,9 +18,10 @@ export const BOOKING_COLS =
   "lg:grid-cols-[minmax(0,200fr)_minmax(0,220fr)_minmax(0,110fr)_minmax(0,120fr)_112px_76px] xl:grid-cols-[minmax(0,200fr)_minmax(0,220fr)_minmax(0,110fr)_minmax(0,120fr)_minmax(0,130fr)_112px_76px]";
 
 // Figma "Segmented tabs" (status filter) and the pill-shaped filter controls.
+// The selected tab is soft grey (Layer/Selected), never black.
 export const tabBarCls = "flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-100 bg-layer p-1 [scrollbar-width:none]";
 export const tabCls = (on: boolean) =>
-  `flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.75 transition-colors ${on ? "bg-inverse" : "hover:bg-layer-hover"}`;
+  `flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.75 transition-colors ${on ? "bg-layer-selected" : "hover:bg-layer-hover"}`;
 export const datePillCls = "relative flex shrink-0 items-center rounded-full border border-gray-200 bg-layer hover:bg-layer-hover";
 export const searchPillCls =
   "flex min-w-0 flex-1 items-center gap-2 rounded-full bg-layer px-3.5 py-2.5 text-[var(--icon-secondary)] sm:w-60 sm:flex-none";
@@ -28,8 +29,8 @@ export const searchPillCls =
 export function TabLabel({ filter, count, on }: { filter: StatusFilter; count?: number; on: boolean }) {
   return (
     <>
-      <span className={`type-ui ${on ? "text-inverse" : "text-primary"}`}>{filter === "all" ? "All" : STATUS_LABELS[filter]}</span>
-      {count !== undefined && <span className={`type-body-sm ${on ? "text-secondary-inverse" : "text-secondary"}`}>{count}</span>}
+      <span className="type-ui text-primary">{filter === "all" ? "All" : STATUS_LABELS[filter]}</span>
+      {count !== undefined && <span className={`type-body-sm ${on ? "text-primary" : "text-secondary"}`}>{count}</span>}
     </>
   );
 }

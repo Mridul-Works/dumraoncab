@@ -4,7 +4,7 @@ import { btnGhost, btnPrimary } from "@/components/admin/ui";
 // Figma 1.4 Page not found — a wrong or old /admin link while signed in.
 export default function AdminNotFound() {
   return (
-    <section className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center rounded-lg border border-gray-100 bg-layer px-4 py-18">
+    <section className="flex min-h-[calc(100vh-4.5rem)] flex-col items-center justify-center rounded-lg border border-gray-100 bg-layer px-4 py-18">
       <div className="flex w-full max-w-[520px] flex-col items-center gap-2 px-6 py-10 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- static line-art SVG from the design */}
         <img src="/admin-illustrations/page-not-found.svg" alt="" width={240} height={160} className="max-w-full" />

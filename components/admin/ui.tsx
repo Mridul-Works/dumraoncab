@@ -10,7 +10,7 @@ import type { ServiceState } from "@/lib/catalogTypes";
 
 // Badge colours from the Figma StatusBadge component.
 export const statusStyle: Record<BookingStatus, string> = {
-  new: "bg-tag-amber text-tag-amber",
+  new: "bg-tag-gold text-tag-gold", // "no black" review: New is warm gold
   contacted: "bg-tag-blue text-tag-blue",
   confirmed: "bg-tag-green text-brand",
   completed: "bg-tag-gray text-secondary",

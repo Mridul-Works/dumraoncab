@@ -72,6 +72,9 @@ export default function ConnectionBanner() {
         if (!sent.length) return;
         setOfflineSince(null);
         setBack({ sent, at: Date.now() });
+        // Same 10 s as the online event (Figma 2.12).
+        clearTimeout(hideTimer.current);
+        hideTimer.current = setTimeout(() => setBack(null), BACK_ONLINE_MS);
         router.refresh();
       });
     }, RETRY_MS);
@@ -93,7 +96,7 @@ export default function ConnectionBanner() {
   } else if (back) {
     const n = back.sent.length;
     notice = (
-      <Notice tone="online" title="Back online" onClose={() => setBack(null)}>
+      <Notice tone="online" title="Back online">
         {n ? `${n} ${plural(n, "change", "changes")} sent: ${back.sent.map((c) => c.label).join("; ")}. ` : ""}
         Everything is up to date as of {clockIST(back.at)}.
       </Notice>
@@ -106,23 +109,20 @@ export default function ConnectionBanner() {
   return slot ? createPortal(notice, slot) : <div className="mb-5">{notice}</div>;
 }
 
-function Notice({ tone, title, children, onClose }: { tone: "offline" | "online"; title: string; children: React.ReactNode; onClose?: () => void }) {
+// Figma "Notice" (Amber / Green): 14×12 padding, 8px radius, 20px icon, title
+// over a ui-weight body. No close button — Back online clears itself.
+function Notice({ tone, title, children }: { tone: "offline" | "online"; title: string; children: React.ReactNode }) {
   const offline = tone === "offline";
   return (
     <div
       role={offline ? "alert" : "status"}
-      className={`flex items-start gap-2 rounded-lg px-4 py-3 [animation:pop_.15s_ease-out] ${offline ? "bg-tag-amber" : "bg-tag-green"}`}
+      className={`flex items-start gap-2.5 rounded-md px-3.5 py-3 [animation:pop_.15s_ease-out] ${offline ? "bg-tag-amber" : "bg-tag-green"}`}
     >
-      <Icon name={offline ? "warning-circle" : "check-circle"} size={16} className={`mt-0.5 ${offline ? "text-tag-amber" : "text-brand"}`} />
-      <div className="min-w-0 flex-1">
+      <Icon name={offline ? "warning-circle" : "check-circle"} size={20} className={offline ? "text-tag-amber" : "text-brand"} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className={`type-body-sm ${offline ? "text-tag-amber" : "text-brand"}`}>{title}</p>
         <p className="type-ui text-primary">{children}</p>
       </div>
-      {onClose && (
-        <button type="button" onClick={onClose} aria-label="Dismiss" className="grid shrink-0 place-items-center rounded-full p-0.5 text-[var(--icon-secondary)] hover:text-primary">
-          <Icon name="x-16" size={16} />
-        </button>
-      )}
     </div>
   );
 }

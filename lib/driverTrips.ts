@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { jsonFile, putUpload } from "./db";
-import { getDriverSession, requireDriverSession } from "./driverAuth";
+import { getDriverSession, replacedSession, requireDriverSession } from "./driverAuth";
 import { findVendorByMobile } from "./vendors";
 import { listBookings, getBooking, updateBooking } from "./store";
 import { istDate, type Booking, type DriverTrip } from "./bookingTypes";
@@ -17,7 +17,7 @@ export type CarPhotos = Partial<Record<PhotoSide, string>> & { at?: string };
 
 // Things only the app needs (data/driver-app.json, keyed by vendor id).
 export type DriverPrefs = {
-  available?: boolean; // Today switch (10.17 / 10.21); default on
+  available?: boolean; // Dashboard switch (10.18 / 10.20); default on
   seenApproved?: boolean; // 10.14 shown once
   settingsDone?: boolean; // 10.15 shown once
   carPhotos?: Record<string, CarPhotos>; // handover photos per car (10.10, 10.45)
@@ -83,7 +83,11 @@ export type DriverContext = { mobile: string; vendor?: Vendor };
 
 export async function getDriver(): Promise<DriverContext | null> {
   const s = await getDriverSession();
-  if (!s) return null;
+  if (!s) {
+    // Another phone signed in with this number (Figma 10.55).
+    if (await replacedSession()) redirect("/driver/signed-out");
+    return null;
+  }
   return { mobile: s.mobile, vendor: await findVendorByMobile(s.mobile) };
 }
 
@@ -113,7 +117,7 @@ function sniffImage(b: Buffer): string | null {
   return null;
 }
 
-// Meter and receipt photos go to the Trip log, which shows them from
+// Meter and receipt photos go to the Daily Diary, which shows them from
 // /uploads/[file] (data/uploads), same as the admin entry panel.
 export async function saveTripPhoto(file: unknown): Promise<{ file: string } | { error: string }> {
   if (!(file instanceof File) || file.size === 0) return { error: "Take a photo first." };
@@ -151,6 +155,14 @@ export const isUnseenCancel = (b: Booking) =>
   b.status === "cancelled" && !!b.trip && b.trip.stage !== "declined" && b.trip.stage !== "offered" && !b.trip.sentAt && !b.trip.cancelSeen;
 
 export const offeredAt = (b: Booking) => b.trip?.offeredAt ?? b.updatedAt ?? b.createdAt;
+
+// When the driver has to answer a trip request by (ms), and whether the time
+// ran out (10.27: the office gives it to another driver).
+export const offerDeadline = (b: Booking) => Date.parse(offeredAt(b)) + OFFER_MINUTES * 60000;
+export const isOfferExpired = (b: Booking, now = Date.now()) => isOffer(b) && now >= offerDeadline(b);
+
+// Trips done today (10.24 "Earlier today"): sent to the office, run today.
+export const isDoneToday = (b: Booking) => b.status !== "cancelled" && !!b.trip?.sentAt && b.date === istDate();
 
 export async function listMyBookings(vendorId: string): Promise<Booking[]> {
   return (await listBookings()).filter((b) => isMine(b, vendorId));
@@ -198,4 +210,38 @@ export async function routeDistance(b: Pick<Booking, "from" | "to">): Promise<st
   const has = (a: string, b: string) => a.toLowerCase().includes(b.toLowerCase());
   const r = routes.find((x) => (has(b.to, x.to) && has(b.from, x.from)) || (has(b.from, x.to) && has(b.to, x.from)));
   return r?.distance;
+}
+
+/* -------------------------------- car status -------------------------------- */
+
+// Odometer and service for one of the driver's cars (Figma 10.51 Profile,
+// 10.52 Your car). `km` = the highest meter reading the driver logged for it,
+// or the office's estimate if higher. Service comes from the fleet car with
+// the same number plate (set by the office in the Daily Diary's one-car view);
+// the reading saved there with the service is the "last service".
+export type CarStatus = {
+  km?: number;
+  nextServiceKm?: number;
+  nextServiceDate?: string;
+  lastServiceKm?: number;
+  lastServiceDate?: string;
+};
+
+export async function carStatus(car: VendorCar): Promise<CarStatus> {
+  const [{ listCars }, { listAllEntries }, { serviceState }] = await Promise.all([import("./fleet"), import("./journal"), import("./catalogTypes")]);
+  const plate = (s: string) => s.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  const [fleet, entries] = await Promise.all([listCars(), listAllEntries()]);
+  const readings = entries.filter((e) => e.carId === car.id).flatMap((e) => [e.odoEnd, e.odoStart]).filter((n): n is number => typeof n === "number" && n > 0);
+  let km = readings.length ? Math.max(...readings) : undefined;
+  const office = plate(car.number) ? fleet.find((c) => plate(c.number) === plate(car.number)) : undefined;
+  if (!office) return { km };
+  const est = serviceState(office, entries, istDate()).kmNow;
+  if (est != null) km = Math.max(km ?? 0, est);
+  return {
+    km,
+    nextServiceKm: office.nextServiceKm,
+    nextServiceDate: office.nextServiceDate,
+    lastServiceKm: office.odometerKm,
+    lastServiceDate: office.odometerDate,
+  };
 }

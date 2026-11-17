@@ -40,7 +40,7 @@ export default async function WelcomePage() {
         <LinkBtn href="/driver/sign-in">Continue with mobile number</LinkBtn>
         <p className="text-center type-body-sm text-secondary">
           Need help? Call the office on{" "}
-          <a href={office.tel} className="text-link underline-offset-2 hover:underline">
+          <a href={office.tel} className="underline-offset-2 hover:underline">
             {office.display}
           </a>
         </p>

@@ -19,7 +19,8 @@ export type ServiceOption = { slug: string; name: string; label: string; icon: s
 export type RouteOption = { slug: string; from: string; to: string; fare: number; km: number; minutes: number };
 export type PlaceOption = { name: string };
 export type CarClassOption = { id: string; name: string; rate: number; seats: number; carIds: string[] };
-export type CarOption = { id: string; name: string; number: string; fareClass: string };
+// driver: who drove this car on its latest booking with a driver ("" if none yet).
+export type CarOption = { id: string; name: string; number: string; fareClass: string; driver: string };
 // An approved vendor's car; key = "<vendorId>:<carId>".
 export type VendorCarOption = { key: string; vendor: string; model: string; number: string; type: string; seats: number };
 
@@ -132,24 +133,6 @@ export function Segmented<T extends string>({
         );
       })}
     </div>
-  );
-}
-
-// Figma "Chip": pill; chosen = brand fill with a check.
-export function Chip({ on, onClick, children, meta }: { on: boolean; onClick: () => void; children: React.ReactNode; meta?: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border py-2 pl-3 pr-3.5 transition-colors ${
-        on ? "border-transparent bg-brand text-on-color" : "border-gray-200 bg-layer text-primary hover:bg-layer-hover"
-      }`}
-    >
-      {on && <Icon name="check" size={16} />}
-      <span className="type-ui">{children}</span>
-      {meta && <span className={`type-body-sm ${on ? "text-on-color" : "text-secondary"}`}>{meta}</span>}
-    </button>
   );
 }
 

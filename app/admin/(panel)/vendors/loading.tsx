@@ -9,8 +9,19 @@ import { btnPrimary } from "@/components/admin/ui";
 const bar = "rounded-full bg-gray-100";
 // Same columns as the table in VendorList.
 const COLS = "lg:grid-cols-[minmax(0,230fr)_minmax(0,280fr)_80px_50px_110px_minmax(240px,1fr)]";
-// Name widths vary a little so the rows read as a list, not a block.
-const NAMES = ["w-[180px]", "w-[110px]", "w-[130px]", "w-[150px]", "w-[140px]", "w-[165px]", "w-[150px]", "w-[145px]"];
+// One entry per Figma skeleton row: name, Owner/Driver tag, phone, rating,
+// trips and status widths, plus which buttons the row holds.
+type Row = { name: number; tag: number; phone: number; rating: number; trips: number; status: number; actions: "approve" | "suspend" | "reactivate" };
+const ROWS: Row[] = [
+  { name: 152, tag: 46, phone: 107, rating: 62, trips: 11, status: 87, actions: "approve" },
+  { name: 74, tag: 46, phone: 109, rating: 62, trips: 11, status: 98, actions: "suspend" },
+  { name: 99, tag: 46, phone: 109, rating: 20, trips: 16, status: 98, actions: "suspend" },
+  { name: 126, tag: 41, phone: 110, rating: 62, trips: 11, status: 107, actions: "reactivate" },
+  { name: 108, tag: 46, phone: 107, rating: 62, trips: 11, status: 98, actions: "suspend" },
+  { name: 136, tag: 46, phone: 106, rating: 62, trips: 11, status: 98, actions: "suspend" },
+  { name: 116, tag: 46, phone: 105, rating: 20, trips: 10, status: 98, actions: "suspend" },
+  { name: 111, tag: 46, phone: 110, rating: 20, trips: 16, status: 98, actions: "suspend" },
+];
 
 function Bar({ className }: { className: string }) {
   return <span className={`block ${bar} ${className}`} />;
@@ -63,24 +74,31 @@ export default function VendorsLoading() {
           <Bar className="h-3 w-[110px] max-w-full" />
           <Bar className="ml-auto h-3 w-[220px] max-w-full" />
         </div>
-        {NAMES.map((name, i) => (
-          <div key={i} className={`grid grid-cols-1 gap-x-4 gap-y-2 border-b border-gray-100 px-5 py-[18px] last:border-b-0 lg:items-center ${COLS}`}>
-            <Bar className={`h-3 max-w-full ${name}`} />
-            <div className="flex flex-col gap-2.5">
-              <Bar className="h-3 w-[220px] max-w-full" />
-              <Bar className="h-3 w-[107px]" />
+        {ROWS.map((r, i) => (
+          <div key={i} className={`grid grid-cols-1 gap-x-4 gap-y-2 border-b border-gray-100 px-5 py-3.5 last:border-b-0 lg:items-center ${COLS}`}>
+            <div className="flex h-6 items-center gap-2">
+              <span className={`block h-3 max-w-full ${bar}`} style={{ width: r.name }} />
+              <span className={`ml-2 block h-3 ${bar}`} style={{ width: r.tag }} />
             </div>
-            <Bar className={`h-3 ${i % 3 === 2 ? "w-5" : "w-[62px]"}`} />
-            <Bar className="h-3 w-3" />
-            <Bar className="h-7 w-[98px]" />
+            <div className="flex flex-col gap-0.5">
+              <span className="flex h-6 items-center">
+                <Bar className="h-3 w-[220px] max-w-full" />
+              </span>
+              <span className="flex h-5 items-center">
+                <span className={`block h-3 ${bar}`} style={{ width: r.phone }} />
+              </span>
+            </div>
+            <span className={`block h-3 ${bar}`} style={{ width: r.rating }} />
+            <span className={`block h-3 ${bar}`} style={{ width: r.trips }} />
+            <span className={`block h-7 ${bar}`} style={{ width: r.status }} />
             <div className="flex items-center gap-2 lg:justify-end">
-              {i === 0 ? (
+              {r.actions === "approve" ? (
                 <>
                   <Bar className="h-10 w-[98px]" />
                   <Bar className="h-10 w-[83px]" />
                 </>
               ) : (
-                <Bar className={`h-[42px] ${i === 3 ? "w-[114px]" : "w-[102px]"}`} />
+                <Bar className={`h-[42px] ${r.actions === "reactivate" ? "w-[114px]" : "w-[102px]"}`} />
               )}
               <span className="block size-9 rounded-md bg-gray-100" />
             </div>

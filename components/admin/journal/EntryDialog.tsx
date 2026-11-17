@@ -51,14 +51,14 @@ export default function EntryDialog({
         aria-label={title}
         tabIndex={-1}
         className={`relative my-auto flex w-full flex-col rounded-lg bg-layer shadow-[0_16px_48px_0_var(--shadow-md)] outline-none [animation:pop_.15s_ease-out] ${
-          art ? "max-w-[420px] items-center gap-2 px-6 pb-7 pt-6 text-center" : "max-w-[400px] gap-2 px-6 pb-5 pt-5"
+          art ? "max-w-[440px] items-center gap-2 px-8 pb-7 pt-6 text-center" : "max-w-[440px] gap-2 px-6 pb-5 pt-6"
         }`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- static line-art SVG from the design */}
-        {art && <img src={art} alt="" width={144} height={96} className="h-24 w-36" />}
+        {art && <img src={art} alt="" width={192} height={128} className="h-32 w-48" />}
         <h2 className="type-h3 text-primary">{title}</h2>
         <p className="type-body-sm text-secondary">{children}</p>
-        <div className={`flex flex-wrap gap-3 pt-3 ${art ? "justify-center" : "justify-end"}`}>{footer}</div>
+        <div className={`flex flex-wrap gap-3 ${art ? "justify-center pt-4" : "justify-end pt-3"}`}>{footer}</div>
       </div>
     </div>
   );

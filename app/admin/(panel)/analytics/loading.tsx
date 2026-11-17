@@ -11,7 +11,14 @@ export default function Loading() {
           <h1 className="type-h1 text-primary">Analytics</h1>
           <span className="mt-3 block h-3 w-56 max-w-full rounded-full bg-gray-100" />
         </div>
-        <span className="block h-[46px] w-[471px] max-w-full rounded-full border border-gray-100 bg-layer" aria-hidden="true" />
+        {/* The range switch waits too (the URL range isn't known here). */}
+        <span className="flex max-w-full gap-0.5 overflow-x-auto rounded-full border border-gray-100 bg-layer p-1" aria-hidden="true">
+          {["7 days", "This month", "Last month", "This year", "Custom"].map((label) => (
+            <span key={label} className="whitespace-nowrap rounded-full border border-transparent px-3.5 py-[7px] type-ui text-secondary">
+              {label}
+            </span>
+          ))}
+        </span>
         <ExportPlaceholder />
       </div>
       <AnalyticsSkeleton />

@@ -8,7 +8,6 @@ import Icon from "@/components/admin/Icon";
 import {
   Box,
   Card,
-  Chip,
   Fact,
   FieldError,
   Label,
@@ -170,7 +169,8 @@ export default function NewBookingForm({
     ...freeOurs.map((c) => ({
       key: c.id,
       title: c.number ? `${c.name} · ${c.number}` : c.name,
-      sub: `${classes.find((x) => x.id === c.fareClass)?.name ?? "Car"} · free all ${carWhen}`,
+      // 3B.13: the driver who usually takes this car; else its class and the day.
+      sub: c.driver || `${classes.find((x) => x.id === c.fareClass)?.name ?? "Car"} · free all ${carWhen}`,
     })),
     ...freeVendor.map((v) => ({ key: `v:${v.key}`, title: v.number ? `${v.model} · ${v.number}` : v.model, sub: `${v.vendor} · vendor car` })),
   ];
@@ -374,7 +374,8 @@ export default function NewBookingForm({
                   placeholder="10-digit mobile"
                   value={phoneShow(f.phone)}
                   error={!!err("nb-phone")}
-                  inputProps={{ type: "tel", inputMode: "numeric", "aria-describedby": "nb-phone-msg" }}
+                  // 3B.1 opens with the cursor here ("Start here").
+                  inputProps={{ type: "tel", inputMode: "numeric", "aria-describedby": "nb-phone-msg", autoFocus: !prefill?.phone }}
                   prefix={
                     <>
                       <span className="type-body-md text-secondary">+91</span>
@@ -441,7 +442,7 @@ export default function NewBookingForm({
                 <span className="grid size-9 shrink-0 place-items-center rounded-full border border-gray-200 bg-layer text-[var(--icon-secondary)]">
                   <Icon name="user" size={18} />
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <p className="type-ui text-primary">
                     Returning customer · {customer.trips} trip{customer.trips === 1 ? "" : "s"} since {day(customer.since, { month: "long" })}
                   </p>
@@ -539,7 +540,7 @@ export default function NewBookingForm({
                 <SuggestField
                   id="nb-to"
                   icon="map-pin"
-                  placeholder="Type or pick a popular place"
+                  placeholder="Type a place or town"
                   value={f.to}
                   error={!!err("nb-to")}
                   inputProps={{ name: "to" }}
@@ -560,19 +561,6 @@ export default function NewBookingForm({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="type-body-sm text-secondary">Popular</span>
-              {routes.map((r) => (
-                <Chip
-                  key={r.slug}
-                  on={route?.slug === r.slug}
-                  meta={inr(r.fare)}
-                  onClick={() => setF((p) => ({ ...p, to: r.to, from: p.from || r.from, fare: "" }))}
-                >
-                  {r.to}
-                </Chip>
-              ))}
-            </div>
           </Card>
 
           {/* ---- Date and time ---- */}
@@ -580,7 +568,7 @@ export default function NewBookingForm({
             title="Date and time"
             aside={f.date ? `${day(f.date, { weekday: "short", day: "numeric", month: "short" })}${f.time ? `, ${clock(f.time)}` : ""}` : undefined}
           >
-            <div className="relative grid grid-cols-4 gap-2 sm:grid-cols-7">
+            <div className="relative grid grid-cols-4 gap-2 sm:grid-cols-[repeat(6,minmax(0,1fr))_auto]">
               {strip.map((d, i) => {
                 const on = f.date === d;
                 const top = i === 0 ? "Today" : i === 1 ? "Tomorrow" : day(d, { weekday: "short" });
@@ -743,7 +731,8 @@ export default function NewBookingForm({
         <aside className="flex flex-col gap-4.5 rounded-lg border border-gray-100 bg-layer px-4 pb-6 pt-5.5 sm:px-6 lg:sticky lg:top-6">
           <div className="flex items-center gap-2">
             <h2 className="flex-1 type-h4 text-primary">Summary</h2>
-            {!pristine && (
+            {/* 3B.3: while there are things to fix the badge steps aside for the fix box. */}
+            {!pristine && !(showErrors && errors.length > 0) && (
               <button
                 type="button"
                 onClick={() => set("status", f.status === "confirmed" ? "new" : "confirmed")}
@@ -775,13 +764,13 @@ export default function NewBookingForm({
               <span className={`size-3 rounded-full border-2 bg-layer ${f.to ? "border-brand" : "border-gray-200"}`} />
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-5">
-              <div>
+              <div className="flex flex-col gap-0.5">
                 <p className="type-body-sm text-secondary">
                   {f.time ? `${clock(f.time)} · ${day(f.date, { weekday: "short", day: "numeric", month: "short" })}` : "Pickup"}
                 </p>
                 <p className={`type-ui ${f.from ? "text-primary" : "text-secondary"}`}>{f.from || "Not added yet"}</p>
               </div>
-              <div>
+              <div className="flex flex-col gap-0.5">
                 <p className="type-body-sm text-secondary">{eta ? `about ${clock(eta)}` : "Drop"}</p>
                 <p className={`type-ui ${f.to ? "text-primary" : "text-secondary"}`}>{route?.to ?? (f.to || (hourly ? "Local, by the hour" : "Not added yet"))}</p>
               </div>
@@ -924,7 +913,7 @@ export default function NewBookingForm({
       {dialog?.kind === "repeat" && (
         <SaveDialog
           art="no-bookings"
-          artSize={[204, 136]}
+          artSize={[192, 128]}
           title={`${dialog.info.name.split(" ")[0] || "This customer"} already has this trip`}
           onClose={closeDialog}
           secondary={{

@@ -194,7 +194,8 @@ export default function VendorList({
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-100 bg-layer">
-        <div className={`hidden gap-4 bg-layer-accent px-5 py-2.5 type-body-sm text-secondary lg:grid ${COLS}`}>
+        {/* No column heads on 6.4 (empty tab) and 6.5 (couldn't load); 6.3 keeps them. */}
+        <div className={`hidden gap-4 bg-layer-accent px-5 py-2.5 type-body-sm text-secondary ${failed || (!visible.length && !q) ? "" : "lg:grid"} ${COLS}`}>
           <span>Business</span>
           <span>Contact</span>
           <span>Rating</span>

@@ -277,7 +277,10 @@ export function EntryRow({
 }) {
   const net = entryNet(e);
   const title = entryTitle(e);
-  const tags = entryTags(e);
+  const all = entryTags(e);
+  // "Waiting for driver" is a status badge on its own line (Figma 4B.12).
+  const waiting = all.find((t) => t.tone === "waiting");
+  const tags = all.filter((t) => t.tone !== "waiting");
   const meter = hasMeter(e);
   const line = meter ? `${e.odoStart != null ? reading(e.odoStart) : "start missing"} → ${e.odoEnd != null ? reading(e.odoEnd) : "end missing"}` : routeText(e);
   return (
@@ -299,11 +302,16 @@ export function EntryRow({
               className={`flex items-center gap-1 rounded-full px-2 py-0.5 type-body-sm ${t.tone === "gray" ? "bg-gray-50 text-secondary" : "bg-tag-amber text-tag-amber"}`}
             >
               {t.tone === "amber" && <Icon name="warning-circle" size={12} />}
-              {t.tone === "waiting" && <span aria-hidden="true" className="mx-0.5 size-1.5 rounded-full bg-current" />}
               {t.label}
             </span>
           ))}
         </div>
+        {waiting && (
+          <span className="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full bg-tag-amber px-2.5 py-1 type-body-sm text-tag-amber">
+            <Icon name="dot" size={6} />
+            {waiting.label}
+          </span>
+        )}
       </div>
       <p className={`${colKm} ${money} type-body-md text-primary`}>{e.km != null ? kmText(e.km) : "—"}</p>
       <p className={`${colFare} ${money} type-body-md text-primary`}>{inr(e.fare)}</p>

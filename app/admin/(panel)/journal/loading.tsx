@@ -1,15 +1,25 @@
-import { PageHeader, cardCls } from "@/components/admin/ui";
+import Link from "next/link";
+import Icon from "@/components/admin/Icon";
+import { PageHeader, btnGhost, btnPrimary, cardCls } from "@/components/admin/ui";
 
 // Figma 4B.11 "Daily Diary · loading": the real header, then grey bars in the
 // shape of the filters, totals, fare split, the three side panels and the
-// trips table.
+// trips table. New entry stays usable while the entries load; Export waits.
 const bar = "rounded-full bg-gray-100";
 const dot = "size-[18px] shrink-0 rounded-full bg-gray-100";
 
 export default function JournalLoading() {
   return (
     <div role="status" aria-label="Loading the Daily Diary">
-      <PageHeader title="Daily Diary" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns." />
+      <PageHeader title="Daily Diary" intro="Kilometres, fuel and driver cut for every trip, so you know what each car really earns.">
+        <button type="button" disabled className={btnGhost}>
+          Export
+        </button>
+        <Link href="/admin/journal?new=1" scroll={false} className={btnPrimary}>
+          <Icon name="plus" size={16} />
+          New entry
+        </Link>
+      </PageHeader>
 
       {/* Filters */}
       <div className="mt-5 flex flex-wrap items-center gap-3">

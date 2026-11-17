@@ -163,9 +163,9 @@ export default function DocReviewDrawer({
         )
       }
     >
-      <div className="flex flex-col gap-4 px-5 py-5.5 md:px-7">
+      <div className="flex flex-col gap-5 px-5 py-6 md:px-7">
         {d.fileBack && (
-          <div role="tablist" className="flex w-fit gap-1 rounded-full bg-gray-50 p-1">
+          <div role="tablist" className="flex w-fit items-center gap-1 rounded-full bg-gray-50 p-[5px]">
             {(["front", "back"] as const).map((s) => (
               <button
                 key={s}
@@ -173,7 +173,7 @@ export default function DocReviewDrawer({
                 role="tab"
                 aria-selected={side === s}
                 onClick={() => setSide(s)}
-                className={`rounded-full px-3.5 py-1.5 type-ui capitalize transition-colors ${side === s ? "bg-layer text-primary shadow-[0_1px_2px_var(--shadow-sm)]" : "text-secondary hover:text-primary"}`}
+                className={`rounded-full px-4 py-1.5 type-ui capitalize transition-colors ${side === s ? "bg-layer text-primary shadow-[0_1px_2px_var(--shadow-sm)]" : "text-secondary hover:text-primary"}`}
               >
                 {s}
               </button>
@@ -181,7 +181,7 @@ export default function DocReviewDrawer({
           </div>
         )}
 
-        <div className="relative grid min-h-56 place-items-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50 p-4">
+        <div className="relative grid min-h-[330px] place-items-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50 p-4">
           {!file ? (
             <p className="type-body-sm text-secondary">No file uploaded yet.</p>
           ) : isPdf ? (
@@ -191,14 +191,14 @@ export default function DocReviewDrawer({
             <img src={docUrl(file)} alt={`${item.label} of ${vendor.name}`} className="max-h-80 w-auto max-w-full rounded-md object-contain" />
           )}
           {file && (
-            <a href={docUrl(file)} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 rounded-full border border-gray-100 bg-layer px-2.5 py-1 type-body-sm text-secondary hover:text-primary">
+            <a href={docUrl(file)} target="_blank" rel="noreferrer" className="absolute bottom-3 right-3 rounded-full border border-gray-100 bg-layer px-3 py-[7px] type-body-sm text-secondary hover:text-primary">
               {isPdf ? "Open full size" : "Tap to zoom"}
             </a>
           )}
         </div>
 
         <div className="overflow-hidden rounded-lg border border-gray-100">
-          <p className="px-3 py-3 type-ui text-primary">Match with the profile</p>
+          <p className="px-4 py-3 type-ui text-primary">Match with the profile</p>
           {checks.map((c) => {
             const ok = !!ticks[c.id];
             const value =
@@ -222,7 +222,7 @@ export default function DocReviewDrawer({
                 <p className="type-ui text-primary">{c.value}</p>
               );
             return (
-              <div key={c.id} className="grid grid-cols-[minmax(0,108px)_minmax(0,1fr)_24px] items-center gap-3 border-t border-gray-100 px-3 py-2.5">
+              <div key={c.id} className="grid grid-cols-[minmax(0,140px)_minmax(0,1fr)_24px] items-center gap-3 border-t border-gray-100 py-3 pl-4 pr-3">
                 <p className="type-body-sm text-secondary">{c.label}</p>
                 <div className="min-w-0">
                   {value}
@@ -235,7 +235,7 @@ export default function DocReviewDrawer({
                   aria-label={ok ? `${c.label} matches` : `Mark ${c.label.toLowerCase()} as matching`}
                   className={`grid size-6 place-items-center rounded-full ${ok ? "text-brand" : "text-tag-amber"} hover:bg-layer-hover`}
                 >
-                  <Icon name={ok ? "check-circle-14" : "warning-circle-14"} size={14} />
+                  <Icon name={ok ? "check-circle" : "warning-circle"} size={18} />
                 </button>
               </div>
             );
@@ -243,15 +243,15 @@ export default function DocReviewDrawer({
         </div>
 
         {next && (
-          <button type="button" onClick={() => onOpen(next)} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-3 text-left hover:bg-layer-hover">
-            <Icon name="file-text-16" size={16} className="text-[var(--icon-secondary)]" />
+          <button type="button" onClick={() => onOpen(next)} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3.5 text-left hover:bg-layer-hover">
+            <Icon name="file-text" size={18} className="text-[var(--icon-secondary)]" />
             <span className="min-w-0 flex-1">
               <span className="block type-ui text-primary">Next: {docPhrase(next, true)}</span>
               <span className="block type-body-sm text-secondary">
                 {rest.length} more document{rest.length > 1 ? "s" : ""} to check for this vendor
               </span>
             </span>
-            <Icon name="arrow-right" size={16} className="text-brand" />
+            <Icon name="arrow-right" size={18} className="text-brand" />
           </button>
         )}
 

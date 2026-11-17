@@ -45,7 +45,7 @@ export default function SaveDialog({
         aria-modal="true"
         aria-labelledby="nb-dialog-title"
         aria-describedby="nb-dialog-desc"
-        className="relative flex w-full max-w-[436px] flex-col items-center gap-2 rounded-lg bg-layer px-8 pb-7 pt-6 text-center shadow-[0_16px_48px_0_var(--shadow-md)] [animation:pop_.15s_ease-out]"
+        className="relative flex w-full max-w-[480px] flex-col items-center gap-2 rounded-lg bg-layer px-8 pb-7 pt-6 text-center shadow-[0_16px_48px_0_var(--shadow-md)] [animation:pop_.15s_ease-out]"
       >
         <Image
           src={`/admin-illustrations/${art}.svg`}

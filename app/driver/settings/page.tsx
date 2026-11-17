@@ -5,7 +5,8 @@ import { requireVendor } from "@/lib/driverTrips";
 
 export const metadata: Metadata = { title: "Two quick settings" };
 
-// Figma 10.15 Two quick settings — after approval, before Today.
+// Figma 10.17 Two quick settings — after approval (10.16), before the
+// Dashboard (10.18). Asks only for what is still off.
 export default async function SettingsPage() {
   await requireVendor();
   return (

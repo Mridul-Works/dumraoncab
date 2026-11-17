@@ -3,7 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Icon from "@/components/admin/Icon";
 import { AddCarButton, CarStepper } from "@/components/driver/JoinForms";
-import { Body, LinkBtn, Screen, Spacer, Steps, Tag, TopBar } from "@/components/driver/ui";
+import { ProgressSteps } from "@/components/driver/fields";
+import { Body, btnClass, LinkBtn, Screen, Spacer, Tag, TopBar } from "@/components/driver/ui";
 import { CAR_DOCS } from "@/lib/vendorTypes";
 import { requireJoining } from "../join";
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Your cars" };
 
 const PAPER = { rc: "RC", insurance: "insurance", permit: "permit", puc: "PUC" } as const;
 
-// Figma 10.9 Your cars — own-car drivers add each car.
+// Figma 10.11 Your cars — own-car drivers add each car.
 export default async function CarsPage() {
   const { draft } = await requireJoining();
   if (!draft.name) redirect("/driver/join/details");
@@ -20,7 +21,7 @@ export default async function CarsPage() {
     <Screen>
       <Body>
         <TopBar title="Your cars" back="/driver/join/documents" />
-        <Steps at={3} />
+        <ProgressSteps at={3} label="Next: check and submit" />
         <div className="flex items-center justify-between gap-[12px]">
           <span className="type-ui text-primary">How many cars will you drive?</span>
           <CarStepper count={draft.cars.length} />
@@ -60,7 +61,7 @@ export default async function CarsPage() {
         {draft.cars.some((c) => c.model) ? (
           <LinkBtn href="/driver/join/review">Next: review</LinkBtn>
         ) : (
-          <button type="button" disabled className="inline-flex h-[48px] w-full items-center justify-center rounded-full bg-button-primary px-[20px] type-ui text-on-color opacity-40">
+          <button type="button" disabled className={btnClass("primary")}>
             Next: review
           </button>
         )}

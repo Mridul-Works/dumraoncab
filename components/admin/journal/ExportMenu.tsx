@@ -52,7 +52,8 @@ export default function ExportMenu({ csvHref, pdfHref, scope }: { csvHref: strin
     }
   }
 
-  const item = "flex w-full flex-col items-start rounded-md px-3 py-2 text-left hover:bg-layer-hover";
+  // Figma 4B.10: 340px menu, 62px items (16px inset), a two-line note under them.
+  const item = "flex w-full flex-col items-start gap-0.5 px-4 py-2.5 text-left hover:bg-layer-hover";
 
   return (
     <div ref={box} className="relative">
@@ -63,7 +64,7 @@ export default function ExportMenu({ csvHref, pdfHref, scope }: { csvHref: strin
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+8px)] z-30 flex w-[min(340px,calc(100vw-2rem))] flex-col gap-0.5 rounded-lg border border-gray-100 bg-layer p-2 shadow-[0_16px_48px_0_var(--shadow-md)] [animation:pop_.15s_ease-out]"
+          className="absolute right-0 top-[calc(100%+8px)] z-30 flex w-[min(340px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-gray-100 bg-layer pb-3 pt-2 shadow-[0_16px_48px_0_var(--shadow-md)] [animation:pop_.15s_ease-out]"
         >
           <button type="button" role="menuitem" onClick={downloadCsv} className={item}>
             <span className="type-ui text-primary">Download CSV</span>
@@ -73,7 +74,7 @@ export default function ExportMenu({ csvHref, pdfHref, scope }: { csvHref: strin
             <span className="type-ui text-primary">Download PDF summary</span>
             <span className="type-body-sm text-secondary">Totals, by car and every trip, for the accountant</span>
           </a>
-          <p className="px-3 pb-1.5 pt-2 type-body-sm text-secondary">Change the range or car first to export something else.</p>
+          <p className="px-4 pt-2 type-body-sm text-secondary">Change the range or car first to export something else.</p>
         </div>
       )}
 

@@ -143,6 +143,7 @@ export default function CheckEntryPanel({
       badge={<span className="rounded-full bg-tag-green px-2.5 py-[3px] type-body-sm text-brand">From driver app</span>}
       onClose={close}
       width="max-w-[520px]"
+      compact
       footer={
         fixing ? (
           <>

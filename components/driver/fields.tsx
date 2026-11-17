@@ -25,6 +25,24 @@ export function Field({ label, icon, error, prefix, className = "", id, name, ..
   );
 }
 
+// Figma "Progress steps" (sign-up 10.6–10.12): what comes next and "Step N of
+// 3" over three bars — done steps faded brand, current solid brand, next grey.
+export function ProgressSteps({ at, of = 3, label }: { at: number; of?: number; label: string }) {
+  return (
+    <div className="flex w-full flex-col gap-[6px]">
+      <div className="flex items-center justify-between gap-[12px]">
+        <span className="type-ui text-primary">{label}</span>
+        <span className="shrink-0 type-body-sm text-secondary">{`Step ${at} of ${of}`}</span>
+      </div>
+      <div className="flex w-full gap-[6px]" role="progressbar" aria-valuemin={1} aria-valuemax={of} aria-valuenow={at} aria-label={`Step ${at} of ${of}`}>
+        {Array.from({ length: of }, (_, i) => (
+          <div key={i} className={`h-[6px] flex-1 rounded-[3px] ${i + 1 < at ? "bg-brand opacity-45" : i + 1 === at ? "bg-brand" : "bg-gray-200"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Figma "Radio" row: ring + label + description; the whole row is the target.
 export function RadioRow({
   name,
@@ -97,7 +115,7 @@ export function CheckRow({
   );
 }
 
-// Big number field: odometer and cash (10.23, 10.32, 10.35).
+// Big number field: odometer and cash (10.30, 10.39, 10.42).
 export function BigNumber({
   name,
   value,

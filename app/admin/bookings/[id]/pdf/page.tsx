@@ -106,7 +106,7 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
               href={`/admin/bookings/${b.id}/pdf?copy=${c}`}
               replace
               aria-current={copy === c ? "page" : undefined}
-              className={`rounded-full px-3.5 py-1.75 type-ui ${copy === c ? "bg-inverse text-inverse" : "text-primary hover:bg-layer-hover"}`}
+              className={`rounded-full px-3.5 py-1.75 type-ui ${copy === c ? "bg-layer-selected text-primary" : "text-secondary hover:bg-layer-hover hover:text-primary"}`}
             >
               {c === "customer" ? "Customer copy" : "Driver copy"}
             </Link>
@@ -191,7 +191,7 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
 
           {/* Route */}
           <div className="flex overflow-hidden rounded-lg border border-gray-100">
-            <div className="flex min-w-0 flex-1 flex-col px-6 py-4.5">
+            <div className="flex min-w-0 flex-1 flex-col gap-5 px-6 py-4.5">
               <Stop
                 kind="pickup"
                 label="Pickup"
@@ -199,9 +199,6 @@ export default async function BookingPdfPage({ params, searchParams }: Props) {
                 note={copy === "customer" && b.driverName && b.time ? `Driver calls at ${at(-10)}.` : undefined}
                 time={pickupAt}
               />
-              <div className="py-1 pl-1.25">
-                <div className="h-7 w-0.5 bg-gray-200" />
-              </div>
               <Stop kind="drop" label="Drop" place={b.to || "Local trip"} note={extras.flight ? `Flight / train ${extras.flight}` : undefined} time={dropAt} />
             </div>
             <div className="relative w-[230px] shrink-0 self-stretch overflow-hidden border-l border-gray-100 bg-gray-50">
@@ -357,11 +354,16 @@ function Fact({ label, value, sub, link = false }: { label: string; value: React
   );
 }
 
+// One route stop. The pickup carries the route line: it runs from under the
+// pickup dot, across the 20px gap, into the top of the drop dot (Figma 9.1/9.2).
 function Stop({ kind, label, place, note, time }: { kind: "pickup" | "drop"; label: string; place: string; note?: string; time: string }) {
   return (
     <div className="flex items-start gap-3.5">
-      {/* eslint-disable-next-line @next/next/no-img-element -- route stop marker from the design */}
-      <img src={`/booking-pdf/stop-${kind}.svg`} alt="" width={12} height={12} className="mt-1 size-3 shrink-0" />
+      <span className="relative shrink-0 self-stretch">
+        {/* eslint-disable-next-line @next/next/no-img-element -- route stop marker from the design */}
+        <img src={`/booking-pdf/stop-${kind}.svg`} alt="" width={12} height={20} className="block h-5 w-3" />
+        {kind === "pickup" && <span className="absolute -bottom-5.25 left-1.25 top-4.75 w-0.5 rounded-[1px] bg-gray-200" aria-hidden="true" />}
+      </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="type-body-sm text-secondary">{label}</p>
         <p className="type-h4 text-primary">{place}</p>
@@ -404,7 +406,7 @@ function UpiQr({ text }: { text: string }) {
   const n = rows.length + 8; // 4-module quiet zone
   const d = rows.map((r, y) => r.map((on, x) => (on ? `M${x + 4} ${y + 4}h1v1h-1z` : "")).join("")).join("");
   return (
-    <svg viewBox={`0 0 ${n} ${n}`} width={112} height={112} role="img" aria-label="UPI payment QR code" shapeRendering="crispEdges" className="bg-white text-black">
+    <svg viewBox={`0 0 ${n} ${n}`} width={125} height={125} role="img" aria-label="UPI payment QR code" shapeRendering="crispEdges" className="bg-white text-black">
       <path d={d} fill="currentColor" />
     </svg>
   );

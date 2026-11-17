@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import FleetGrid from "@/components/admin/FleetGrid";
+import FleetHeader from "@/components/admin/FleetHeader";
 import FleetToast from "@/components/admin/FleetToast";
 import FleetLoadError from "@/components/admin/fleet/FleetLoadError";
 import Icon from "@/components/admin/Icon";
-import { PageHeader, btnPrimary } from "@/components/admin/ui";
+import { btnPrimary } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
 import { istDate } from "@/lib/bookingTypes";
 import { rateForCar, serviceState } from "@/lib/catalogTypes";
@@ -32,9 +33,9 @@ export default async function FleetPage({ searchParams }: Props) {
   if (!data) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Fleet" intro="Changes go live on /fleet, the home page and the booking form.">
+        <FleetHeader back={false} title="Fleet" intro="Changes go live on /fleet, the home page and the booking form.">
           {addCar}
-        </PageHeader>
+        </FleetHeader>
         <FleetLoadError />
       </div>
     );
@@ -57,9 +58,9 @@ export default async function FleetPage({ searchParams }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Fleet" intro={`${cars.length} ${cars.length === 1 ? "car" : "cars"}. Changes go live on /fleet, the home page and the booking form.`}>
+      <FleetHeader back={false} title="Fleet" intro={`${cars.length} ${cars.length === 1 ? "car" : "cars"}. Changes go live on /fleet, the home page and the booking form.`}>
         {addCar}
-      </PageHeader>
+      </FleetHeader>
       <FleetGrid
         cars={cars.map((c) => ({
           ...c,

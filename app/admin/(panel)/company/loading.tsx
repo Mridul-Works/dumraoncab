@@ -89,7 +89,13 @@ export default function Loading() {
               <div className={`h-3 w-[170px] ${bar}`} />
               <div className={`h-3 w-[220px] max-w-full ${bar}`} />
             </div>
-            <div className="h-[122px] rounded-[10px] bg-gray-100" />
+            {/* Terms: label, then the outlined text box with one line in it */}
+            <div className="flex flex-col gap-2">
+              <div className={`h-3 w-[150px] ${bar}`} />
+              <div className="h-24 rounded-[10px] border border-gray-100 p-3.5">
+                <div className={`h-3 w-[220px] max-w-full ${bar}`} />
+              </div>
+            </div>
             <div className={field} />
           </div>
         </div>
@@ -124,13 +130,11 @@ export default function Loading() {
             </div>
             <div className={`h-3 w-[120px] ${bar}`} />
             <div className="flex flex-col gap-2 rounded-md bg-gray-50 p-3.5">
-              <div className={`h-3 w-full ${bar}`} />
-              <div className={`h-3 w-3/4 ${bar}`} />
-              <div className={`h-3 w-1/2 ${bar}`} />
+              <div className={`h-3 w-[220px] max-w-full ${bar}`} />
+              <div className={`h-3 w-[220px] max-w-full ${bar}`} />
             </div>
             <div className={`h-3 w-[100px] ${bar}`} />
-            <div className={`h-3 w-full ${bar}`} />
-            <div className={`h-3 w-2/3 ${bar}`} />
+            <div className={`h-3 w-[220px] max-w-full ${bar}`} />
           </div>
         </div>
       </div>

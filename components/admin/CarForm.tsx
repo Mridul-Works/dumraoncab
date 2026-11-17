@@ -281,7 +281,7 @@ export default function CarForm({
               )}
               {uploading && <span className="absolute inset-0 grid place-items-center bg-layer/80 type-body-sm text-primary">…</span>}
             </label>
-            <label htmlFor="car-file" className="min-w-[10rem] flex-1 cursor-pointer">
+            <label htmlFor="car-file" className="flex min-w-[10rem] flex-1 cursor-pointer flex-col gap-0.5">
               <span className="block truncate type-ui text-primary">
                 {uploading ? "Uploading…" : image ? fileName(image) : "Drop a photo or click to upload"}
               </span>

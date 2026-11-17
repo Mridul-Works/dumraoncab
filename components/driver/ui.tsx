@@ -14,7 +14,7 @@ export function Screen({
 }: {
   children: React.ReactNode;
   tone?: "gray" | "white" | "dark";
-  tabs?: "today" | "earnings" | "account";
+  tabs?: TabKey;
 }) {
   const bg = tone === "white" ? "bg-layer" : tone === "dark" ? "bg-gray-950" : "bg-gray-50";
   return (
@@ -186,23 +186,17 @@ export function CheckLine({ children, tone = "ok" }: { children: React.ReactNode
   );
 }
 
-// Three dashes over a sign-up step (10.5–10.10).
-export function Steps({ at, of = 3 }: { at: number; of?: number }) {
-  return (
-    <div className="flex w-full gap-[6px]" role="progressbar" aria-valuemin={1} aria-valuemax={of} aria-valuenow={at} aria-label={`Step ${at} of ${of}`}>
-      {Array.from({ length: of }, (_, i) => (
-        <div key={i} className={`h-[4px] flex-1 rounded-full ${i < at ? "bg-brand" : "bg-gray-200"}`} />
-      ))}
-    </div>
-  );
-}
-
-// Pickup → drop with the dots from the design.
+// Pickup → drop with the dots from the design. The route line runs from the
+// bottom of the pickup dot to the top of the drop dot, however tall the
+// pickup address wraps (Figma comment fix on 10.25).
 export function Route({ from, to, fromTime, toTime, fromLabel = "Pickup", toLabel = "Drop" }: { from: string; to: string; fromTime?: string; toTime?: string; fromLabel?: string; toLabel?: string }) {
   return (
-    <div className="flex w-full flex-col">
-      <div className="flex items-start gap-[12px]">
-        <span className="mt-[5px] size-[10px] shrink-0 rounded-full bg-brand" />
+    <div className="flex w-full flex-col gap-[16px]">
+      <div className="relative flex items-start gap-[12px]">
+        {to && <span aria-hidden className="absolute top-[15px] -bottom-[21px] left-[4px] w-[2px] rounded-[1px] bg-gray-200" />}
+        <span aria-hidden className="grid h-[20px] w-[10px] shrink-0 place-items-center">
+          <span className="size-[10px] rounded-full bg-brand" />
+        </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="type-body-sm text-secondary">{fromLabel}</span>
           <span className="type-ui text-primary">{from}</span>
@@ -210,19 +204,16 @@ export function Route({ from, to, fromTime, toTime, fromLabel = "Pickup", toLabe
         {fromTime && <span className="type-body-sm text-secondary">{fromTime}</span>}
       </div>
       {to && (
-        <>
-          <div className="flex py-[2px] pl-[4px]">
-            <div className="h-[18px] w-[2px] bg-gray-200" />
+        <div className="flex items-start gap-[12px]">
+          <span aria-hidden className="grid h-[20px] w-[10px] shrink-0 place-items-center">
+            <span className="size-[10px] rounded-full border-2 border-brand bg-layer" />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="type-body-sm text-secondary">{toLabel}</span>
+            <span className="type-ui text-primary">{to}</span>
           </div>
-          <div className="flex items-start gap-[12px]">
-            <span className="mt-[5px] size-[10px] shrink-0 rounded-full border-2 border-brand bg-layer" />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="type-body-sm text-secondary">{toLabel}</span>
-              <span className="type-ui text-primary">{to}</span>
-            </div>
-            {toTime && <span className="type-body-sm text-secondary">{toTime}</span>}
-          </div>
-        </>
+          {toTime && <span className="type-body-sm text-secondary">{toTime}</span>}
+        </div>
       )}
     </div>
   );
@@ -319,17 +310,23 @@ export function Mark() {
 
 /* --------------------------------- tab bar --------------------------------- */
 
+// 4-tab bar (Figma 10.18+): Dashboard, Today, Earnings, Profile. "account" is
+// accepted as an alias of "profile" (the Profile tab lives at /driver/account).
+export type TabKey = "dashboard" | "today" | "earnings" | "profile" | "account";
+
 const TABS = [
+  { key: "dashboard", label: "Dashboard", icon: "squares-four", href: "/driver/dashboard" },
   { key: "today", label: "Today", icon: "calendar-check", href: "/driver/today" },
   { key: "earnings", label: "Earnings", icon: "currency-inr", href: "/driver/earnings" },
-  { key: "account", label: "Account", icon: "user", href: "/driver/account" },
+  { key: "profile", label: "Profile", icon: "user", href: "/driver/account" },
 ] as const;
 
-export function TabBar({ active }: { active: "today" | "earnings" | "account" }) {
+export function TabBar({ active }: { active: TabKey }) {
+  const current = active === "account" ? "profile" : active;
   return (
     <nav aria-label="Driver app" className="sticky bottom-0 flex border-t border-gray-100 bg-layer pt-[8px] pb-[max(14px,env(safe-area-inset-bottom))]">
       {TABS.map((t) => {
-        const on = t.key === active;
+        const on = t.key === current;
         return (
           <Link
             key={t.key}

@@ -19,10 +19,12 @@ function badge(r: DocRef) {
 }
 
 const needsUpload = (r: DocRef) => r.doc.status === "missing" || r.doc.status === "reupload" || (r.doc.status !== "review" && (isExpired(r.doc) || expiresSoon(r.doc)));
-const name = (r: DocRef) => (r.car ? `${shortModel(r.car.model)} ${docShort(r.doc.kind)}` : docShort(r.doc.kind));
+// "PUC"; with two or more cars "Scorpio VLX PUC".
+const name = (r: DocRef, multiCar: boolean) => (r.car && multiCar ? `${shortModel(r.car.model)} ${docShort(r.doc.kind)}` : docShort(r.doc.kind));
 const fields = (r: DocRef): Record<string, string> => ({ kind: r.doc.kind, ...(r.car ? { car: r.car.id } : {}) });
 
-// Figma 10.46 My documents — same rows as the admin (6.6). Upload opens the camera (10.7).
+// Figma 10.53 My documents — same rows as the admin Vendor detail (6.10), the ones that need
+// the driver first. Upload opens the camera (10.7).
 export default async function MyDocumentsPage() {
   const { vendor } = await requireApproved();
   const refs = allDocs(vendor, true).filter((r) => !(r.doc.kind === "pan" && r.doc.status === "missing"));
@@ -32,6 +34,7 @@ export default async function MyDocumentsPage() {
     .sort((a, b) => (a.doc.validTill ?? "9999").localeCompare(b.doc.validTill ?? "9999"));
   const first = todo[0];
   const multiCar = vendor.cars.length > 1;
+  const rows = [...todo, ...refs.filter((r) => !todo.includes(r))];
 
   return (
     <Screen>
@@ -40,13 +43,13 @@ export default async function MyDocumentsPage() {
         {first?.doc.validTill && (isExpired(first.doc) || expiresSoon(first.doc)) && (
           <Banner>
             {isExpired(first.doc)
-              ? `${name(first)} expired. Upload the new one so trips can start again.`
-              : `${name(first)} expires in ${daysUntil(first.doc.validTill)} ${daysUntil(first.doc.validTill) === 1 ? "day" : "days"}. Upload the new one so trips don’t pause.`}
+              ? `${name(first, multiCar)} expired. Upload the new one so trips can start again.`
+              : `${name(first, multiCar)} expires in ${daysUntil(first.doc.validTill)} ${daysUntil(first.doc.validTill) === 1 ? "day" : "days"}. Upload the new one so trips don’t pause.`}
           </Banner>
         )}
-        <div className="flex flex-col rounded-lg border border-gray-100 bg-layer px-[6px] py-[6px]">
-          {refs.map((r, i) => (
-            <div key={`${r.car?.id ?? "me"}-${r.doc.kind}`} className={`flex items-center gap-[12px] px-[6px] py-[12px] ${i ? "border-t border-gray-100" : ""}`}>
+        <div className="flex flex-col rounded-lg border border-gray-100 bg-layer px-[8px] py-[6px]">
+          {rows.map((r) => (
+            <div key={`${r.car?.id ?? "me"}-${r.doc.kind}`} className="flex items-center gap-[12px] border-b border-gray-100 py-[12px]">
               <span className="grid size-[40px] shrink-0 place-items-center rounded-md bg-gray-50 text-secondary">
                 <Icon name="file-text" size={20} />
               </span>
@@ -68,7 +71,7 @@ export default async function MyDocumentsPage() {
         {first && (
           <CameraButton action={uploadDoc} fields={fields(first)} title={first.label} guide="Fit it inside the box. All four corners should show." className={btnClass("primary")}>
             <Icon name="upload-simple" size={16} />
-            {`Upload new ${name(first)}`}
+            {`Upload new ${name(first, multiCar)}`}
           </CameraButton>
         )}
       </Body>

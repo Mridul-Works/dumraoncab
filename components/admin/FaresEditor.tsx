@@ -32,7 +32,9 @@ type Draft = { classes: ClassRow[]; packages: PkgRow[]; routes: RouteRow[]; nigh
 // `subject` names the change in the published toast (5.3: "Nexon now ₹14/km").
 type Change = { key: string; label: string; subject?: string; before?: string; after?: string };
 // Something that keeps Save and publish off (5.8, 5.14). `field` is the input to focus.
-type Problem = { key: string; field: string; message: string; isNew: boolean; hint?: string };
+// `hint` shows under the row at once (5.14 duplicate); `note` only once the
+// field turns red (5.8 "Add a price to publish this route.").
+type Problem = { key: string; field: string; message: string; isNew: boolean; hint?: string; note?: string };
 
 const grouped = (n: number) => n.toLocaleString("en-IN");
 const toNumber = (s: string) => {
@@ -114,7 +116,8 @@ const toneCls: Record<Tone, string> = {
   plain: "border border-gray-200 bg-layer",
   changed: "border-[1.5px] border-brand bg-hover",
   new: "border-[1.5px] border-brand bg-hover",
-  bad: "border-[1.5px] border-negative bg-negative-subtle",
+  // Figma 5.8 / 5.14: same grey fill as a new field, red tag-colour edge.
+  bad: "border-[1.5px] border-tag-red bg-hover",
 };
 
 // A field cell: optional prefix ("₹", "km"), input, optional suffix ("/night").
@@ -200,6 +203,7 @@ export default function FaresEditor({
   const [base, setBase] = useState(fares.updatedAt ?? "");
   const [error, setError] = useState("");
   const [tried, setTried] = useState(false); // a publish was attempted: show every problem in red
+  const [touched, setTouched] = useState<Set<string>>(() => new Set()); // new rows staff have left
   const [published, setPublished] = useState<Change[] | null>(null);
   const [toast, setToast] = useState(false);
   const [failed, setFailed] = useState(false); // 5.4
@@ -231,7 +235,8 @@ export default function FaresEditor({
     const was = <T extends { key: string }>(rows: T[], key: string) => rows.find((r) => r.key === key);
     for (const c of draft.classes) {
       const old = was(saved.classes, c.key);
-      if (!old) list.push({ key: c.key, label: `New car class ${c.name || "…"}`, after: goodPrice(c.rate) ? `${shownPrice(c.rate)} per km` : undefined });
+      // 5.13: "New car class Utility · Magic Pickup · ₹12 per km"
+      if (!old) list.push({ key: c.key, label: [`New car class ${c.name || "…"}`, carsText(c.cars)].filter(Boolean).join(" · "), after: goodPrice(c.rate) ? `${shownPrice(c.rate)} per km` : undefined });
       else if (c.removed) list.push({ key: c.key, label: `Remove ${old.name}` });
       else if (c.rate !== old.rate)
         list.push({ key: c.key, label: old.name, subject: carsText(old.cars) || old.name, before: shownPrice(old.rate), after: `${shownPrice(c.rate)} per km` });
@@ -271,13 +276,13 @@ export default function FaresEditor({
       const name = c.name.trim();
       if (isNew && !name) out.push({ key: c.key, field: "name", message: "New car class needs a name", isNew });
       else if (isNew && seenClass.get(norm(name)) !== c) out.push({ key: c.key, field: "name", message: `${name} is already listed`, isNew, hint: `${name} is already a car class. Change that row instead.` });
-      if (!goodPrice(c.rate)) out.push({ key: c.key, field: "price", message: `${name || "New car class"} needs a rate`, isNew });
+      if (!goodPrice(c.rate)) out.push({ key: c.key, field: "price", message: `${name || "New car class"} needs a rate`, isNew, note: isNew ? "Add a rate per km to publish this class." : undefined });
     }
     for (const p of draft.packages) {
       if (p.removed) continue;
       const isNew = !p.id;
       if (isNew && (!p.name.trim() || !p.for.trim())) out.push({ key: p.key, field: p.name.trim() ? "for" : "name", message: `${p.name.trim() || "New package"} needs a name and what it is good for`, isNew });
-      if (!goodPrice(p.price)) out.push({ key: p.key, field: "price", message: `${p.name.trim() || "New package"} needs a price`, isNew });
+      if (!goodPrice(p.price)) out.push({ key: p.key, field: "price", message: `${p.name.trim() || "New package"} needs a price`, isNew, note: isNew ? "Add a price to publish this package." : undefined });
     }
     const pairs = new Map<string, RouteRow>();
     for (const r of draft.routes) {
@@ -308,7 +313,7 @@ export default function FaresEditor({
         }
         if (!goodPrice(r.km)) out.push({ key: r.key, field: "km", message: `${name} needs a distance`, isNew });
       }
-      if (!goodPrice(r.price)) out.push({ key: r.key, field: "price", message: `${name} needs a price`, isNew });
+      if (!goodPrice(r.price)) out.push({ key: r.key, field: "price", message: `${name} needs a price`, isNew, note: isNew ? "Add a price to publish this route." : undefined });
     }
     if (Number.isNaN(toNumber(draft.night))) out.push({ key: "night", field: "price", message: "Night allowance needs a whole number", isNew: false });
     for (const x of draft.extras) {
@@ -320,10 +325,21 @@ export default function FaresEditor({
   }, [draft]);
 
   const problemAt = (key: string, field: string) => problems.find((p) => p.key === key && p.field === field);
-  // Empty new fields wait for a publish attempt before turning red; wrong ones show at once.
+  // Empty new fields wait until staff leave the row (5.8) or try to publish
+  // before turning red; wrong ones show at once.
   const isBad = (key: string, field: string, value: string) => {
     const p = problemAt(key, field);
-    return !!p && (tried || value.trim() !== "" || !!p.hint);
+    return !!p && (tried || touched.has(key) || value.trim() !== "" || !!p.hint);
+  };
+  // Line under a row: a duplicate warning (5.14) or what the red field needs (5.8).
+  const rowNote = (key: string) => {
+    const p = problems.find((x) => x.key === key && (x.hint || (x.note && (tried || touched.has(key)))));
+    return p?.hint ?? p?.note;
+  };
+  // Focus leaving a row marks it touched, so its empty fields show in red.
+  const leaveRow = (key: string) => (e: React.FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null) || touched.has(key)) return;
+    setTouched((t) => new Set(t).add(key));
   };
 
   const dirty = editing && changes.length > 0;
@@ -367,6 +383,7 @@ export default function FaresEditor({
     setToast(false);
     setError("");
     setTried(false);
+    setTouched(new Set());
     setEditing(true);
   }
 
@@ -374,6 +391,7 @@ export default function FaresEditor({
     setDraft(saved);
     setError("");
     setTried(false);
+    setTouched(new Set());
     setDiscarding(false);
     setEditing(false);
   }
@@ -561,11 +579,12 @@ export default function FaresEditor({
               const isNew = editing && !savedClassKeys.has(c.key);
               const was = old(saved.classes, c.key);
               const names = carsText(c.cars) || "No cars in this class";
+              const note = editing ? rowNote(c.key) : undefined;
               return (
-                <div key={c.key}>
+                <div key={c.key} onBlur={isNew ? leaveRow(c.key) : undefined}>
                   <div className={rowCls(editing, isNew)}>
                     {isNew ? (
-                      <Cell id={`fare-${c.key}-name`} value={c.name} onChange={(v) => patch("classes", c.key, { name: v })} label="Class name" tone={isBad(c.key, "name", c.name) ? "bad" : "new"} placeholder="Class" className={`${firstCol(true)} max-sm:flex-1`} />
+                      <Cell id={`fare-${c.key}-name`} value={c.name} onChange={(v) => patch("classes", c.key, { name: v })} label="Class name" tone={isBad(c.key, "name", c.name) ? "bad" : "new"} placeholder="Class" className="w-26 shrink-0 max-sm:flex-1" />
                     ) : (
                       <div className={`${firstCol(editing)} max-sm:flex-1 ${c.removed ? struck : ""}`}>
                         <p className="type-ui text-primary">{c.name}</p>
@@ -581,7 +600,7 @@ export default function FaresEditor({
                     {editing && <RowAction removed={c.removed} label={c.name || "new class"} onRemove={() => removeClass(c)} onUndo={() => patch("classes", c.key, { removed: false })} />}
                   </div>
                   {c.removed && <Hint>Comes off /fleet and the booking form when you publish. Undo to keep it.</Hint>}
-                  {problemAt(c.key, "name")?.hint && <Hint bad>{problemAt(c.key, "name")!.hint}</Hint>}
+                  {note && <Hint bad>{note}</Hint>}
                 </div>
               );
             })}
@@ -605,8 +624,9 @@ export default function FaresEditor({
             {shown.packages.map((p) => {
               const isNew = editing && !savedPkgKeys.has(p.key);
               const was = old(saved.packages, p.key);
+              const note = editing ? rowNote(p.key) : undefined;
               return (
-                <div key={p.key}>
+                <div key={p.key} onBlur={isNew ? leaveRow(p.key) : undefined}>
                   <div className={rowCls(editing, isNew)}>
                     {isNew ? (
                       <>
@@ -626,6 +646,7 @@ export default function FaresEditor({
                     {editing && <RowAction removed={p.removed} label={p.name || "new package"} onRemove={() => removeRow("packages", p.key)} onUndo={() => patch("packages", p.key, { removed: false })} />}
                   </div>
                   {p.removed && <Hint>Comes off /booking when you publish. Undo to keep it.</Hint>}
+                  {note && <Hint bad>{note}</Hint>}
                 </div>
               );
             })}
@@ -655,9 +676,9 @@ export default function FaresEditor({
             {shown.routes.map((r) => {
               const isNew = editing && !savedRouteKeys.has(r.key);
               const was = old(saved.routes, r.key);
-              const hint = problems.find((p) => p.key === r.key && p.hint)?.hint;
+              const hint = editing ? rowNote(r.key) : undefined;
               return (
-                <div key={r.key}>
+                <div key={r.key} onBlur={isNew ? leaveRow(r.key) : undefined}>
                   <div className={rowCls(editing, isNew)}>
                     {isNew ? (
                       <>
@@ -777,14 +798,14 @@ export default function FaresEditor({
                       {others.length > 2 ? ` +${others.length - 2} more` : ""} ·
                     </span>
                   )}
-                  {lead.label}
+                  {/* A changed price: "Nexon ₹13 → ₹14 per km". A new row: "New car class Utility · ₹12 per km". */}
+                  <span>
+                    {lead.label}
+                    {lead.before === undefined && lead.after !== undefined ? " ·" : ""}
+                  </span>
                   {lead.before !== undefined && <span className="line-through">{lead.before}</span>}
-                  {lead.after !== undefined && (
-                    <>
-                      <Icon name="arrow-right" size={14} />
-                      <span className="type-ui text-brand">{lead.after}</span>
-                    </>
-                  )}
+                  {lead.before !== undefined && lead.after !== undefined && <Icon name="arrow-right" size={14} />}
+                  {lead.after !== undefined && <span className="type-ui text-brand">{lead.after}</span>}
                 </p>
               )
             )}

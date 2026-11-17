@@ -74,18 +74,18 @@ export default function Modal({
 
   return (
     <Shell onClose={onClose}>
-      <div ref={box} role="dialog" aria-modal="true" tabIndex={-1} className={`${boxCls} ${width} gap-4 p-5 sm:p-7`}>
+      <div ref={box} role="dialog" aria-modal="true" tabIndex={-1} className={`${boxCls} ${width} gap-5 p-5 sm:p-7`}>
         <div className="flex items-start gap-4">
           <span className={`grid size-11 shrink-0 place-items-center rounded-full ${toneCls[tone]}`}>
             <Icon name={icon} size={22} />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="type-h4 text-primary">{title}</h2>
-            {subtitle && <p className="mt-1 type-body-sm text-secondary">{subtitle}</p>}
+            {subtitle && <p className="mt-1.5 type-body-sm text-secondary">{subtitle}</p>}
           </div>
         </div>
         {children}
-        <div className="flex flex-wrap justify-end gap-2.5">{footer}</div>
+        <div className="flex flex-wrap justify-end gap-3">{footer}</div>
       </div>
     </Shell>
   );

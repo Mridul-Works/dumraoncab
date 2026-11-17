@@ -2,13 +2,13 @@ import type { Booking } from "@/lib/bookingTypes";
 
 // Browser-safe rules shared by driver app screens and their Server Actions.
 
-// 10.19: three reasons, no typing.
+// 10.26 Can’t take it: three reasons, no typing.
 export const declineReasons = ["Already on a trip", "Car not ready", "Not feeling well"];
 
-// 10.30: three expense types only.
+// 10.37 Add expense: three expense types only.
 export const EXPENSE_KINDS = ["Toll", "Parking", "Fuel"];
 
-// 10.24: a start reading below the last trip, or more than 300 km above it, needs a second look.
+// 10.31 Check the meter: a start reading below the last trip, or more than 300 km above it, needs a second look.
 export const METER_JUMP_KM = 300;
 
 // The last meter reading this driver recorded for the same car.

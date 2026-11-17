@@ -63,14 +63,17 @@ export function Art({ name, className = "h-40 w-60" }: { name: ArtName; classNam
   return <img src={`/admin-art/${name}.svg`} alt="" width={240} height={160} className={`block shrink-0 ${className}`} />;
 }
 
-// Figma "Empty state": illustration, title, body and a button row.
+// Figma "Empty state" (520 wide, 40/24 padding) centred in the table card with
+// 48px above and below: illustration, title, body and a button row.
 export function EmptyBlock({ art, title, children, actions }: { art: ArtName; title: React.ReactNode; children?: React.ReactNode; actions?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-      <Art name={art} />
-      <p className="mt-3 type-h3 text-primary">{title}</p>
-      {children && <p className="max-w-[26rem] type-body-md text-secondary">{children}</p>}
-      {actions && <div className="flex flex-wrap justify-center gap-3 pt-4">{actions}</div>}
+    <div className="flex justify-center py-12">
+      <div className="flex w-full max-w-[520px] flex-col items-center gap-2 px-6 py-10 text-center">
+        <Art name={art} />
+        <p className="mt-3 type-h3 text-primary">{title}</p>
+        {children && <p className="type-body-md text-secondary">{children}</p>}
+        {actions && <div className="flex flex-wrap justify-center gap-3 pt-4">{actions}</div>}
+      </div>
     </div>
   );
 }

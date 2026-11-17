@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { CameraButton, UploadBox } from "@/components/driver/camera";
+import { CameraButton } from "@/components/driver/camera";
+import { ReuploadForm } from "@/components/driver/JoinForms";
 import { allDocs, clockOf, fmtShort, dayOf, shortModel, type DocRef } from "@/components/driver/format";
 import { Art, Body, btnClass, CheckLine, LinkBtn, Notice, Screen, Spacer, Tag, TopBar } from "@/components/driver/ui";
 import { uploadDoc, signOut } from "@/app/driver/actions";
@@ -29,7 +30,8 @@ const sentAt = (iso: string) => {
   return `${day} ${fmtShort(dayOf(iso))}, ${clockOf(iso)}`;
 };
 
-// Figma 10.12 Waiting for checking · 10.13 Asked to re-upload · rejected.
+// Figma 10.14 Waiting for checking (same status as admin 6.10) · 10.15 Asked
+// to re-upload (when the office asks again, admin 6.12) · rejected (admin 6.16).
 export default async function StatusPage() {
   const { vendor } = await requireVendor();
   if (vendor.status === "approved" || vendor.status === "suspended") redirect("/driver");
@@ -56,10 +58,11 @@ export default async function StatusPage() {
       </Screen>
     );
 
-  // 10.13: the office asked for one document again.
+  // 10.15: the office asked for one document again; only that one shows.
   const fix = refs.find((r) => r.doc.status === "reupload");
   if (fix) {
     const fine = groupName(refs.filter((r) => r.doc.status === "verified" || r.doc.status === "review"));
+    const twoSided = fix.doc.kind === "aadhaar" || fix.doc.kind === "licence";
     return (
       <Screen>
         <Body>
@@ -67,19 +70,15 @@ export default async function StatusPage() {
           <Notice title={`From the office${vendor.updatedAt ? ` · ${fmtShort(dayOf(vendor.updatedAt))}, ${clockOf(vendor.updatedAt)}` : ""}`}>
             {fix.doc.reason || `Your ${fix.car ? `${shortModel(fix.car.model)} ${PAPER[fix.doc.kind]}` : personName(fix.doc.kind)} photo is not clear. Please take it again.`}
           </Notice>
-          <UploadBox
+          <ReuploadForm
+            kind={fix.doc.kind}
+            car={fix.car?.id}
             label={fix.car ? `${shortModel(fix.car.model)} ${fix.label}` : fix.label}
-            hint={fix.doc.kind === "aadhaar" || fix.doc.kind === "licence" ? "Front and back, all four corners" : "All four corners should show"}
-            camera={{ title: `${fix.label} · front`, guide: "Fit it inside the box. Keep away from glare.", sides: fix.doc.kind === "aadhaar" || fix.doc.kind === "licence" ? 2 : 1, pdf: true }}
-            action={uploadDoc}
-            fields={{ kind: fix.doc.kind, ...(fix.car ? { car: fix.car.id } : {}) }}
-          />
-          {fine && <CheckLine>{`${fine} ${fine.includes(",") || fine.includes(" and ") ? "are" : "is"} fine`}</CheckLine>}
-          <Spacer />
-          <button type="button" disabled className={btnClass("primary")}>
-            Send again
-          </button>
-          <p className="-mt-[6px] text-center type-body-sm text-secondary">It sends as soon as the new photo is taken.</p>
+            hint={twoSided ? "Front and back, all four corners" : "All four corners should show"}
+            camera={{ title: twoSided ? `${fix.label} · front` : fix.label, guide: "Fit it inside the box. Keep away from glare.", sides: twoSided ? 2 : 1, pdf: true, page: "Fix a document", check: true }}
+          >
+            {fine && <CheckLine>{`${fine} ${fine.includes(",") || fine.includes(" and ") ? "are" : "is"} fine`}</CheckLine>}
+          </ReuploadForm>
         </Body>
       </Screen>
     );
@@ -116,6 +115,8 @@ export default async function StatusPage() {
                 fields={{ kind: r.doc.kind, ...(r.car ? { car: r.car.id } : {}) }}
                 title={r.car ? `${r.label} · ${r.car.number}` : r.label}
                 guide="Fit the paper inside the box. All four corners should show."
+                page="Waiting for checking"
+                check
                 className={btnClass("secondary", false)}
               >
                 Upload

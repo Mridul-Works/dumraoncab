@@ -68,7 +68,8 @@ export default async function PanelLayout({ children }: { children: React.ReactN
       </aside>
       {/* Owns ⌘K and the search dialog; page headers render triggers. */}
       <CommandPalette variant="listener" />
-      <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-8">
+      {/* Figma "Main": 40px sides, 36px top and bottom. */}
+      <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-9">
         <div className="mx-auto max-w-[1200px]">
           {/* Figma 2.10 / 2.12: offline and back-online notice on every admin page. */}
           <ConnectionBanner />

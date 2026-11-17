@@ -6,7 +6,7 @@ import Icon from "@/components/admin/Icon";
 import CallBackCard from "@/components/admin/dashboard/CallBackCard";
 import DashboardSkeleton from "@/components/admin/dashboard/DashboardSkeleton";
 import { LiveStatus, RetryButton } from "@/components/admin/dashboard/LiveStatus";
-import { REPLY_TARGET_MIN, clock, dayLabel, duration, istMinutes, panelHref, route } from "@/components/admin/dashboard/format";
+import { REPLY_TARGET_MIN, backLabel, clock, dayLabel, duration, istMinutes, panelHref, pickupRoute } from "@/components/admin/dashboard/format";
 import { CONNECTION_SLOT_ID } from "@/components/admin/dashboard/outbox";
 import { NumberStrip, StatusBadge, btnGhost, btnPrimary, btnText, cardCls, type Stat } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -78,6 +78,7 @@ async function Dashboard() {
   const live = bookings.filter((b) => b.status !== "cancelled");
   const carOf = (b: Booking) => cars.find((c) => c.id === b.carId);
   const carName = (b: Booking) => carOf(b)?.name ?? b.car;
+  const backOf = (b: Booking) => backLabel(b, today, tomorrow);
   const asOf = `The rest of the dashboard is up to date as of ${nowClock}.`;
 
   // ---- Needs a call back: new requests, oldest first
@@ -254,7 +255,7 @@ async function Dashboard() {
           <section className={`flex flex-col gap-3.5 rounded-lg bg-layer p-5 ${next.date === today ? "border-[1.5px] border-brand" : "border border-gray-100"}`}>
             <div className="flex items-center gap-2">
               <h2 className="flex-1 type-h4 text-primary">Up next</h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-2.5 type-body-sm text-secondary">
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-[3px] pl-2 pr-2.5 type-body-sm text-secondary">
                 <Icon name="clock" size={14} />
                 in {duration(istMinutes(next.date, next.time || "00:00") - nowMin).replace(/ 00 min$/, "")}
               </span>
@@ -349,7 +350,7 @@ async function Dashboard() {
                         const right = done
                           ? { text: "Completed", cls: "text-secondary" }
                           : trip
-                            ? { text: "On trip", cls: "text-brand" }
+                            ? { text: backOf(b) ? `On trip · back ${backOf(b)}` : "On trip", cls: "text-brand" }
                             : isNext
                               ? {
                                   text: g.day === today ? "Up next" : `Up next · in ${duration(istMinutes(b.date, b.time || "00:00") - nowMin).split(" ").slice(0, 2).join(" ")}`,
@@ -367,7 +368,7 @@ async function Dashboard() {
                               <span className={`min-w-0 flex-1 pb-4.5 ${done ? "text-secondary" : ""}`}>
                                 <span className={`block type-ui group-hover:text-link-hover ${done ? "" : "text-primary"}`}>{b.name || "Unnamed"}</span>
                                 <span className="mt-0.5 block truncate type-body-sm text-secondary">
-                                  {route(b)}
+                                  {pickupRoute(b)}
                                   {carName(b) ? ` · ${carName(b)}` : " · car not assigned"}
                                   {done && b.trip?.endedAt ? ` · back ${istClock(b.trip.endedAt)}` : ""}
                                 </span>
@@ -410,7 +411,10 @@ async function Dashboard() {
                           <p className="type-ui text-primary">{c.name}</p>
                           <p className="truncate type-body-sm text-secondary">{b ? `${b.name || "Customer"} · ${b.to ? b.to : "local"}` : "Logged in today’s Daily Diary"}</p>
                         </div>
-                        {b?.time && <span className="shrink-0 type-body-sm text-secondary">left {clock(b.time).replace(/^0/, "")}</span>}
+                        {/* Figma 2.1: when it is due back; otherwise when it left. */}
+                        {b && (backOf(b) || b.time) && (
+                          <span className="shrink-0 type-body-sm text-secondary">{backOf(b) ? `back ${backOf(b)}` : `left ${clock(b.time).replace(/^0/, "")}`}</span>
+                        )}
                       </div>
                     );
                   })

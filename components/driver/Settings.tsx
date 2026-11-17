@@ -24,7 +24,9 @@ const ROWS = [
 
 type Key = (typeof ROWS)[number]["key"];
 
-// Figma 10.15: asks only for what is still off, using the browser's own prompts.
+// Figma 10.17: asks only for what is still off, using the browser's own
+// prompts. One button, as in the design; "Not now" shows only once the
+// browser has said no, so a blocked setting never traps the driver here.
 export function QuickSettings() {
   const [state, setState] = useState<Record<Key, Perm>>({ alerts: "unknown", location: "unknown", camera: "unknown" });
   const [pending, start] = useTransition();
@@ -47,7 +49,7 @@ export function QuickSettings() {
   async function ask(key: Key) {
     setNote(null);
     if (key === "alerts") {
-      if (typeof Notification === "undefined") return setNote("This browser can’t show alerts. Keep the app open on Today to hear new trips.");
+      if (typeof Notification === "undefined") return setNote("This browser can’t show alerts. Keep the app open to hear new trips.");
       const p = await Notification.requestPermission();
       setState((s) => ({ ...s, alerts: p === "granted" ? "on" : "off" }));
       if (p !== "granted") setNote("Alerts are blocked. Allow notifications for this site in your browser settings.");
@@ -112,13 +114,15 @@ export function QuickSettings() {
           <button type="button" className={btnClass("primary")} onClick={() => ask(next.key)}>
             {next.ask}
           </button>
-          <button type="button" className={btnClass("ghost")} disabled={pending} onClick={done}>
-            <Busy on={pending} text="Opening…">Not now</Busy>
-          </button>
+          {note && (
+            <button type="button" className={btnClass("ghost")} disabled={pending} onClick={done}>
+              <Busy on={pending} text="Opening…">Not now</Busy>
+            </button>
+          )}
         </div>
       ) : (
         <button type="button" className={btnClass("primary")} disabled={pending} onClick={done}>
-          <Busy on={pending} text="Opening…">Go to Today</Busy>
+          <Busy on={pending} text="Opening…">Go to dashboard</Busy>
         </button>
       )}
     </>

@@ -187,7 +187,7 @@ function Outcomes({ vendor, verb, outcome, pending, retry, onClose }: { vendor: 
 
 function Row({ ok, title, children }: { ok: boolean; title: string; children: React.ReactNode }) {
   return (
-    <li className="flex gap-2.5 border-b border-gray-100 px-3.5 py-3 last:border-b-0">
+    <li className="flex gap-3 border-b border-gray-100 px-4 py-3 last:border-b-0">
       <Icon name={ok ? "check-circle" : "warning-circle"} size={18} className={`mt-px ${ok ? "text-brand" : "text-tag-amber"}`} />
       <div className="min-w-0">
         <p className="type-ui text-primary">{title}</p>
@@ -263,8 +263,8 @@ export function ApproveDialog({ vendor, today, onClose, onDone }: { vendor: Vend
           {personText}
         </Row>
       </ul>
-      <button type="button" onClick={() => setWelcome(!welcome)} aria-pressed={welcome} className="flex items-center gap-3 rounded-lg bg-gray-50 px-3.5 py-3 text-left">
-        <Icon name="whatsapp-logo" size={16} className="shrink-0 text-secondary" />
+      <button type="button" onClick={() => setWelcome(!welcome)} aria-pressed={welcome} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3.5 text-left">
+        <Icon name="whatsapp-logo" size={20} className="shrink-0 text-secondary" />
         <span className="min-w-0 flex-1">
           <span className="block type-ui text-primary">Send a welcome note on WhatsApp</span>
           <span className="block type-body-sm text-secondary">To {vendor.mobile} with the app link and payout day</span>
@@ -325,13 +325,13 @@ export function RejectDialog({ vendor, onClose, onDone }: { vendor: Vendor; onCl
       }
     >
       <fieldset className="flex flex-col gap-2">
-        <legend className={labelCls}>Reason</legend>
+        <legend className="mb-5 block type-ui text-primary">Reason</legend>
         {vendorRejectReasons.map((r) => {
           const on = r.id === reason;
           return (
             <label
               key={r.id}
-              className={`flex cursor-pointer gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${on ? "border-brand bg-layer-selected" : "border-gray-100 bg-layer hover:bg-layer-hover"}`}
+              className={`flex cursor-pointer gap-3 rounded-lg border p-[15px] transition-colors ${on ? "border-brand bg-layer-selected" : "border-gray-100 bg-layer hover:bg-layer-hover"}`}
             >
               <input type="radio" name="reason" value={r.id} checked={on} onChange={() => pick(r.id)} className="sr-only" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -439,7 +439,7 @@ export function SuspendDialog({
       </div>
       <div>
         <p className={labelCls}>How long</p>
-        <div role="radiogroup" className="grid grid-cols-3 gap-1 rounded-full bg-gray-50 p-1">
+        <div role="radiogroup" className="grid grid-cols-3 gap-1 rounded-full bg-gray-50 p-[5px]">
           {ranges.map((r) => (
             <button
               key={r.label}
@@ -447,31 +447,31 @@ export function SuspendDialog({
               role="radio"
               aria-checked={days === r.v}
               onClick={() => setDays(r.v)}
-              className={`rounded-full px-2 py-1.5 type-body-sm transition-colors ${days === r.v ? "bg-layer text-primary shadow-[0_1px_2px_var(--shadow-sm)]" : "text-secondary hover:text-primary"}`}
+              className={`rounded-full px-2 py-2 type-body-sm transition-colors ${days === r.v ? "bg-layer text-primary shadow-[0_1px_2px_var(--shadow-sm)]" : "text-secondary hover:text-primary"}`}
             >
               {r.label}
             </button>
           ))}
         </div>
-        <p className="mt-1.5 type-body-sm text-secondary">
+        <p className="mt-2 type-body-sm text-secondary">
           {days ? `Back on trips on ${weekdayDate(addDays(today, days))} unless you reactivate sooner` : "Stays off trips until you reactivate"}
         </p>
       </div>
       {upcoming.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-100">
-          <p className="flex items-center gap-2 px-3.5 py-3 type-ui text-primary">
+          <p className="flex items-center gap-2.5 px-4 py-3 type-ui text-primary">
             <Icon name="warning-circle" size={18} className="text-tag-amber" />
             {upcoming.length} upcoming booking{upcoming.length > 1 ? "s use" : " uses"} these cars
           </p>
           {upcoming.map((b) => (
-            <p key={b.id} className="flex gap-2 border-t border-gray-100 px-3.5 py-2 type-body-sm text-primary">
-              <span className="type-mono-sm text-secondary">{b.ref}</span>
+            <p key={b.id} className="flex gap-3 border-t border-gray-100 px-4 py-2.5 type-body-sm text-primary">
+              <span className="mt-0.5 shrink-0 type-mono-sm text-secondary">{b.ref}</span>
               <span className="min-w-0">
                 {b.when} · {b.route}
               </span>
             </p>
           ))}
-          <button type="button" onClick={() => setMove(!move)} aria-pressed={move} className="flex w-full items-center gap-3 border-t border-gray-100 bg-gray-50 px-3.5 py-2.5 text-left">
+          <button type="button" onClick={() => setMove(!move)} aria-pressed={move} className="flex w-full items-center gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 text-left">
             <span className="min-w-0 flex-1">
               <span className="block type-ui text-primary">Move them to other drivers</span>
               <span className="block type-body-sm text-secondary">We pick the nearest approved vendor with the same car type</span>
@@ -554,12 +554,12 @@ export function ReactivateDialog({ vendor, today, onClose, onDone }: { vendor: V
       <div className="overflow-hidden rounded-lg border border-gray-100">
         {n > 0 && (
           <>
-            <p className="flex items-center gap-2 px-3.5 py-3 type-ui text-primary">
+            <p className="flex items-center gap-2.5 px-4 py-3 type-ui text-primary">
               <Icon name="check-circle" size={18} className="text-brand" />
               {n > 1 ? "Cars going back on trips" : "Car going back on trips"}
             </p>
             {vendor.cars.map((car) => (
-              <p key={car.id} className="flex gap-2 border-t border-gray-100 px-3.5 py-2.5 type-body-sm text-primary">
+              <p key={car.id} className="flex gap-3 border-t border-gray-100 px-4 py-2.5 type-body-sm text-primary">
                 <span className="mt-0.5 shrink-0 type-mono-sm text-secondary">{car.number}</span>
                 <span className="min-w-0">
                   {car.model} · {carReady(car, today) ? `all ${CAR_DOCS.length} papers valid` : offReason(car, today)}
@@ -572,7 +572,7 @@ export function ReactivateDialog({ vendor, today, onClose, onDone }: { vendor: V
           type="button"
           onClick={() => setTell(!tell)}
           aria-pressed={tell}
-          className={`flex w-full items-center gap-3 bg-gray-50 px-3.5 py-3 text-left ${n > 0 ? "border-t border-gray-100" : ""}`}
+          className={`flex w-full items-center gap-3 bg-gray-50 px-4 py-3 text-left ${n > 0 ? "border-t border-gray-100" : ""}`}
         >
           <span className="min-w-0 flex-1">
             <span className="block type-ui text-primary">Tell {first} on WhatsApp</span>

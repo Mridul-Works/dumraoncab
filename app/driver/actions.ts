@@ -21,6 +21,7 @@ import {
   getMyBooking,
   getPrefs,
   isOffer,
+  isOfferExpired,
   listMyBookings,
   patchTrip,
   PHOTO_SIDES,
@@ -42,7 +43,7 @@ import { declineReasons, EXPENSE_KINDS, lastOdometer, meterProblem } from "@/com
 // Server Actions for the driver app (/driver, Figma Flow 10). Every action
 // re-checks the signed driver session and only touches the driver's own data.
 
-export type ActionState = { error?: string; ok?: boolean; triesLeft?: number; devCode?: string; resendIn?: number } | undefined;
+export type ActionState = { error?: string; ok?: boolean; triesLeft?: number; devCode?: string; resendIn?: number; blockedMin?: number } | undefined;
 
 const PENDING = "dc_driver_m"; // mobile waiting for its code
 const DEV_CODE = "dc_driver_dev"; // development only: code shown on 10.3
@@ -81,8 +82,13 @@ export async function requestCode(_prev: ActionState, fd: FormData): Promise<Act
     console.error("[driver-app] sign-in failed:", err);
     return { ok: false as const, error: "Sign-in isn’t working right now. Please call the office." };
   });
-  if (!res.ok) return { error: res.error };
   const jar = await cookies();
+  // 10.5: too many codes for this number — the code screen says how long to wait.
+  if (!res.ok && "blockedMin" in res && res.blockedMin) {
+    jar.set(PENDING, mobile, shortCookie);
+    redirect("/driver/code");
+  }
+  if (!res.ok) return { error: res.error };
   jar.set(PENDING, mobile, shortCookie);
   if (res.devCode) jar.set(DEV_CODE, res.devCode, shortCookie);
   else jar.delete(DEV_CODE);
@@ -97,7 +103,7 @@ export async function resendCode(): Promise<ActionState> {
     console.error("[driver-app] resend failed:", err);
     return { ok: false as const, error: "Sign-in isn’t working right now. Please call the office.", resendIn: undefined };
   });
-  if (!res.ok) return { error: res.error, resendIn: res.resendIn };
+  if (!res.ok) return { error: res.error, resendIn: res.resendIn, blockedMin: "blockedMin" in res ? res.blockedMin : undefined };
   if (res.devCode) jar.set(DEV_CODE, res.devCode, shortCookie);
   return { ok: true, resendIn: res.resendIn, devCode: res.devCode };
 }
@@ -295,13 +301,14 @@ export async function seenApproved() {
   const { vendor } = await requireVendor();
   await setPrefs(vendor.id, (p) => void (p.seenApproved = true));
   const prefs = await getPrefs(vendor.id);
-  redirect(prefs.settingsDone ? "/driver/today" : "/driver/settings");
+  // 10.16 "Go to dashboard": the two quick settings (10.17) come first, once.
+  redirect(prefs.settingsDone ? "/driver/dashboard" : "/driver/settings");
 }
 
 export async function finishSettings() {
   const { vendor } = await requireVendor();
   await setPrefs(vendor.id, (p) => void (p.settingsDone = true));
-  redirect("/driver/today");
+  redirect("/driver/dashboard"); // 10.17 → Dashboard (10.18)
 }
 
 /* ----------------------------------- today ----------------------------------- */
@@ -316,7 +323,8 @@ export async function setAvailable(on: boolean) {
 export async function acceptTrip(id: string) {
   const { vendor } = await requireApproved();
   const b = await getMyBooking(id, vendor.id);
-  if (!b || !isOffer(b)) redirect("/driver/today");
+  // Too late (10.27): the request sheet shows that it timed out.
+  if (!b || !isOffer(b) || isOfferExpired(b)) redirect("/driver/dashboard");
   await patchTrip(id, vendor.id, (t) => Object.assign(t, { stage: "accepted", answeredAt: new Date().toISOString() }));
   touched();
   redirect(`/driver/trip/${id}`);
@@ -331,14 +339,16 @@ export async function declineTrip(_prev: ActionState, fd: FormData): Promise<Act
   if (!b || !isOffer(b)) return { error: "This trip is no longer waiting for you." };
   await patchTrip(id, vendor.id, (t) => Object.assign(t, { stage: "declined", declineReason: reason, answeredAt: new Date().toISOString() }));
   touched();
-  redirect("/driver/today");
+  // Stay on the Dashboard or Today, wherever the request was answered.
+  refresh();
+  return undefined;
 }
 
 export async function closeCancelled(id: string) {
   const { vendor } = await requireApproved();
   await patchTrip(id, vendor.id, (t) => void (t.cancelSeen = true));
   touched();
-  redirect("/driver/today");
+  redirect("/driver/dashboard"); // 10.47 Back to dashboard
 }
 
 /* ----------------------------------- trip ----------------------------------- */
@@ -346,7 +356,7 @@ export async function closeCancelled(id: string) {
 async function myTrip(id: string) {
   const { vendor } = await requireApproved();
   const b = await getMyBooking(id, vendor.id);
-  if (!b || b.status === "cancelled" || !b.trip || b.trip.stage === "offered" || b.trip.stage === "declined") redirect("/driver/today");
+  if (!b || b.status === "cancelled" || !b.trip || b.trip.stage === "offered" || b.trip.stage === "declined") redirect("/driver/dashboard");
   return { vendor, b };
 }
 
